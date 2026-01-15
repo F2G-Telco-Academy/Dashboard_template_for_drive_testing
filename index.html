@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORANGE CMR - Handover Validation Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+</head>
+<body>
+
+    <div class="dashboard-container p-4 md:p-6">
+        <div class="grid-bg"></div>
+        <div class="scanline"></div>
+        
+        <header class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-black pb-4 mb-4 shrink-0">
+            <div>
+                <div class="flex items-center gap-3">
+                    <div class="w-4 h-4 bg-orange-600 animate-pulse border border-black"></div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tighter leading-none">MOBILITY VALIDATION : LTE Handover Report.</h1>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3 text-xs md:text-sm font-bold font-mono">
+                    <span class="bg-black text-[#FFD600] px-3 py-1">OPERATOR: ORANGE CAMEROUN</span>
+                    <span class="border-2 border-black px-3 py-1 bg-white/50">ROUTE: TRADEX EMANA > NLONGKAK</span>
+                    <span class="border-2 border-black px-3 py-1 bg-white/50">STATUS: SUCCES</span>
+                </div>
+            </div>
+            
+            <div class="text-left md:text-right font-bold text-xs md:text-sm mt-4 md:mt-0 space-y-1">
+                <p>REF: 3GPP TS 36.331</p>
+                <p>FREQ: EARFCN 1300 (1800MHz) / 6300 (800MHz)</p>
+                <p>TEST DEVICE: SAMSUNG GALAXY (ECA/MOBIQ)</p>
+            </div>
+        </header>
+
+        <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden">
+            
+            <div class="lg:col-span-2 flex flex-col h-[500px] lg:h-auto border-thick bg-gray-900 relative group overflow-hidden">
+                <div id="map" style="width: 100%; height: 100%;"></div>
+                
+                <div style="position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; gap: 8px;">
+                    <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                    <button onclick="document.getElementById('csvFile').click()" class="bg-black text-[#FFD600] px-3 py-2 text-xs font-bold border-2 border-[#FFD600] hover:bg-[#FFD600] hover:text-black transition-all">
+                        📁 UPLOAD CSV
+                    </button>
+                    <select id="viewType" class="bg-black text-[#FFD600] px-3 py-2 text-xs font-bold border-2 border-[#FFD600] hidden">
+                        <option value="path">Path View (ECA Style)</option>
+                        <option value="cluster">Cluster View</option>
+                        <option value="heatmap">Heatmap (RSRP)</option>
+                        <option value="points">Points Only</option>
+                    </select>
+                </div>
+
+                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000;">
+                    <span class="bg-black text-white px-2 py-1 text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
+                </div>
+
+                <div style="position: absolute; bottom: 16px; left: 16px; z-index: 1000; max-height: calc(100% - 80px); overflow-y: auto;">
+                    <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
+                        <div class="font-bold text-[#FFD600] mb-2 border-b border-gray-600 pb-1">RSRP SIGNAL QUALITY</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-green-500 border border-white"></div> Excellent (≥-80 dBm)</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-blue-500 border border-white"></div> Good (-80 to -90)</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-yellow-500 border border-white"></div> Fair (-90 to -100)</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-orange-500 border border-white"></div> Poor (-100 to -110)</div>
+                        <div class="flex items-center gap-2"><div class="w-3 h-3 bg-red-500 border border-white"></div> Very Poor (&lt;-110)</div>
+                        
+                        <div class="font-bold text-[#FFD600] mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#22c55e] border border-white flex items-center justify-center text-[10px]">▶</div> RRC Setup</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⏹</div> RRC Release</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⚡</div> Attach</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#9ca3af] border border-white flex items-center justify-center text-[10px]">🔌</div> Detach</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-[10px]">⚠</div> RLF</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#f97316] border border-white flex items-center justify-center text-[10px]">↔</div> Handover</div>
+                        <div class="flex items-center gap-2 mb-1">📶 Cell Reselection</div>
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-[#eab308] border border-white flex items-center justify-center text-[10px]">📡</div> Service Request</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-4 h-full overflow-y-auto pr-1">
+                
+                <div class="border-thick bg-white/50 p-4 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="section-title m-0">01 : PERFORMANCE SUMMARY</div>
+                        <div class="w-3 h-3 bg-green-500 border border-black rounded-full"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="kpi-card p-3 flex flex-col justify-between h-24">
+                            <span class="text-[10px] font-bold text-gray-600 uppercase">HO Success Rate</span>
+                            <span class="text-3xl font-black text-green-600">100%</span>
+                            <div class="w-full bg-gray-300 h-1 mt-1"><div class="bg-green-600 h-1 w-full"></div></div>
+                        </div>
+                        <div class="kpi-card p-3 flex flex-col justify-between h-24">
+                            <span class="text-[10px] font-bold text-gray-600 uppercase">Video Continuity</span>
+                            <span class="text-3xl font-black">100%</span>
+                            <div class="w-full bg-gray-300 h-1 mt-1"><div class="bg-black h-1 w-full"></div></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 space-y-2 text-xs font-bold border-t-2 border-black border-dashed pt-3">
+                        <div class="flex justify-between">
+                            <span>SINR Gain (Inter-Freq):</span>
+                            <span class="bg-black text-white px-1">+6.0 dB</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>HO Latency:</span>
+                            <span>&lt; 50ms (Seamless)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-thick bg-white/50 p-4 flex-grow shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col">
+                    <div class="section-title m-0 mb-3">02 : ANALYSIS</div>
+                    
+                    <div class="bg-black/5 p-3 border border-black/10 flex-grow font-mono text-[11px] leading-relaxed overflow-y-auto">
+                        <p class="mb-2 text-green-700 font-bold underline">CASE: INTRA-FREQ HANDOVER</p>
+                        <p class="mb-3">
+                            <span class="text-blue-700">[MEAS_REPORT]</span> Event A3 Triggered.<br>
+                            > Neighbor (PCI 189) is 5dB > Serving Cell (PCI 401).<br>
+                            <span class="text-orange-700">[RRC_CONN_RECONFIG]</span> MobilityControlInfo Recv.<br>
+                            > Access Type: Contention-Free (Dedicated Preamble).<br>
+                            <span class="text-green-700">[HO_COMPLETE]</span> Path Switch Successful.
+                        </p>
+                        <div class="font-bold border-l-4 border-black pl-2 my-2 uppercase">
+                            Result: Session Retained
+                        </div>
+                        <p class="text-[10px] text-gray-500 italic">UE successfully transitioned without YouTube buffer depletion.</p>
+                    </div>
+                </div>
+
+                <div class="border-thick bg-black text-[#FFD600] p-4 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="section-title bg-[#FFD600] text-black m-0">03 : OPTIMIZATION</div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[#FFD600] text-black flex items-center justify-center font-bold text-[10px]">TTT</div>
+                            <div class="flex-grow border-b border-[#FFD600]/30 pb-1">
+                                <div class="text-[10px] font-bold text-white uppercase">Time-To-Trigger</div>
+                                <div class="text-[#FFD600] text-[10px] font-mono">SET: 100ms (Ping-Pong Mitigation)</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 bg-transparent border border-[#FFD600] text-[#FFD600] flex items-center justify-center font-bold text-[10px]">HYST</div>
+                            <div class="flex-grow border-b border-[#FFD600]/30 pb-1">
+                                <div class="text-[10px] font-bold text-white uppercase">Hysteresis</div>
+                                <div class="text-[#FFD600] text-[10px] font-mono">SET: 3dB (Signal Stability)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="relative z-10 border-t-4 border-black pt-4 mt-4 shrink-0">
+            <div class="flex justify-between items-center text-xs font-bold">
+                <span>© 2026 ORANGE CAMEROUN - RF OPTIMIZATION TEAM</span>
+                <span>CONFIDENTIAL - INTERNAL USE ONLY</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script>
+        let map, markers = [], layerIds = [];
+
+        function initMap() {
+            map = new maplibregl.Map({
+                container: 'map',
+                style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+                center: [11.5021, 3.8480],
+                zoom: 13
+            });
+            map.addControl(new maplibregl.NavigationControl());
+            map.addControl(new maplibregl.FullscreenControl());
+        }
+
+        function clearMap() {
+            markers.forEach(m => m.remove());
+            markers = [];
+            layerIds.forEach(id => {
+                if (map.getLayer(id)) map.removeLayer(id);
+                if (map.getSource(id)) map.removeSource(id);
+            });
+            layerIds = [];
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase().replace('#', 'id'));
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                const values = [];
+                let current = '', inQuotes = false;
+                for (const char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
+                    else current += char;
+                }
+                values.push(current.trim());
+                const row = {};
+                rawHeaders.forEach((header, index) => { row[header] = values[index]?.trim(); });
+                data.push(row);
+            }
+            return data;
+        }
+
+        function getColor(rsrp) {
+            if (rsrp >= -80) return '#22c55e';
+            if (rsrp >= -90) return '#3b82f6';
+            if (rsrp >= -100) return '#eab308';
+            if (rsrp >= -110) return '#f97316';
+            return '#ef4444';
+        }
+
+        function renderMap(csvData) {
+            clearMap();
+            const data = parseCSV(csvData);
+            const coords = [];
+
+            data.forEach((row, idx) => {
+                const lat = parseFloat(row.latitude);
+                const lon = parseFloat(row.longitude);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const rsrp = parseFloat(row.rsrp) || -100;
+                    coords.push({ lat, lon, rsrp, color: getColor(rsrp), row, idx });
+                }
+            });
+
+            // Draw colored path segments
+            for (let i = 0; i < coords.length - 1; i++) {
+                const p1 = coords[i], p2 = coords[i + 1];
+                const srcId = `seg-${i}`;
+                map.addSource(srcId, {
+                    type: 'geojson',
+                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [[p1.lon, p1.lat], [p2.lon, p2.lat]] } }
+                });
+                map.addLayer({ id: srcId, type: 'line', source: srcId, paint: { 'line-color': p1.color, 'line-width': 6, 'line-opacity': 0.9 } });
+                layerIds.push(srcId);
+            }
+
+            const eventIcons = {
+                'handover': { icon: '↔', color: '#f97316', label: 'Handover', circleIcon: true },
+                'cell_reselection': { icon: '📶', color: '#8b5cf6', label: 'Cell Reselection' },
+                'rrc_setup': { icon: '▶', color: '#22c55e', label: 'RRC Setup', circleIcon: true },
+                'rrc_release': { icon: '⏹', color: '#3b82f6', label: 'RRC Release', circleIcon: true },
+                'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
+                'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
+                'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
+                'service_request': { icon: '📡', color: '#eab308', label: 'Service Request', circleIcon: true }
+            };
+
+            // Add point markers (smaller, no event points get big markers)
+            coords.forEach((p, i) => {
+                const row = p.row;
+                const hasEvent = row.event && row.event.trim() !== '';
+                
+                if (!hasEvent) {
+                    // Small dot for regular points
+                    const el = document.createElement('div');
+                    el.style.cssText = `width:8px;height:8px;border-radius:50%;background:${p.color};border:1px solid white;cursor:pointer;opacity:0.7;`;
+                    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                            <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 Point #${row.id || i+1}</div>
+                            <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0,8) || '-'}</div>
+                            <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
+                            <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                        </div>
+                    `);
+                    markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                }
+            });
+
+            // Add EVENT markers (larger, on top)
+            coords.filter(p => p.row.event && p.row.event.trim() !== '').forEach((p, i) => {
+                const row = p.row;
+                const evtKey = row.event.toLowerCase().trim();
+                const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
+                
+                const el = document.createElement('div');
+                if (evt.circleIcon) {
+                    el.innerHTML = `<div style="text-align:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                        <div style="width:36px;height:36px;border-radius:50%;background:${evt.color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">${evt.icon}</div>
+                        <div style="font-size:8px;font-weight:bold;background:${evt.color};color:white;padding:1px 4px;border-radius:2px;white-space:nowrap;margin-top:2px;">${evt.label}</div>
+                    </div>`;
+                } else {
+                    el.innerHTML = `<div style="text-align:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                        <div style="font-size:24px;">${evt.icon}</div>
+                        <div style="font-size:8px;font-weight:bold;background:${evt.color};color:white;padding:1px 4px;border-radius:2px;white-space:nowrap;">${evt.label}</div>
+                    </div>`;
+                }
+                
+                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                        <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label}</div>
+                        <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0,8) || '-'}</div>
+                        <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
+                        <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>
+                    </div>
+                `);
+                markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+            });
+
+            // START/END markers
+            if (coords.length > 0) {
+                const startEl = document.createElement('div');
+                startEl.innerHTML = '<div style="text-align:center"><div style="font-size:20px">🟢</div><div style="font-size:9px;font-weight:bold;background:#22c55e;color:white;padding:1px 4px;border-radius:2px;">START</div></div>';
+                markers.push(new maplibregl.Marker({ element: startEl }).setLngLat([coords[0].lon, coords[0].lat]).addTo(map));
+                const endEl = document.createElement('div');
+                endEl.innerHTML = '<div style="text-align:center"><div style="font-size:20px">🏁</div><div style="font-size:9px;font-weight:bold;background:#ef4444;color:white;padding:1px 4px;border-radius:2px;">END</div></div>';
+                markers.push(new maplibregl.Marker({ element: endEl }).setLngLat([coords[coords.length-1].lon, coords[coords.length-1].lat]).addTo(map));
+            }
+
+            document.getElementById('pointCount').textContent = coords.length;
+
+            if (coords.length > 0) {
+                const lngLats = coords.map(c => [c.lon, c.lat]);
+                const bounds = lngLats.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(lngLats[0], lngLats[0]));
+                map.fitBounds(bounds, { padding: 50 });
+            }
+        }
+
+        let pendingCsv = null;
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('viewType').classList.remove('hidden');
+                if (map.isStyleLoaded()) {
+                    renderMap(event.target.result);
+                } else {
+                    pendingCsv = event.target.result;
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        initMap();
+        map.on('load', () => {
+            if (pendingCsv) {
+                renderMap(pendingCsv);
+                pendingCsv = null;
+            }
+        });
+    </script>
+</body>
+</html>

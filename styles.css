@@ -1,0 +1,77 @@
+:root {
+    --cyber-yellow: #FFD600;
+    --orange-brand: #FF7900; /* Orange Cameroun Brand Color */
+    --cyber-black: #1a1a1a;
+}
+
+body {
+    font-family: 'JetBrains Mono', monospace;
+    background-color: white;
+    color: black;
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    overflow: hidden;
+}
+
+.dashboard-container {
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Subtle Orange overlay for brand alignment */
+.grid-bg {
+    background-image: 
+        linear-gradient(rgba(255, 121, 0, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.border-thick { border: 4px solid black; }
+
+.section-title {
+    background: black;
+    color: var(--cyber-yellow);
+    padding: 4px 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+}
+
+.kpi-card {
+    background: rgba(255,255,255,0.4);
+    border: 3px solid black;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.kpi-card:hover {
+    background: white;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px black;
+}
+
+.scanline {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.03) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* Styling for L3 logs to make them look technical */
+.font-mono p {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding-bottom: 4px;
+}
