@@ -39,7 +39,7 @@ body {
 
 .section-title {
     background: black;
-    color: var(--cyber-yellow);
+    color: white;
     padding: 4px 12px;
     font-weight: 800;
     text-transform: uppercase;
