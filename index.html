@@ -22,7 +22,7 @@
                     <h1 class="text-2xl md:text-3xl font-extrabold tracking-tighter leading-none">MOBILITY VALIDATION : LTE Handover Report.</h1>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-3 text-xs md:text-sm font-bold font-mono">
-                    <span class="bg-black text-[#FFD600] px-3 py-1">OPERATOR: ORANGE CAMEROUN</span>
+                    <span class="bg-black text-white px-3 py-1">OPERATOR: ORANGE CAMEROUN</span>
                     <span class="border-2 border-black px-3 py-1 bg-white/50">ROUTE: TRADEX EMANA > NLONGKAK</span>
                     <span class="border-2 border-black px-3 py-1 bg-white/50">STATUS: SUCCES</span>
                 </div>
@@ -37,15 +37,15 @@
 
         <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden">
             
-            <div class="lg:col-span-2 flex flex-col h-[500px] lg:h-auto border-thick bg-gray-900 relative group overflow-hidden">
+            <div class="lg:col-span-2 flex flex-col h-[400px] sm:h-[500px] lg:h-auto border-thick bg-gray-900 relative group overflow-hidden">
                 <div id="map" style="width: 100%; height: 100%;"></div>
                 
                 <div style="position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; gap: 8px;">
                     <input type="file" id="csvFile" accept=".csv" style="display: none;">
-                    <button onclick="document.getElementById('csvFile').click()" class="bg-black text-[#FFD600] px-3 py-2 text-xs font-bold border-2 border-[#FFD600] hover:bg-[#FFD600] hover:text-black transition-all">
+                    <button onclick="document.getElementById('csvFile').click()" class="bg-black text-white px-3 py-2 text-xs font-bold border-2 border-white hover:bg-white hover:text-black transition-all">
                         📁 UPLOAD CSV
                     </button>
-                    <select id="viewType" class="bg-black text-[#FFD600] px-3 py-2 text-xs font-bold border-2 border-[#FFD600] hidden">
+                    <select id="viewType" class="bg-black text-white px-3 py-2 text-xs font-bold border-2 border-white hidden">
                         <option value="path">Path View (ECA Style)</option>
                         <option value="cluster">Cluster View</option>
                         <option value="heatmap">Heatmap (RSRP)</option>
@@ -57,16 +57,16 @@
                     <span class="bg-black text-white px-2 py-1 text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
                 </div>
 
-                <div style="position: absolute; bottom: 16px; left: 16px; z-index: 1000; max-height: calc(100% - 80px); overflow-y: auto;">
+                <div class="hidden sm:block" style="position: absolute; bottom: 16px; left: 16px; z-index: 1000; max-height: calc(100% - 80px); overflow-y: auto;">
                     <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
-                        <div class="font-bold text-[#FFD600] mb-2 border-b border-gray-600 pb-1">RSRP SIGNAL QUALITY</div>
+                        <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1">RSRP SIGNAL QUALITY</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-green-500 border border-white"></div> Excellent (≥-80 dBm)</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-blue-500 border border-white"></div> Good (-80 to -90)</div>
-                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-yellow-500 border border-white"></div> Fair (-90 to -100)</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-amber-500 border border-white"></div> Fair (-90 to -100)</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-orange-500 border border-white"></div> Poor (-100 to -110)</div>
                         <div class="flex items-center gap-2"><div class="w-3 h-3 bg-red-500 border border-white"></div> Very Poor (&lt;-110)</div>
                         
-                        <div class="font-bold text-[#FFD600] mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
+                        <div class="font-bold text-white mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#22c55e] border border-white flex items-center justify-center text-[10px]">▶</div> RRC Setup</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⏹</div> RRC Release</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⚡</div> Attach</div>
@@ -74,7 +74,7 @@
                         <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-[10px]">⚠</div> RLF</div>
                         <div class="flex items-center gap-2 mb-1"><div class="w-4 h-4 rounded-full bg-[#f97316] border border-white flex items-center justify-center text-[10px]">↔</div> Handover</div>
                         <div class="flex items-center gap-2 mb-1">📶 Cell Reselection</div>
-                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-[#eab308] border border-white flex items-center justify-center text-[10px]">📡</div> Service Request</div>
+                        <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-[#06b6d4] border border-white flex items-center justify-center text-[10px]">📡</div> Service Request</div>
                     </div>
                 </div>
             </div>
@@ -131,25 +131,25 @@
                     </div>
                 </div>
 
-                <div class="border-thick bg-black text-[#FFD600] p-4 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
+                <div class="border-thick bg-black text-white p-4 shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)]">
                     <div class="flex justify-between items-center mb-3">
-                        <div class="section-title bg-[#FFD600] text-black m-0">03 : OPTIMIZATION</div>
+                        <div class="section-title bg-white text-black m-0">03 : OPTIMIZATION</div>
                     </div>
 
                     <div class="space-y-3">
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 bg-[#FFD600] text-black flex items-center justify-center font-bold text-[10px]">TTT</div>
-                            <div class="flex-grow border-b border-[#FFD600]/30 pb-1">
-                                <div class="text-[10px] font-bold text-white uppercase">Time-To-Trigger</div>
-                                <div class="text-[#FFD600] text-[10px] font-mono">SET: 100ms (Ping-Pong Mitigation)</div>
+                            <div class="h-8 w-8 bg-white text-black flex items-center justify-center font-bold text-[10px]">TTT</div>
+                            <div class="flex-grow border-b border-white/30 pb-1">
+                                <div class="text-[10px] font-bold text-gray-300 uppercase">Time-To-Trigger</div>
+                                <div class="text-white text-[10px] font-mono">SET: 100ms (Ping-Pong Mitigation)</div>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 bg-transparent border border-[#FFD600] text-[#FFD600] flex items-center justify-center font-bold text-[10px]">HYST</div>
-                            <div class="flex-grow border-b border-[#FFD600]/30 pb-1">
-                                <div class="text-[10px] font-bold text-white uppercase">Hysteresis</div>
-                                <div class="text-[#FFD600] text-[10px] font-mono">SET: 3dB (Signal Stability)</div>
+                            <div class="h-8 w-8 bg-transparent border border-white text-white flex items-center justify-center font-bold text-[10px]">HYST</div>
+                            <div class="flex-grow border-b border-white/30 pb-1">
+                                <div class="text-[10px] font-bold text-gray-300 uppercase">Hysteresis</div>
+                                <div class="text-white text-[10px] font-mono">SET: 3dB (Signal Stability)</div>
                             </div>
                         </div>
                     </div>
@@ -216,7 +216,7 @@
         function getColor(rsrp) {
             if (rsrp >= -80) return '#22c55e';
             if (rsrp >= -90) return '#3b82f6';
-            if (rsrp >= -100) return '#eab308';
+            if (rsrp >= -100) return '#f59e0b';
             if (rsrp >= -110) return '#f97316';
             return '#ef4444';
         }
@@ -255,7 +255,7 @@
                 'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
-                'service_request': { icon: '📡', color: '#eab308', label: 'Service Request', circleIcon: true }
+                'service_request': { icon: '📡', color: '#06b6d4', label: 'Service Request', circleIcon: true }
             };
 
             // Add point markers (smaller, no event points get big markers)
@@ -289,18 +289,12 @@
                 
                 const el = document.createElement('div');
                 if (evt.circleIcon) {
-                    el.innerHTML = `<div style="text-align:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
-                        <div style="width:36px;height:36px;border-radius:50%;background:${evt.color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">${evt.icon}</div>
-                        <div style="font-size:8px;font-weight:bold;background:${evt.color};color:white;padding:1px 4px;border-radius:2px;white-space:nowrap;margin-top:2px;">${evt.label}</div>
-                    </div>`;
+                    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${evt.color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 } else {
-                    el.innerHTML = `<div style="text-align:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
-                        <div style="font-size:24px;">${evt.icon}</div>
-                        <div style="font-size:8px;font-weight:bold;background:${evt.color};color:white;padding:1px 4px;border-radius:2px;white-space:nowrap;">${evt.label}</div>
-                    </div>`;
+                    el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
                 
-                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
+                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
                     <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                         <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label}</div>
                         <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0,8) || '-'}</div>
@@ -317,10 +311,10 @@
             // START/END markers
             if (coords.length > 0) {
                 const startEl = document.createElement('div');
-                startEl.innerHTML = '<div style="text-align:center"><div style="font-size:20px">🟢</div><div style="font-size:9px;font-weight:bold;background:#22c55e;color:white;padding:1px 4px;border-radius:2px;">START</div></div>';
+                startEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🟢</div>';
                 markers.push(new maplibregl.Marker({ element: startEl }).setLngLat([coords[0].lon, coords[0].lat]).addTo(map));
                 const endEl = document.createElement('div');
-                endEl.innerHTML = '<div style="text-align:center"><div style="font-size:20px">🏁</div><div style="font-size:9px;font-weight:bold;background:#ef4444;color:white;padding:1px 4px;border-radius:2px;">END</div></div>';
+                endEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🏁</div>';
                 markers.push(new maplibregl.Marker({ element: endEl }).setLngLat([coords[coords.length-1].lon, coords[coords.length-1].lat]).addTo(map));
             }
 
