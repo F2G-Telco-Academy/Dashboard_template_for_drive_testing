@@ -21,22 +21,22 @@
         <div class="scanline"></div>
 
         <!-- Edit Mode Toggle -->
-        <div class="fixed top-4 right-4 z-50 flex gap-2">
+        <div class="fixed top-2 right-2 z-50 flex flex-wrap gap-1 sm:gap-2">
             <button id="editModeBtn"
-                class="bg-yellow-400 text-black px-4 py-2 text-xs font-bold border-3 border-black hover:bg-yellow-500 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                ✏️ EDIT MODE: OFF
+                class="bg-yellow-400 text-black px-1 sm:px-4 py-1 sm:py-2 text-[10px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-yellow-500 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                ✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>
             </button>
             <button id="exportBtn"
-                class="bg-orange-600 text-white px-4 py-2 text-xs font-bold border-3 border-black hover:bg-orange-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                📸 EXPORT
+                class="bg-orange-600 text-white px-1 sm:px-4 py-1 sm:py-2 text-[10px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-orange-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                📸 <span class="hidden sm:inline">EXPORT</span>
             </button>
             <button id="saveConfigBtn"
-                class="bg-green-600 text-white px-4 py-2 text-xs font-bold border-3 border-black hover:bg-green-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                💾 SAVE CONFIG
+                class="bg-green-600 text-white px-1 sm:px-4 py-1 sm:py-2 text-[10px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-green-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                💾 <span class="hidden sm:inline">SAVE</span>
             </button>
             <button id="loadConfigBtn"
-                class="bg-blue-600 text-white px-4 py-2 text-xs font-bold border-3 border-black hover:bg-blue-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                📂 LOAD CONFIG
+                class="bg-blue-600 text-white px-1 sm:px-4 py-1 sm:py-2 text-[10px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-blue-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                📂 <span class="hidden sm:inline">LOAD</span>
             </button>
         </div>
 
@@ -83,18 +83,18 @@
                     </button>
                 </div>
 
-                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; gap: 8px; align-items: center;">
-                    <span class="bg-black text-white px-2 py-1 text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
-                    <button id="mapViewBtn" class="bg-black text-white px-2 py-1 text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; max-width: 280px;">
+                    <span class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
+                    <button id="mapViewBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
                         ☀️
                     </button>
-                    <button id="zoomInBtn" class="bg-black text-white px-2 py-1 text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                    <button id="zoomInBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
                         🔍+
                     </button>
-                    <button id="zoomOutBtn" class="bg-black text-white px-2 py-1 text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                    <button id="zoomOutBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
                         🔍-
                     </button>
-                    <button id="fullscreenBtn" class="bg-black text-white px-2 py-1 text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                    <button id="fullscreenBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
                         ⛶
                     </button>
                 </div>
@@ -255,7 +255,8 @@
         // =====================================================
         document.getElementById('editModeBtn').addEventListener('click', function() {
             editMode = !editMode;
-            this.textContent = editMode ? '✏️ EDIT MODE: ON' : '✏️ EDIT MODE: OFF';
+            const mobileText = editMode ? '✏️ <span class="hidden sm:inline">EDIT MODE: ON</span>' : '✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>';
+            this.innerHTML = mobileText;
             this.classList.toggle('bg-yellow-400', !editMode);
             this.classList.toggle('bg-green-500', editMode);
             
