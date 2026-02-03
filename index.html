@@ -294,6 +294,46 @@
                     currentConfig[field] = el.textContent.trim();
                 }
             });
+            
+            // Save additional fields for each section
+            currentConfig.additionalFields = {
+                performance: [],
+                impacts: [],
+                analysis: [],
+                recommendations: []
+            };
+            
+            // Save performance additional fields
+            document.querySelectorAll('#performanceContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent) {
+                    currentConfig.additionalFields.performance.push(textContent);
+                }
+            });
+            
+            // Save impacts additional fields
+            document.querySelectorAll('#impactsContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent) {
+                    currentConfig.additionalFields.impacts.push(textContent);
+                }
+            });
+            
+            // Save analysis additional fields
+            document.querySelectorAll('#analysisContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent) {
+                    currentConfig.additionalFields.analysis.push(textContent);
+                }
+            });
+            
+            // Save recommendations additional fields
+            document.querySelectorAll('#recommendationsContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent) {
+                    currentConfig.additionalFields.recommendations.push(textContent);
+                }
+            });
         }
 
         // =====================================================
@@ -307,6 +347,19 @@
                 ${editMode ? `<button class="absolute top-0 right-0 text-red-600 text-xs font-bold hover:text-red-800" onclick="this.parentElement.remove()">✕</button>` : ''}
                 <div class="editable-field text-sm" contenteditable="${editMode}" style="${editMode ? 'outline: 2px dashed #FF7900; outline-offset: 2px;' : ''}">
                     New ${fieldName} field - click to edit
+                </div>
+            `;
+            container.appendChild(newField);
+        }
+        
+        function addFieldToSectionWithContent(sectionId, fieldName, content) {
+            const container = document.getElementById(sectionId);
+            const newField = document.createElement('div');
+            newField.className = 'border-t border-gray-300 pt-2 mt-2 relative';
+            newField.innerHTML = `
+                ${editMode ? `<button class="absolute top-0 right-0 text-red-600 text-xs font-bold hover:text-red-800" onclick="this.parentElement.remove()">✕</button>` : ''}
+                <div class="editable-field text-sm" contenteditable="${editMode}" style="${editMode ? 'outline: 2px dashed #FF7900; outline-offset: 2px;' : ''}">
+                    ${content}
                 </div>
             `;
             container.appendChild(newField);
@@ -370,35 +423,129 @@
                     el.textContent = currentConfig[field];
                 }
             });
+            
+            // Load additional fields if they exist
+            if (currentConfig.additionalFields) {
+                // Load performance additional fields
+                if (currentConfig.additionalFields.performance) {
+                    currentConfig.additionalFields.performance.forEach(text => {
+                        addFieldToSectionWithContent('performanceContainer', 'performance', text);
+                    });
+                }
+                
+                // Load impacts additional fields
+                if (currentConfig.additionalFields.impacts) {
+                    currentConfig.additionalFields.impacts.forEach(text => {
+                        addFieldToSectionWithContent('impactsContainer', 'impacts', text);
+                    });
+                }
+                
+                // Load analysis additional fields
+                if (currentConfig.additionalFields.analysis) {
+                    currentConfig.additionalFields.analysis.forEach(text => {
+                        addFieldToSectionWithContent('analysisContainer', 'analysis', text);
+                    });
+                }
+                
+                // Load recommendations additional fields
+                if (currentConfig.additionalFields.recommendations) {
+                    currentConfig.additionalFields.recommendations.forEach(text => {
+                        addFieldToSectionWithContent('recommendationsContainer', 'recommendations', text);
+                    });
+                }
+            }
         }
 
         // =====================================================
         // EXPORT TO IMAGE
         // =====================================================
         document.getElementById('exportBtn').addEventListener('click', async function() {
-            const dashboard = document.querySelector('.dashboard-container');
-            
-            // Hide buttons temporarily
+            // Hide control buttons
             const buttons = document.querySelectorAll('.fixed');
             buttons.forEach(btn => btn.style.display = 'none');
             
+            // Get the main container
+            const dashboard = document.querySelector('.dashboard-container');
+            const mainGrid = dashboard.querySelector('.grid');
+            const rightPanel = dashboard.querySelector('.overflow-y-auto');
+            
+            // Store original styles
+            const originalDashboard = {
+                height: dashboard.style.height,
+                overflow: dashboard.style.overflow
+            };
+            const originalGrid = {
+                height: mainGrid.style.height,
+                overflow: mainGrid.style.overflow
+            };
+            const originalPanel = {
+                height: rightPanel.style.height,
+                maxHeight: rightPanel.style.maxHeight,
+                overflow: rightPanel.style.overflow
+            };
+            
             try {
+                // Remove all height and overflow constraints
+                dashboard.style.height = 'auto';
+                dashboard.style.overflow = 'visible';
+                mainGrid.style.height = 'auto';
+                mainGrid.style.overflow = 'visible';
+                rightPanel.style.height = 'auto';
+                rightPanel.style.maxHeight = 'none';
+                rightPanel.style.overflow = 'visible';
+                
+                // Force map to render and wait for tiles to load
+                if (map) {
+                    map.resize();
+                    await new Promise(resolve => {
+                        if (map.loaded()) {
+                            resolve();
+                        } else {
+                            map.once('idle', resolve);
+                        }
+                    });
+                }
+                
+                // Force layout recalculation and wait longer for map tiles
+                dashboard.offsetHeight;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Capture with full content and better map rendering
                 const canvas = await html2canvas(dashboard, {
                     backgroundColor: '#ffffff',
-                    scale: 2,
-                    logging: false,
-                    useCORS: true
+                    scale: 1.0,
+                    logging: true,
+                    useCORS: true,
+                    allowTaint: false,
+                    foreignObjectRendering: false,
+                    imageTimeout: 15000,
+                    removeContainer: false,
+                    width: dashboard.scrollWidth,
+                    height: dashboard.scrollHeight
                 });
                 
+                // Download the image
                 const link = document.createElement('a');
-                link.download = `test-case-report-${Date.now()}.png`;
-                link.href = canvas.toDataURL();
+                link.download = `handover-report-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
                 link.click();
                 
-                alert('Report exported successfully!');
+                alert('Complete report exported successfully!');
+                
             } catch (err) {
+                console.error('Export error:', err);
                 alert('Export failed: ' + err.message);
             } finally {
+                // Restore all original styles
+                dashboard.style.height = originalDashboard.height;
+                dashboard.style.overflow = originalDashboard.overflow;
+                mainGrid.style.height = originalGrid.height;
+                mainGrid.style.overflow = originalGrid.overflow;
+                rightPanel.style.height = originalPanel.height;
+                rightPanel.style.maxHeight = originalPanel.maxHeight;
+                rightPanel.style.overflow = originalPanel.overflow;
+                
+                // Show buttons again
                 buttons.forEach(btn => btn.style.display = '');
             }
         });
