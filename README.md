@@ -1,33 +1,34 @@
-# LTE Handover Validation Dashboard - ENHANCED EDITABLE VERSION
+# Telecom Drive Test Dashboard - Universal Template
 
-A professional telecom network validation dashboard for creating **customizable test case presentations** with editable fields, custom KPIs, and client-ready exports.
+A professional telecom network validation dashboard for creating **customizable test case presentations** with editable fields, KPI visualization, and client-ready exports.
 
-## 🆕 NEW FEATURES (Enhanced Version)
+## 🆕 KEY FEATURES
 
 ### ✏️ **Full Edit Mode**
-- Toggle edit mode to make ALL fields editable (except map and footer)
-- Click on any text to modify: titles, routes, device info, KPIs, parameters, L3 messages, verdicts
+- Toggle edit mode to make ALL fields editable
+- Click on any text to modify: titles, routes, device info, analysis sections
 - Visual indicators show which fields are editable (orange dashed outlines)
+- Guided placeholder text in all sections
 
-### 📊 **Custom KPIs & Pass/Fail Criteria**
-- Add/remove KPI cards dynamically
-- Edit labels, values, and pass/fail status
-- Perfect for creating custom test reports per drive test scenario
+### 📊 **KPI Visualization**
+- Real-time signal quality charts (RSRP, RSRQ, SINR, PCI)
+- Toggle visibility of individual KPI lines
+- PCI changes tracking with handover detection
+- Multi-KPI comparison charts
+- Statistics and signal quality distribution
 
-### 📡 **Auto-Populating L3 Message Flow**
-- L3 messages automatically populate from CSV event data
-- Manual editing enabled - add custom notes or modify auto-generated entries
-- Delete unwanted messages with one click
-
-### 💾 **Save & Load Test Configurations**
+### 💾 **Save & Load Configurations**
 - Save entire dashboard configuration as JSON file
+- Choose save location and filename (Chrome/Edge)
 - Load previously saved configs to reuse test templates
-- Create library of standard test case formats
+- Preserves empty fields correctly
 
-### 📸 **Export to Image**
-- One-click export of entire dashboard as high-resolution PNG
-- Perfect for client presentations and internal reports
-- Clean export (control buttons hidden automatically)
+### 🗺️ **Interactive Map**
+- Drive test route visualization with color-coded signal quality
+- Event markers: Handover, Attach, Detach, RLF, Cell Reselection, CSFB
+- Legend positioned below upload button
+- Dark/Light mode toggle
+- Fullscreen support
 
 ---
 
@@ -45,23 +46,26 @@ All editable fields will show orange dashed outlines
 ```
 
 ### 3. **Customize Your Test Case**
-- **Header**: Click on title, operator, route, status, reference, device to edit
-- **KPIs**: Click "+" to add new KPIs, "✕" to delete, or click values to edit
-- **L3 Messages**: Auto-populated from CSV, but fully editable
-- **Network Parameters**: Add custom parameters relevant to your test
-- **Test Verdict**: Write your conclusion
+- **Header**: Edit test case type, name, operator, route, status, reference, device
+- **4 Analysis Sections**: Add performance summary, impacts, analysis, recommendations
+- **Add Fields**: Use "+" buttons to add additional fields per section
 
-### 4. **Save Configuration**
+### 4. **View KPIs**
 ```
-Click "💾 SAVE CONFIG" to download JSON file
-Name it meaningfully (e.g., "handover-test-template.json")
+Click "📊 KPIs" button to view signal quality charts
+Toggle individual KPI visibility with checkboxes
 ```
 
-### 5. **Export Presentation**
+### 5. **Save Configuration**
 ```
-Turn OFF edit mode first (clean appearance)
-Click "📸 EXPORT" to download PNG image
-Share with clients or include in reports
+Click "💾 SAVE" → Choose location and filename
+Configuration saved as JSON file
+```
+
+### 6. **Load Configuration**
+```
+Click "📂 LOAD" → Select previously saved JSON file
+All fields restored including empty ones
 ```
 
 ---
@@ -73,131 +77,45 @@ Share with clients or include in reports
 #,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event
 ```
 
-### Example Row:
+### Example Rows:
 ```csv
 1,2024-01-15T10:30:45,3.8480,11.5021,-85,-10,15,123,1800,handover
 2,2024-01-15T10:30:50,3.8485,11.5025,-87,-11,14,124,1800,
-3,2024-01-15T10:30:55,3.8490,11.5030,-90,-12,12,125,1800,rrc_setup
+3,2024-01-15T10:30:55,3.8490,11.5030,-90,-12,12,125,1800,attach
 ```
 
 ### Event Types Supported:
 | Event | Icon | Description |
 |-------|------|-------------|
 | `handover` | ↔ | LTE handover event |
-| `rrc_setup` | ▶ | RRC connection setup |
-| `rrc_release` | ⏹ | RRC connection release |
 | `attach` | ⚡ | Network attach |
 | `detach` | 🔌 | Network detach |
 | `rlf` | ⚠ | Radio Link Failure |
 | `cell_reselection` | 📶 | Cell reselection |
-| `service_request` | 📡 | Service request |
+| `csfb` | 📞 | Circuit Switch Fallback |
 
 ---
 
 ## 🎯 Use Cases
 
-### **Scenario 1: Handover Validation Test**
+### **Any Telecom Test Case Type**
+- Handover validation
+- Coverage analysis
+- Interference investigation
+- Capacity testing
+- Voice call continuity
+- Data throughput validation
+- RLF mitigation
+- Cell reselection optimization
+
+### **Workflow Example**
 ```
-1. Load handover-specific CSV
-2. Edit title: "INTER-FREQUENCY HANDOVER VALIDATION"
-3. Add KPIs: HO Success Rate, HO Latency, Drop Call Rate
-4. Set pass criteria: >95%, <500ms, <0.5%
-5. Save as "handover-test-template.json"
-6. Export final report
-```
-
-### **Scenario 2: Coverage Hole Analysis**
-```
-1. Load drive test with poor RSRP zones
-2. Edit title: "COVERAGE GAP INVESTIGATION - ROUTE XYZ"
-3. Add KPIs: % Area <-110dBm, Peak RSRP, Min RSRP
-4. Manually edit L3 messages to highlight RLF events
-5. Write verdict with recommended cell site locations
-6. Export for client presentation
-```
-
-### **Scenario 3: Before/After Optimization**
-```
-1. Load "before" CSV → Export as "before-optimization.png"
-2. Click "📂 LOAD CONFIG" → Reload same test template
-3. Upload "after" CSV
-4. Update KPI values to show improvement
-5. Update verdict: "30% improvement in HO success rate"
-6. Export as "after-optimization.png"
-7. Present side-by-side comparison to client
-```
-
----
-
-## 🛠️ Technical Details
-
-### Default KPIs (Editable):
-- **HO Success Rate**: Percentage of successful handovers
-- **Video Continuity**: Service continuity during mobility
-- **Avg RSRP**: Average signal strength across route
-- **RLF Events**: Count of radio link failures
-
-### Default Network Parameters (Editable):
-- **TTT (Time to Trigger)**: Handover decision timing
-- **Hysteresis**: Signal quality threshold buffer
-- **A3 Offset**: Inter-frequency handover offset
-- **Cell Individual Offset**: Per-cell handover bias
-
-### L3 Message Auto-Population:
-```javascript
-// Automatically extracts events from CSV:
-[10:30:45] HANDOVER | PCI: 123 | RSRP: -85 dBm
-[10:31:02] RRC SETUP | PCI: 124 | RSRP: -87 dBm
-[10:31:15] RLF | PCI: 125 | RSRP: -110 dBm
-```
-
----
-
-## 💡 Pro Tips
-
-### Creating Reusable Templates:
-1. Set up your standard test format once
-2. Save configuration (without CSV loaded)
-3. For each new test: Load config → Upload CSV → Edit specific values
-
-### Client Presentations:
-1. **Before meeting**: Prepare 3-5 test scenarios with saved configs
-2. **During meeting**: Load relevant config, show live map, export on demand
-3. **After meeting**: Email exported PNG reports
-
-### Quality Assurance Workflow:
-1. **Field engineer**: Uploads CSV, fills basic info
-2. **RF engineer**: Loads CSV + config, analyzes data, updates verdict
-3. **Team lead**: Reviews, edits final verdict, exports for client
-
----
-
-## 🔧 Configuration File Structure
-
-```json
-{
-  "title": "MOBILITY VALIDATION : LTE Handover Report.",
-  "operator": "OPERATOR: ORANGE CAMEROUN",
-  "route": "ROUTE: TRADEX EMANA > NLONGKAK",
-  "status": "STATUS: SUCCESS",
-  "kpis": [
-    {
-      "label": "HO Success Rate",
-      "value": "98.5%",
-      "status": "pass"
-    }
-  ],
-  "params": [
-    {
-      "label": "TTT (Time to Trigger)",
-      "value": "320ms"
-    }
-  ],
-  "l3Messages": [
-    "[10:30:45] HANDOVER | PCI: 123 | RSRP: -85 dBm"
-  ],
-  "verdict": "Test passed all acceptance criteria."
-}
+1. Upload drive test CSV
+2. Edit title: "[Your Test Type] : [Your Test Name]"
+3. Fill in 4 analysis sections with your findings
+4. View KPI charts for data validation
+5. Save configuration for future reference
+6. Present to client or team
 ```
 
 ---
@@ -209,33 +127,49 @@ Share with clients or include in reports
 | Excellent | ≥ -80 dBm | 🟢 Green | Dense urban areas |
 | Good | -80 to -90 dBm | 🔵 Blue | Suburban coverage |
 | Fair | -90 to -100 dBm | 🟡 Yellow | Cell edge, acceptable |
-| Poor | -100 to -110 dBm | 🟠 Orange | Coverage holes, HO zones |
+| Poor | -100 to -110 dBm | 🟠 Orange | Coverage holes |
 | Very Poor | < -110 dBm | 🔴 Red | Critical weak spots |
 
 ---
 
-## 🎨 Design Philosophy
+## 🔧 Configuration File Structure
 
-**Neo-Brutalist Technical Aesthetic:**
-- Heavy black borders for authority and structure
-- Orange Cameroun brand integration (subtle grid overlay)
-- Monospace font (JetBrains Mono) for technical credibility
-- CRT scanline effect for retro-tech character
-- Bold shadows and high contrast for presentation clarity
+```json
+{
+  "title": "[Test Case Type] : [Test Case Name]",
+  "operator": "OPERATOR: [Operator Name]",
+  "route": "ROUTE: [Start Location] > [End Location]",
+  "status": "STATUS: [Test Status]",
+  "reference": "REF: [Reference Standard]",
+  "device": "TEST DEVICE: [Device Model]",
+  "performance-content": "Your performance summary...",
+  "impacts-content": "Your impacts analysis...",
+  "analysis-content": "Your technical analysis...",
+  "recommendations-content": "Your recommendations...",
+  "footer-left": "© 2026 PKFOKAM48 - TELCO ACADEMY",
+  "footer-right": "F2G SOLUTIONS: CONFIDENTIAL-INTERNAL USE ONLY"
+}
+```
 
 ---
 
-## 🚫 Non-Editable Sections (By Design)
+## 💡 Pro Tips
 
-1. **Map Area**: Visualization should remain objective data representation
-2. **Footer**: Copyright and confidentiality notice are corporate standard
-3. **Legend**: Signal quality standards are industry-defined
+### Creating Reusable Templates:
+1. Set up your standard test format once
+2. Save configuration as template
+3. For each new test: Load template → Upload CSV → Edit specific values
+
+### Reset to Default:
+- Click **RESET** button to clear all customizations
+- Returns dashboard to clean template state
+- Clears localStorage cache
 
 ---
 
 ## 📱 Browser Compatibility
 
-- ✅ **Chrome/Edge** (Recommended for export feature)
+- ✅ **Chrome/Edge** (Recommended - includes "Save As" dialog)
 - ✅ **Firefox** (Full functionality)
 - ✅ **Safari** (Map rendering may vary slightly)
 
@@ -246,110 +180,58 @@ Share with clients or include in reports
 - **All processing is client-side** (no data sent to servers)
 - CSV files never leave your browser
 - Configurations stored as local JSON files
-- Safe for confidential Orange Cameroun test data
+- Safe for confidential test data
+
+---
+
+## 🆘 Troubleshooting
+
+**Q: I don't see the template placeholders**
+- Click the **RESET** button to clear cached data
+- Or open in incognito/private window
+- Or clear localStorage: F12 → Console → `localStorage.clear()` → Refresh
+
+**Q: My saved config shows default text instead of empty fields**
+- This was fixed in latest version
+- Re-save your configuration to update format
+
+**Q: Edit mode shows outline but text won't change**
+- Make sure edit mode is ON (button should be green)
+- Click directly on the text
+
+**Q: Can't choose save location**
+- Use Chrome or Edge for "Save As" dialog
+- Other browsers use default download folder
 
 ---
 
 ## 📖 Standards Compliance
 
 - **3GPP TS 36.331** - LTE RRC Protocol Specification
-- **3GPP TS 36.133** - Requirements for support of radio resource management
+- **3GPP TS 36.133** - Radio resource management requirements
 - **ETSI TS 136.213** - Physical layer procedures
-
----
-
-## 🤝 Workflow Integration
-
-### For Individual RF Engineers:
-```
-Drive Test → Upload CSV → Auto-populate → Edit custom fields → Export → Email
-```
-
-### For RF Optimization Teams:
-```
-Standardize Templates → Share JSON configs → Consistent reporting → Quality metrics tracking
-```
-
-### For Client Presentations:
-```
-Load template → Upload latest data → Live demo on projector → Export on-demand → Professional deliverables
-```
-
----
-
-## 🆘 Troubleshooting
-
-**Q: My CSV doesn't auto-populate L3 messages**
-- Check that your CSV has an "event" column
-- Event names must match: handover, rrc_setup, rlf, etc.
-- Empty event fields are ignored (by design)
-
-**Q: Edit mode shows outline but text won't change**
-- Make sure edit mode is actually ON (button should be green)
-- Click directly on the text, not the container
-- Some browsers may need page refresh after CSV upload
-
-**Q: Export creates blank image**
-- Turn OFF edit mode before exporting (outlines affect rendering)
-- Allow popup/download permission for the site
-- Try Chrome if using other browsers
-
-**Q: My saved config won't load**
-- Ensure JSON file is from this dashboard version
-- Check file isn't corrupted (should be valid JSON)
-- Try creating a fresh config and saving again
-
----
-
-## 📧 Orange Cameroun RF Optimization Team
-
-**Version**: 2.0 (Enhanced Editable)  
-**Last Updated**: February 2026  
-**Maintained By**: RF Optimization Team  
-**Classification**: CONFIDENTIAL - INTERNAL USE ONLY  
-
----
-
-## 🎓 Training Resources
-
-**For new team members:**
-1. Watch drive test workflow demo (ask team lead)
-2. Practice with sample CSV files
-3. Create your first test template
-4. Review exported reports with senior engineer
-
-**Standard templates available:**
-- Handover validation test
-- Coverage hole investigation
-- RLF mitigation verification
-- Inter-frequency mobility test
-- Voice call continuity test
 
 ---
 
 ## 🔄 Version History
 
-**v2.0 (Current)**
-- ✅ Full edit mode for all fields
-- ✅ Custom KPI management
-- ✅ Auto-populating L3 messages
-- ✅ Save/load configurations
-- ✅ Export to PNG image
+**v3.0 (Current - Universal Template)**
+- ✅ Generic template for any test case type
+- ✅ Guided placeholder text in all sections
+- ✅ File System Access API for save location picker
+- ✅ Map legend repositioned below upload button
+- ✅ Fixed empty field preservation in configs
+- ✅ RSRP visibility toggle in KPI charts
 
-**v1.0 (Original)**
+**v2.0**
+- Full edit mode for all fields
+- KPI visualization panel
+- Save/load configurations
+
+**v1.0**
 - Basic CSV visualization
-- Static dashboard layout
 - Map-based drive test display
 
 ---
 
-## 📞 Support
-
-For issues or feature requests:
-- Contact RF Optimization Team Lead
-- Submit feedback via team channel
-- Check internal wiki for updates
-
----
-
-**Remember**: This tool is designed for flexibility. Every test case is unique - customize freely to meet your specific validation requirements! 🎯
+**Remember**: This is a universal template. Customize it for ANY telecom test case type! 🎯
