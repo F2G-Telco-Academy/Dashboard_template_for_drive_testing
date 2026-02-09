@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -30,9 +30,9 @@
                 class="bg-red-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-red-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
                 🔄 <span class="hidden sm:inline">RESET</span>
             </button>
-            <button id="exportBtn"
-                class="bg-orange-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-orange-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
-                📸 <span class="hidden sm:inline">EXPORT</span>
+            <button id="kpisBtn"
+                class="bg-purple-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-purple-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                📊 <span class="hidden sm:inline">KPIs</span>
             </button>
             <button id="saveConfigBtn"
                 class="bg-green-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-green-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
@@ -145,7 +145,7 @@
             </div>
 
             <!-- RIGHT PANEL - ALL EDITABLE -->
-            <div class="flex flex-col gap-4 h-full overflow-y-auto pr-1">
+            <div id="dashboardPanel" class="flex flex-col gap-4 h-full overflow-y-auto pr-1">
 
                 <!-- PERFORMANCE SUMMARY -->
                 <div class="border-thick bg-white/50 p-4 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
@@ -212,6 +212,68 @@
 
             </div>
 
+            <!-- KPI VISUALIZATION PANEL (HIDDEN BY DEFAULT) -->
+            <div id="kpiPanel" class="hidden flex-col gap-4 h-full overflow-y-auto pr-1 bg-gray-900 p-4">
+                <div class="text-white text-center mb-4">
+                    <h2 class="text-xl font-bold mb-2">📊 KPI VISUALIZATION</h2>
+                    <p class="text-sm text-gray-400">Real-time signal quality metrics</p>
+                </div>
+
+                <!-- KPI Tabs -->
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button class="kpi-tab active bg-blue-600 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrp">RSRP</button>
+                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrq">RSRQ</button>
+                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="sinr">SINR</button>
+                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="pci">PCI</button>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="border-4 border-white bg-gray-800 p-4" style="height: 300px;">
+                    <canvas id="kpiChart"></canvas>
+                </div>
+
+                <!-- PCI Changes Chart -->
+                <div class="border-4 border-white bg-gray-800 p-4" style="height: 250px;">
+                    <h3 class="text-white font-bold mb-2 text-sm">PCI Changes (Cell Handovers)</h3>
+                    <canvas id="pciChart"></canvas>
+                </div>
+
+                <!-- All KPIs Comparison Chart -->
+                <div class="border-4 border-white bg-gray-800 p-4" style="height: 300px;">
+                    <h3 class="text-white font-bold mb-2 text-sm">All KPIs Comparison</h3>
+                    <canvas id="allKpisChart"></canvas>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <h3 class="text-white font-bold mb-2 text-sm">Statistics</h3>
+                        <div id="kpiStats" class="text-white text-xs space-y-1">
+                            <div>Min: <span id="statMin" class="text-red-400">-</span></div>
+                            <div>Avg: <span id="statAvg" class="text-yellow-400">-</span></div>
+                            <div>Max: <span id="statMax" class="text-green-400">-</span></div>
+                        </div>
+                    </div>
+
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <h3 class="text-white font-bold mb-2 text-sm">Signal Quality</h3>
+                        <div id="signalQuality" class="text-white text-xs space-y-1">
+                            <div>🟢 Excellent: <span id="qualExcellent">0</span> (0%)</div>
+                            <div>🔵 Good: <span id="qualGood">0</span> (0%)</div>
+                            <div>🟡 Fair: <span id="qualFair">0</span> (0%)</div>
+                            <div>🔴 Poor: <span id="qualPoor">0</span> (0%)</div>
+                        </div>
+                    </div>
+
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <h3 class="text-white font-bold mb-2 text-sm">Events</h3>
+                        <div id="eventsList" class="text-white text-xs space-y-1 max-h-24 overflow-y-auto">
+                            <div class="text-gray-400">No events</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- FOOTER (EDITABLE) -->
@@ -231,6 +293,11 @@
         // =====================================================
         let editMode = false;
         let csvData = null;
+        let parsedData = [];
+        let kpiChart = null;
+        let pciChart = null;
+        let allKpisChart = null;
+        let showingKPIs = false;
         let currentConfig = {
             title: "MOBILITY VALIDATION : LTE Handover Report.",
             operator: "OPERATOR: ORANGE CAMEROUN",
@@ -470,6 +537,293 @@
             resetToDefault();
         });
 
+        // =====================================================
+        // KPI VISUALIZATION
+        // =====================================================
+        document.getElementById('kpisBtn').addEventListener('click', function() {
+            showingKPIs = !showingKPIs;
+            const dashboardPanel = document.getElementById('dashboardPanel');
+            const kpiPanel = document.getElementById('kpiPanel');
+            
+            if (showingKPIs) {
+                dashboardPanel.classList.add('hidden');
+                kpiPanel.classList.remove('hidden');
+                kpiPanel.classList.add('flex');
+                this.classList.remove('bg-purple-600');
+                this.classList.add('bg-green-600');
+                this.innerHTML = '📋 <span class="hidden sm:inline">DASHBOARD</span>';
+                
+                if (parsedData.length > 0) {
+                    renderKPIChart('rsrp');
+                    renderPCIChart();
+                    renderAllKPIsChart();
+                }
+            } else {
+                dashboardPanel.classList.remove('hidden');
+                kpiPanel.classList.add('hidden');
+                kpiPanel.classList.remove('flex');
+                this.classList.remove('bg-green-600');
+                this.classList.add('bg-purple-600');
+                this.innerHTML = '📊 <span class="hidden sm:inline">KPIs</span>';
+            }
+        });
+
+        // KPI Tab switching
+        document.querySelectorAll('.kpi-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.kpi-tab').forEach(t => {
+                    t.classList.remove('active', 'bg-blue-600');
+                    t.classList.add('bg-gray-700');
+                });
+                this.classList.add('active', 'bg-blue-600');
+                this.classList.remove('bg-gray-700');
+                renderKPIChart(this.dataset.kpi);
+            });
+        });
+
+        function renderKPIChart(kpiType) {
+            if (parsedData.length === 0) return;
+
+            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const values = parsedData.map(d => parseFloat(d[kpiType]) || 0);
+
+            // Calculate statistics
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+
+            document.getElementById('statMin').textContent = min.toFixed(2);
+            document.getElementById('statAvg').textContent = avg;
+            document.getElementById('statMax').textContent = max.toFixed(2);
+
+            // Calculate signal quality distribution (for RSRP)
+            if (kpiType === 'rsrp') {
+                const excellent = values.filter(v => v >= -80).length;
+                const good = values.filter(v => v >= -90 && v < -80).length;
+                const fair = values.filter(v => v >= -100 && v < -90).length;
+                const poor = values.filter(v => v < -100).length;
+                const total = values.length;
+
+                document.getElementById('qualExcellent').textContent = `${excellent} (${((excellent/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualGood').textContent = `${good} (${((good/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualFair').textContent = `${fair} (${((fair/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualPoor').textContent = `${poor} (${((poor/total)*100).toFixed(0)}%)`;
+            }
+
+            // Update events list
+            const events = parsedData.filter(d => d.event && d.event.trim() !== '');
+            const eventsList = document.getElementById('eventsList');
+            if (events.length > 0) {
+                eventsList.innerHTML = events.map(e => 
+                    `<div>${e.time?.split('T')[1]?.slice(0, 8) || '-'} ${e.event.toUpperCase()}</div>`
+                ).join('');
+            }
+
+            // Chart colors based on KPI type
+            const colors = {
+                rsrp: { line: '#3b82f6', fill: 'rgba(59, 130, 246, 0.2)' },
+                rsrq: { line: '#10b981', fill: 'rgba(16, 185, 129, 0.2)' },
+                sinr: { line: '#f59e0b', fill: 'rgba(245, 158, 11, 0.2)' },
+                pci: { line: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.2)' }
+            };
+
+            const ctx = document.getElementById('kpiChart').getContext('2d');
+            
+            if (kpiChart) {
+                kpiChart.destroy();
+            }
+
+            kpiChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: kpiType.toUpperCase(),
+                        data: values,
+                        borderColor: colors[kpiType].line,
+                        backgroundColor: colors[kpiType].fill,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#fff', font: { family: 'JetBrains Mono' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { 
+                                color: '#9ca3af',
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: { size: 9, family: 'JetBrains Mono' }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#9ca3af',
+                                font: { family: 'JetBrains Mono' }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPCIChart() {
+            if (parsedData.length === 0) return;
+
+            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const pciValues = parsedData.map(d => parseInt(d.pci) || 0);
+
+            const ctx = document.getElementById('pciChart').getContext('2d');
+            
+            if (pciChart) pciChart.destroy();
+
+            pciChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'PCI',
+                        data: pciValues,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.3)',
+                        borderWidth: 2,
+                        fill: true,
+                        stepped: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#9ca3af', font: { family: 'JetBrains Mono' } },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAllKPIsChart() {
+            if (parsedData.length === 0) return;
+
+            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const rsrpValues = parsedData.map(d => parseFloat(d.rsrp) || -100);
+            const rsrqValues = parsedData.map(d => parseFloat(d.rsrq) || -10);
+            const sinrValues = parsedData.map(d => parseFloat(d.sinr) || 0);
+
+            const ctx = document.getElementById('allKpisChart').getContext('2d');
+            
+            if (allKpisChart) allKpisChart.destroy();
+
+            allKpisChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'RSRP',
+                            data: rsrpValues,
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y',
+                            pointRadius: 1
+                        },
+                        {
+                            label: 'RSRQ',
+                            data: rsrqValues,
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1',
+                            pointRadius: 1
+                        },
+                        {
+                            label: 'SINR',
+                            data: sinrValues,
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y2',
+                            pointRadius: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            ticks: { color: '#3b82f6', font: { family: 'JetBrains Mono' } },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            ticks: { color: '#10b981', font: { family: 'JetBrains Mono' } },
+                            grid: { drawOnChartArea: false }
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: false,
+                            ticks: { color: '#f59e0b' }
+                        }
+                    }
+                }
+            });
+        }
+
         document.getElementById('saveConfigBtn').addEventListener('click', function() {
             saveCurrentState();
             saveToLocalStorage();
@@ -551,100 +905,6 @@
                 }
             }
         }
-
-        // =====================================================
-        // EXPORT TO IMAGE
-        // =====================================================
-        document.getElementById('exportBtn').addEventListener('click', async function() {
-            // Hide control buttons
-            const buttons = document.querySelectorAll('.fixed');
-            buttons.forEach(btn => btn.style.display = 'none');
-            
-            // Get the main container
-            const dashboard = document.querySelector('.dashboard-container');
-            const mainGrid = dashboard.querySelector('.grid');
-            const rightPanel = dashboard.querySelector('.overflow-y-auto');
-            
-            // Store original styles
-            const originalDashboard = {
-                height: dashboard.style.height,
-                overflow: dashboard.style.overflow
-            };
-            const originalGrid = {
-                height: mainGrid.style.height,
-                overflow: mainGrid.style.overflow
-            };
-            const originalPanel = {
-                height: rightPanel.style.height,
-                maxHeight: rightPanel.style.maxHeight,
-                overflow: rightPanel.style.overflow
-            };
-            
-            try {
-                // Remove all height and overflow constraints
-                dashboard.style.height = 'auto';
-                dashboard.style.overflow = 'visible';
-                mainGrid.style.height = 'auto';
-                mainGrid.style.overflow = 'visible';
-                rightPanel.style.height = 'auto';
-                rightPanel.style.maxHeight = 'none';
-                rightPanel.style.overflow = 'visible';
-                
-                // Force map to render and wait for tiles to load
-                if (map) {
-                    map.resize();
-                    await new Promise(resolve => {
-                        if (map.loaded()) {
-                            resolve();
-                        } else {
-                            map.once('idle', resolve);
-                        }
-                    });
-                }
-                
-                // Force layout recalculation and wait longer for map tiles
-                dashboard.offsetHeight;
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Capture with full content and better map rendering
-                const canvas = await html2canvas(dashboard, {
-                    backgroundColor: '#ffffff',
-                    scale: 1.0,
-                    logging: true,
-                    useCORS: true,
-                    allowTaint: false,
-                    foreignObjectRendering: false,
-                    imageTimeout: 15000,
-                    removeContainer: false,
-                    width: dashboard.scrollWidth,
-                    height: dashboard.scrollHeight
-                });
-                
-                // Download the image
-                const link = document.createElement('a');
-                link.download = `handover-report-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png', 1.0);
-                link.click();
-                
-                alert('Complete report exported successfully!');
-                
-            } catch (err) {
-                console.error('Export error:', err);
-                alert('Export failed: ' + err.message);
-            } finally {
-                // Restore all original styles
-                dashboard.style.height = originalDashboard.height;
-                dashboard.style.overflow = originalDashboard.overflow;
-                mainGrid.style.height = originalGrid.height;
-                mainGrid.style.overflow = originalGrid.overflow;
-                rightPanel.style.height = originalPanel.height;
-                rightPanel.style.maxHeight = originalPanel.maxHeight;
-                rightPanel.style.overflow = originalPanel.overflow;
-                
-                // Show buttons again
-                buttons.forEach(btn => btn.style.display = '');
-            }
-        });
 
         // =====================================================
         // MAP FUNCTIONALITY (FROM ORIGINAL)
@@ -735,6 +995,7 @@
         function renderMap(csvText) {
             clearMap();
             const data = parseCSV(csvText);
+            parsedData = data; // Store for KPI visualization
             const coords = [];
 
             data.forEach((row, idx) => {
