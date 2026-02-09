@@ -125,10 +125,7 @@
 
                         <div class="font-bold text-white mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
                         <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#22c55e] border border-white flex items-center justify-center text-[10px]">▶</div> RRC Setup
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⏹</div> RRC Release
+                            <div class="w-4 h-4 rounded-full bg-[#f97316] border border-white flex items-center justify-center text-[10px]">↔</div> Handover
                         </div>
                         <div class="flex items-center gap-2 mb-1">
                             <div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⚡</div> Attach
@@ -139,12 +136,9 @@
                         <div class="flex items-center gap-2 mb-1">
                             <div class="w-4 h-4 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-[10px]">⚠</div> RLF
                         </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#f97316] border border-white flex items-center justify-center text-[10px]">↔</div> Handover
-                        </div>
                         <div class="flex items-center gap-2 mb-1">📶 Cell Reselection</div>
                         <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded-full bg-[#06b6d4] border border-white flex items-center justify-center text-[10px]">📡</div> Service Request
+                            <div class="w-4 h-4 rounded-full bg-[#a855f7] border border-white flex items-center justify-center text-[10px]">📞</div> CSFB
                         </div>
                     </div>
                 </div>
@@ -767,12 +761,10 @@
             const eventIcons = {
                 'handover': { icon: '↔', color: '#f97316', label: 'Handover', circleIcon: true },
                 'cell_reselection': { icon: '📶', color: '#8b5cf6', label: 'Cell Reselection' },
-                'rrc_setup': { icon: '▶', color: '#22c55e', label: 'RRC Setup', circleIcon: true },
-                'rrc_release': { icon: '⏹', color: '#3b82f6', label: 'RRC Release', circleIcon: true },
                 'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
-                'service_request': { icon: '📡', color: '#06b6d4', label: 'Service Request', circleIcon: true }
+                'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true }
             };
 
             // Add markers
