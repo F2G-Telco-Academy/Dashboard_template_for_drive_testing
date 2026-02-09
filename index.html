@@ -51,25 +51,25 @@
                     <div class="w-4 h-4 bg-orange-600 animate-pulse border border-black"></div>
                     <h1 class="text-2xl md:text-3xl font-extrabold tracking-tighter leading-none editable-field" 
                         data-field="title" contenteditable="false">
-                        MOBILITY VALIDATION : LTE Handover Report.
+                        [Test Case Type] : [Test Case Name]
                     </h1>
                 </div>
                 <div class="flex flex-wrap gap-2 mt-3 text-xs md:text-sm font-bold font-mono">
                     <span class="bg-black text-white px-3 py-1 editable-field" data-field="operator" contenteditable="false">
-                        OPERATOR: ORANGE CAMEROUN
+                        OPERATOR: [Operator Name]
                     </span>
                     <span class="border-2 border-black px-3 py-1 bg-white/50 editable-field" data-field="route" contenteditable="false">
-                        ROUTE: TRADEX EMANA > NLONGKAK
+                        ROUTE: [Start Location] > [End Location]
                     </span>
                     <span class="border-2 border-black px-3 py-1 bg-white/50 editable-field" data-field="status" contenteditable="false">
-                        STATUS: SUCCESS
+                        STATUS: [Test Status]
                     </span>
                 </div>
             </div>
 
             <div class="text-left md:text-right font-bold text-xs md:text-sm mt-4 md:mt-0 space-y-1">
-                <p class="editable-field" data-field="reference" contenteditable="false">REF: 3GPP TS 36.331</p>
-                <p class="editable-field" data-field="device" contenteditable="false">TEST DEVICE: SAMSUNG GALAXY</p>
+                <p class="editable-field" data-field="reference" contenteditable="false">REF: [Reference Standard]</p>
+                <p class="editable-field" data-field="device" contenteditable="false">TEST DEVICE: [Device Model]</p>
             </div>
         </header>
 
@@ -79,32 +79,13 @@
             <div class="lg:col-span-2 flex flex-col h-[400px] sm:h-[500px] lg:h-auto border-thick bg-gray-900 relative group overflow-hidden">
                 <div id="map" style="width: 100%; height: 100%;"></div>
 
-                <div style="position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; gap: 8px;">
+                <div style="position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; flex-direction: column; gap: 8px;">
                     <input type="file" id="csvFile" accept=".csv" style="display: none;">
                     <button onclick="document.getElementById('csvFile').click()"
                         class="bg-black text-white px-3 py-2 text-xs font-bold border-2 border-white hover:bg-white hover:text-black transition-all">
                         📁 UPLOAD CSV
                     </button>
-                </div>
-
-                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; max-width: 280px;">
-                    <span class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
-                    <button id="mapViewBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
-                        ☀️
-                    </button>
-                    <button id="zoomInBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
-                        🔍+
-                    </button>
-                    <button id="zoomOutBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
-                        🔍-
-                    </button>
-                    <button id="fullscreenBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
-                        ⛶
-                    </button>
-                </div>
-
-                <div class="hidden sm:block"
-                    style="position: absolute; bottom: 16px; left: 16px; z-index: 1000; max-height: calc(100% - 80px); overflow-y: auto;">
+                    
                     <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
                         <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1">RSRP SIGNAL QUALITY</div>
                         <div class="flex items-center gap-2 mb-1">
@@ -142,6 +123,24 @@
                         </div>
                     </div>
                 </div>
+
+                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; max-width: 280px;">
+                    <span class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
+                    <button id="mapViewBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        ☀️
+                    </button>
+                    <button id="zoomInBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        🔍+
+                    </button>
+                    <button id="zoomOutBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        🔍-
+                    </button>
+                    <button id="fullscreenBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        ⛶
+                    </button>
+                </div>
+
+
             </div>
 
             <!-- RIGHT PANEL - ALL EDITABLE -->
@@ -157,7 +156,7 @@
                     </div>
                     <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="performanceContainer">
                         <div class="editable-field text-sm" data-field="performance-content" contenteditable="false">
-                            Key performance indicators and metrics summary will be displayed here.
+                            Click on 'Edit Mode' to add performance summary.
                         </div>
                     </div>
                     <button id="addPerformanceBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
@@ -172,7 +171,7 @@
                     </div>
                     <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="impactsContainer">
                         <div class="editable-field text-sm" data-field="impacts-content" contenteditable="false">
-                            Analysis of network performance impacts and user experience effects.
+                            Click on 'Edit Mode' to add impacts analysis.
                         </div>
                     </div>
                     <button id="addImpactsBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
@@ -187,7 +186,7 @@
                     </div>
                     <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="analysisContainer">
                         <div class="editable-field text-sm" data-field="analysis-content" contenteditable="false">
-                            Detailed technical analysis of test results and network behavior.
+                            Click on 'Edit Mode' to add technical analysis.
                         </div>
                     </div>
                     <button id="addAnalysisBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
@@ -202,7 +201,7 @@
                     </div>
                     <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="recommendationsContainer">
                         <div class="editable-field text-sm" data-field="recommendations-content" contenteditable="false">
-                            Recommended actions and optimization suggestions based on analysis.
+                            Click on 'Edit Mode' to add recommendations.
                         </div>
                     </div>
                     <button id="addRecommendationsBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
@@ -233,14 +232,30 @@
                 </div>
 
                 <!-- PCI Changes Chart -->
-                <div class="border-4 border-white bg-gray-800 p-4" style="height: 250px;">
-                    <h3 class="text-white font-bold mb-2 text-sm">PCI Changes (Cell Handovers)</h3>
+                <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
+                    <h3 class="text-white font-bold mb-2 text-sm">PCI Changes</h3>
                     <canvas id="pciChart"></canvas>
                 </div>
 
                 <!-- All KPIs Comparison Chart -->
-                <div class="border-4 border-white bg-gray-800 p-4" style="height: 300px;">
-                    <h3 class="text-white font-bold mb-2 text-sm">All KPIs Comparison</h3>
+                <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 300px;">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-white font-bold text-sm">All KPIs Comparison</h3>
+                        <div class="flex gap-3 text-xs">
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="toggleRSRP" checked class="w-3 h-3">
+                                <span class="text-blue-400">RSRP</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="toggleRSRQ" checked class="w-3 h-3">
+                                <span class="text-green-400">RSRQ</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="toggleSINR" checked class="w-3 h-3">
+                                <span class="text-yellow-400">SINR</span>
+                            </label>
+                        </div>
+                    </div>
                     <canvas id="allKpisChart"></canvas>
                 </div>
 
@@ -299,21 +314,21 @@
         let allKpisChart = null;
         let showingKPIs = false;
         let currentConfig = {
-            title: "MOBILITY VALIDATION : LTE Handover Report.",
-            operator: "OPERATOR: ORANGE CAMEROUN",
-            route: "ROUTE: TRADEX EMANA > NLONGKAK",
-            status: "STATUS: SUCCESS",
-            reference: "REF: 3GPP TS 36.331",
-            device: "TEST DEVICE: SAMSUNG GALAXY",
+            title: "[Test Case Type] : [Test Case Name]",
+            operator: "OPERATOR: [Operator Name]",
+            route: "ROUTE: [Start Location] > [End Location]",
+            status: "STATUS: [Test Status]",
+            reference: "REF: [Reference Standard]",
+            device: "TEST DEVICE: [Device Model]",
             "performance-title": "01 : PERFORMANCE SUMMARY",
-            "performance-content": "Key performance indicators and metrics summary will be displayed here.",
+            "performance-content": "Click on 'Edit Mode' to add performance summary.",
             "impacts-title": "02 : IMPACTS",
-            "impacts-content": "Analysis of network performance impacts and user experience effects.",
+            "impacts-content": "Click on 'Edit Mode' to add impacts analysis.",
             "analysis-title": "03 : ANALYSIS",
-            "analysis-content": "Detailed technical analysis of test results and network behavior.",
+            "analysis-content": "Click on 'Edit Mode' to add technical analysis.",
             "recommendations-title": "04 : RECOMMANDATIONS",
-            "recommendations-content": "Recommended actions and optimization suggestions based on analysis.",
-            "footer-left": "© 2026 PKFOKAM48 - TELCO TEAM",
+            "recommendations-content": "Click on 'Edit Mode' to add recommendations.",
+            "footer-left": "© 2026 PKFOKAM48 - TELCO ACADEMY",
             "footer-right": "F2G SOLUTIONS: CONFIDENTIAL-INTERNAL USE ONLY"
         };
 
@@ -434,12 +449,12 @@
         // SAVE/LOAD CONFIGURATION
         // =====================================================
         function saveCurrentState() {
-            // Save editable fields
+            // Save editable fields (including empty ones)
             document.querySelectorAll('.editable-field').forEach(el => {
                 const field = el.dataset.field;
                 if (field) {
                     let content = el.textContent.trim();
-                    // Don't save placeholder text
+                    // Don't save placeholder text, save as empty string
                     if (content === 'Click to edit') {
                         content = '';
                     }
@@ -557,6 +572,13 @@
                     renderKPIChart('rsrp');
                     renderPCIChart();
                     renderAllKPIsChart();
+                    
+                    // Add checkbox listeners
+                    setTimeout(() => {
+                        document.getElementById('toggleRSRP').addEventListener('change', updateAllKPIsChart);
+                        document.getElementById('toggleRSRQ').addEventListener('change', updateAllKPIsChart);
+                        document.getElementById('toggleSINR').addEventListener('change', updateAllKPIsChart);
+                    }, 100);
                 }
             } else {
                 dashboardPanel.classList.remove('hidden');
@@ -703,11 +725,17 @@
                         label: 'PCI',
                         data: pciValues,
                         borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.3)',
+                        backgroundColor: 'transparent',
                         borderWidth: 2,
-                        fill: true,
-                        stepped: true,
-                        pointRadius: 0
+                        fill: false,
+                        pointRadius: 3,
+                        pointBackgroundColor: function(context) {
+                            const index = context.dataIndex;
+                            if (index === 0) return '#8b5cf6';
+                            return pciValues[index] !== pciValues[index - 1] ? '#ef4444' : '#8b5cf6';
+                        },
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1
                     }]
                 },
                 options: {
@@ -718,7 +746,16 @@
                         tooltip: {
                             backgroundColor: 'rgba(0,0,0,0.8)',
                             titleFont: { family: 'JetBrains Mono' },
-                            bodyFont: { family: 'JetBrains Mono' }
+                            bodyFont: { family: 'JetBrains Mono' },
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const index = context.dataIndex;
+                                    if (index > 0 && pciValues[index] !== pciValues[index - 1]) {
+                                        return `Handover: ${pciValues[index - 1]} → ${pciValues[index]}`;
+                                    }
+                                    return '';
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -743,44 +780,52 @@
             const rsrqValues = parsedData.map(d => parseFloat(d.rsrq) || -10);
             const sinrValues = parsedData.map(d => parseFloat(d.sinr) || 0);
 
+            const showRSRP = document.getElementById('toggleRSRP')?.checked !== false;
+            const showRSRQ = document.getElementById('toggleRSRQ')?.checked !== false;
+            const showSINR = document.getElementById('toggleSINR')?.checked !== false;
+
+            const datasets = [];
+            if (showRSRP) {
+                datasets.push({
+                    label: 'RSRP',
+                    data: rsrpValues,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y',
+                    pointRadius: 1
+                });
+            }
+            if (showRSRQ) {
+                datasets.push({
+                    label: 'RSRQ',
+                    data: rsrqValues,
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y1',
+                    pointRadius: 1
+                });
+            }
+            if (showSINR) {
+                datasets.push({
+                    label: 'SINR',
+                    data: sinrValues,
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y2',
+                    pointRadius: 1
+                });
+            }
+
             const ctx = document.getElementById('allKpisChart').getContext('2d');
             
             if (allKpisChart) allKpisChart.destroy();
 
             allKpisChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'RSRP',
-                            data: rsrpValues,
-                            borderColor: '#3b82f6',
-                            borderWidth: 2,
-                            fill: false,
-                            yAxisID: 'y',
-                            pointRadius: 1
-                        },
-                        {
-                            label: 'RSRQ',
-                            data: rsrqValues,
-                            borderColor: '#10b981',
-                            borderWidth: 2,
-                            fill: false,
-                            yAxisID: 'y1',
-                            pointRadius: 1
-                        },
-                        {
-                            label: 'SINR',
-                            data: sinrValues,
-                            borderColor: '#f59e0b',
-                            borderWidth: 2,
-                            fill: false,
-                            yAxisID: 'y2',
-                            pointRadius: 1
-                        }
-                    ]
-                },
+                data: { labels: labels, datasets: datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -805,12 +850,14 @@
                         y: {
                             type: 'linear',
                             position: 'left',
+                            display: showRSRP,
                             ticks: { color: '#3b82f6', font: { family: 'JetBrains Mono' } },
                             grid: { color: 'rgba(255,255,255,0.1)' }
                         },
                         y1: {
                             type: 'linear',
                             position: 'right',
+                            display: showRSRQ,
                             ticks: { color: '#10b981', font: { family: 'JetBrains Mono' } },
                             grid: { drawOnChartArea: false }
                         },
@@ -824,18 +871,50 @@
             });
         }
 
-        document.getElementById('saveConfigBtn').addEventListener('click', function() {
+        function updateAllKPIsChart() {
+            renderAllKPIsChart();
+        }
+
+        document.getElementById('saveConfigBtn').addEventListener('click', async function() {
             saveCurrentState();
             saveToLocalStorage();
+            
+            const defaultName = `test-case-config-${new Date().toISOString().slice(0,10)}.json`;
             const dataStr = JSON.stringify(currentConfig, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `test-case-config-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            alert('Configuration saved!');
+            
+            // Try modern File System Access API first (Chrome/Edge)
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: defaultName,
+                        types: [{
+                            description: 'JSON Files',
+                            accept: { 'application/json': ['.json'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(dataStr);
+                    await writable.close();
+                    alert('Configuration saved!');
+                    return;
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error(err);
+                    return;
+                }
+            }
+            
+            // Fallback for other browsers
+            const fileName = prompt('Enter filename for configuration:', defaultName.replace('.json', ''));
+            if (fileName) {
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('Configuration saved!');
+            }
         });
 
         document.getElementById('loadConfigBtn').addEventListener('click', function() {
@@ -860,10 +939,10 @@
         });
 
         function applyConfig() {
-            // Apply all fields
+            // Apply all fields (including empty ones)
             document.querySelectorAll('.editable-field').forEach(el => {
                 const field = el.dataset.field;
-                if (field && currentConfig[field]) {
+                if (field && currentConfig.hasOwnProperty(field)) {
                     el.textContent = currentConfig[field];
                 }
             });
