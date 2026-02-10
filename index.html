@@ -313,6 +313,11 @@
         let pciChart = null;
         let allKpisChart = null;
         let showingKPIs = false;
+        let currentMapStyle = 'light'; // Track current map style (light/dark)
+        let map = null; // Map instance
+        let markers = []; // Store markers for cleanup
+        let layerIds = []; // Track added layer ids for cleanup
+        let mapReady = false; // Track if map is fully loaded
         let currentConfig = {
             title: "[Test Case Type] : [Test Case Name]",
             operator: "OPERATOR: [Operator Name]",
@@ -988,47 +993,46 @@
         // =====================================================
         // MAP FUNCTIONALITY (FROM ORIGINAL)
         // =====================================================
-        let map, markers = [], layerIds = [];
-        let isDarkMode = true; // Default to dark mode
 
         function getMapStyle() {
-            if (isDarkMode) {
+            // Return proper map styles based on current mode
+            if (currentMapStyle === 'dark') {
+                // Dark mode: use CartoDB dark basemap
                 return {
                     version: 8,
                     sources: {
-                        'dark-tiles': {
+                        'osm': {
                             type: 'raster',
-                            tiles: ['https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png'],
+                            tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
                             tileSize: 256,
-                            attribution: '© OpenStreetMap contributors, © CartoDB'
+                            attribution: '© OpenStreetMap contributors, © CARTO'
                         }
                     },
                     layers: [{
-                        id: 'dark-layer',
+                        id: 'osm-raster',
                         type: 'raster',
-                        source: 'dark-tiles',
-                        minzoom: 0,
-                        maxzoom: 19
-                    }]
+                        source: 'osm'
+                    }],
+                    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
                 };
             } else {
+                // Light mode: use OpenStreetMap tiles
                 return {
                     version: 8,
                     sources: {
-                        'osm-tiles': {
+                        'osm': {
                             type: 'raster',
-                            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
                             tileSize: 256,
                             attribution: '© OpenStreetMap contributors'
                         }
                     },
                     layers: [{
-                        id: 'osm-layer',
+                        id: 'osm-raster',
                         type: 'raster',
-                        source: 'osm-tiles',
-                        minzoom: 0,
-                        maxzoom: 19
-                    }]
+                        source: 'osm'
+                    }],
+                    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
                 };
             }
         }
@@ -1039,6 +1043,26 @@
                 style: getMapStyle(),
                 center: [11.5021, 3.8480],
                 zoom: 12
+            });
+
+            // Add load event handler for stability
+            map.on('load', function() {
+                mapReady = true;
+                console.log('Map loaded successfully and ready');
+            });
+
+            // Add error handling (suppress alert for tile load failures; they rarely block rendering)
+            map.on('error', function(e) {
+                console.error('Map error:', e);
+            });
+
+            // Add resize handling for stability
+            window.addEventListener('resize', function() {
+                if (map) {
+                    setTimeout(function() {
+                        map.resize();
+                    }, 100);
+                }
             });
         }
 
@@ -1217,16 +1241,26 @@
 
         // Map control buttons
         document.getElementById('mapViewBtn').addEventListener('click', function() {
-            isDarkMode = !isDarkMode;
-            this.innerHTML = isDarkMode ? '☀️' : '🌙';
-            map.setStyle(getMapStyle());
+            // Toggle between light and dark map styles
+            currentMapStyle = currentMapStyle === 'light' ? 'dark' : 'light';
             
-            // Re-render data after style change
-            map.once('styledata', () => {
-                if (csvData) {
-                    setTimeout(() => renderMap(csvData), 500);
-                }
-            });
+            if (map && mapReady) {
+                map.setStyle(getMapStyle());
+                
+                // Update button emoji
+                this.innerHTML = currentMapStyle === 'dark' ? '🌙' : '☀️';
+                
+                console.log('Map style changed to:', currentMapStyle);
+
+                // Re-render data after style change
+                map.once('styledata', () => {
+                    if (csvData) {
+                        setTimeout(() => renderMap(csvData), 500);
+                    }
+                });
+            } else {
+                console.warn('Map not ready yet');
+            }
         });
 
         document.getElementById('zoomInBtn').addEventListener('click', function() {
