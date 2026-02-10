@@ -345,8 +345,8 @@
             if (confirm('Are you sure you want to reset all content to default? This will clear all your changes and cannot be undone.')) {
                 // Clear localStorage
                 localStorage.removeItem('dashboardConfig');
-                
-                // Reset to default config
+
+                // Reset to default config and clear all additional fields
                 currentConfig = { ...defaultConfig };
                 currentConfig.additionalFields = {
                     performance: [],
@@ -354,15 +354,42 @@
                     analysis: [],
                     recommendations: []
                 };
-                
-                // Apply default config
-                applyConfig();
-                
+
+                // Remove all additional fields from the DOM
+                document.querySelectorAll('#performanceContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#impactsContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#analysisContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#recommendationsContainer .border-t').forEach(el => el.remove());
+
+                // Reset all editable fields to default
+                document.querySelectorAll('.editable-field').forEach(el => {
+                    const field = el.dataset.field;
+                    if (field && currentConfig.hasOwnProperty(field)) {
+                        el.textContent = currentConfig[field];
+                    }
+                });
+
                 // Turn off edit mode
                 if (editMode) {
                     document.getElementById('editModeBtn').click();
                 }
-                
+
+                // Also clear the map (markers, per-segment layers) and CSV state
+                try {
+                    clearMap();
+                    csvData = null;
+                    parsedData = [];
+                    const pc = document.getElementById('pointCount');
+                    if (pc) pc.textContent = '0';
+                    // Reset map view to default center/zoom if map exists
+                    if (map && typeof map.setCenter === 'function') {
+                        map.setCenter([11.5021, 3.8480]);
+                        map.setZoom(12);
+                    }
+                } catch (e) {
+                    console.warn('Error clearing map during reset:', e);
+                }
+
                 alert('Dashboard reset to default successfully!');
             }
         }
@@ -1138,7 +1165,7 @@
 
                 if (!hasEvent) {
                     const el = document.createElement('div');
-                    el.style.cssText = `width:8px;height:8px;border-radius:50%;background:${p.color};border:1px solid white;cursor:pointer;opacity:0.7;`;
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
                     const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
                         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                             <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 Point #${row['#'] || i + 1}</div>
@@ -1290,6 +1317,25 @@
         document.addEventListener('fullscreenchange', function() {
             const btn = document.getElementById('fullscreenBtn');
             btn.innerHTML = '⛶';
+            // Ensure map layout and style reflow in fullscreen/exit-fullscreen
+            if (map) {
+                try {
+                    // Resize map to container changes
+                    setTimeout(() => map.resize(), 60);
+                    // Reapply current basemap style to force repaint (helps when switching modes in fullscreen)
+                    if (typeof map.setStyle === 'function') {
+                        map.setStyle(getMapStyle());
+                        map.once('styledata', () => {
+                            if (csvData) {
+                                // Re-render overlays after style change
+                                setTimeout(() => renderMap(csvData), 200);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Error during fullscreen style refresh:', e);
+                }
+            }
         });
 
         // Initialize saved state when page loads
