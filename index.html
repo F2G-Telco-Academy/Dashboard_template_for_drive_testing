@@ -313,6 +313,11 @@
         let pciChart = null;
         let allKpisChart = null;
         let showingKPIs = false;
+        let currentMapStyle = 'light'; // Track current map style (light/dark)
+        let map = null; // Map instance
+        let markers = []; // Store markers for cleanup
+        let layerIds = []; // Track added layer ids for cleanup
+        let mapReady = false; // Track if map is fully loaded
         let currentConfig = {
             title: "[Test Case Type] : [Test Case Name]",
             operator: "OPERATOR: [Operator Name]",
@@ -340,8 +345,8 @@
             if (confirm('Are you sure you want to reset all content to default? This will clear all your changes and cannot be undone.')) {
                 // Clear localStorage
                 localStorage.removeItem('dashboardConfig');
-                
-                // Reset to default config
+
+                // Reset to default config and clear all additional fields
                 currentConfig = { ...defaultConfig };
                 currentConfig.additionalFields = {
                     performance: [],
@@ -349,15 +354,42 @@
                     analysis: [],
                     recommendations: []
                 };
-                
-                // Apply default config
-                applyConfig();
-                
+
+                // Remove all additional fields from the DOM
+                document.querySelectorAll('#performanceContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#impactsContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#analysisContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#recommendationsContainer .border-t').forEach(el => el.remove());
+
+                // Reset all editable fields to default
+                document.querySelectorAll('.editable-field').forEach(el => {
+                    const field = el.dataset.field;
+                    if (field && currentConfig.hasOwnProperty(field)) {
+                        el.textContent = currentConfig[field];
+                    }
+                });
+
                 // Turn off edit mode
                 if (editMode) {
                     document.getElementById('editModeBtn').click();
                 }
-                
+
+                // Also clear the map (markers, per-segment layers) and CSV state
+                try {
+                    clearMap();
+                    csvData = null;
+                    parsedData = [];
+                    const pc = document.getElementById('pointCount');
+                    if (pc) pc.textContent = '0';
+                    // Reset map view to default center/zoom if map exists
+                    if (map && typeof map.setCenter === 'function') {
+                        map.setCenter([11.5021, 3.8480]);
+                        map.setZoom(12);
+                    }
+                } catch (e) {
+                    console.warn('Error clearing map during reset:', e);
+                }
+
                 alert('Dashboard reset to default successfully!');
             }
         }
@@ -988,47 +1020,46 @@
         // =====================================================
         // MAP FUNCTIONALITY (FROM ORIGINAL)
         // =====================================================
-        let map, markers = [], layerIds = [];
-        let isDarkMode = true; // Default to dark mode
 
         function getMapStyle() {
-            if (isDarkMode) {
+            // Return proper map styles based on current mode
+            if (currentMapStyle === 'dark') {
+                // Dark mode: use CartoDB dark basemap
                 return {
                     version: 8,
                     sources: {
-                        'dark-tiles': {
+                        'osm': {
                             type: 'raster',
-                            tiles: ['https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png'],
+                            tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
                             tileSize: 256,
-                            attribution: '© OpenStreetMap contributors, © CartoDB'
+                            attribution: '© OpenStreetMap contributors, © CARTO'
                         }
                     },
                     layers: [{
-                        id: 'dark-layer',
+                        id: 'osm-raster',
                         type: 'raster',
-                        source: 'dark-tiles',
-                        minzoom: 0,
-                        maxzoom: 19
-                    }]
+                        source: 'osm'
+                    }],
+                    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
                 };
             } else {
+                // Light mode: use OpenStreetMap tiles
                 return {
                     version: 8,
                     sources: {
-                        'osm-tiles': {
+                        'osm': {
                             type: 'raster',
-                            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
                             tileSize: 256,
                             attribution: '© OpenStreetMap contributors'
                         }
                     },
                     layers: [{
-                        id: 'osm-layer',
+                        id: 'osm-raster',
                         type: 'raster',
-                        source: 'osm-tiles',
-                        minzoom: 0,
-                        maxzoom: 19
-                    }]
+                        source: 'osm'
+                    }],
+                    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
                 };
             }
         }
@@ -1039,6 +1070,26 @@
                 style: getMapStyle(),
                 center: [11.5021, 3.8480],
                 zoom: 12
+            });
+
+            // Add load event handler for stability
+            map.on('load', function() {
+                mapReady = true;
+                console.log('Map loaded successfully and ready');
+            });
+
+            // Add error handling (suppress alert for tile load failures; they rarely block rendering)
+            map.on('error', function(e) {
+                console.error('Map error:', e);
+            });
+
+            // Add resize handling for stability
+            window.addEventListener('resize', function() {
+                if (map) {
+                    setTimeout(function() {
+                        map.resize();
+                    }, 100);
+                }
             });
         }
 
@@ -1114,7 +1165,7 @@
 
                 if (!hasEvent) {
                     const el = document.createElement('div');
-                    el.style.cssText = `width:8px;height:8px;border-radius:50%;background:${p.color};border:1px solid white;cursor:pointer;opacity:0.7;`;
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
                     const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
                         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                             <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 Point #${row['#'] || i + 1}</div>
@@ -1217,16 +1268,26 @@
 
         // Map control buttons
         document.getElementById('mapViewBtn').addEventListener('click', function() {
-            isDarkMode = !isDarkMode;
-            this.innerHTML = isDarkMode ? '☀️' : '🌙';
-            map.setStyle(getMapStyle());
+            // Toggle between light and dark map styles
+            currentMapStyle = currentMapStyle === 'light' ? 'dark' : 'light';
             
-            // Re-render data after style change
-            map.once('styledata', () => {
-                if (csvData) {
-                    setTimeout(() => renderMap(csvData), 500);
-                }
-            });
+            if (map && mapReady) {
+                map.setStyle(getMapStyle());
+                
+                // Update button emoji
+                this.innerHTML = currentMapStyle === 'dark' ? '🌙' : '☀️';
+                
+                console.log('Map style changed to:', currentMapStyle);
+
+                // Re-render data after style change
+                map.once('styledata', () => {
+                    if (csvData) {
+                        setTimeout(() => renderMap(csvData), 500);
+                    }
+                });
+            } else {
+                console.warn('Map not ready yet');
+            }
         });
 
         document.getElementById('zoomInBtn').addEventListener('click', function() {
@@ -1256,6 +1317,25 @@
         document.addEventListener('fullscreenchange', function() {
             const btn = document.getElementById('fullscreenBtn');
             btn.innerHTML = '⛶';
+            // Ensure map layout and style reflow in fullscreen/exit-fullscreen
+            if (map) {
+                try {
+                    // Resize map to container changes
+                    setTimeout(() => map.resize(), 60);
+                    // Reapply current basemap style to force repaint (helps when switching modes in fullscreen)
+                    if (typeof map.setStyle === 'function') {
+                        map.setStyle(getMapStyle());
+                        map.once('styledata', () => {
+                            if (csvData) {
+                                // Re-render overlays after style change
+                                setTimeout(() => renderMap(csvData), 200);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Error during fullscreen style refresh:', e);
+                }
+            }
         });
 
         // Initialize saved state when page loads
