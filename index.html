@@ -21,7 +21,7 @@
         <div class="scanline"></div>
 
         <!-- Edit Mode Toggle -->
-        <div class="fixed top-2 right-2 z-50 flex flex-wrap gap-1 sm:gap-2 max-w-[280px] sm:max-w-none" id="controlButtons">
+        <div class="fixed top-2 right-2 z-50 flex flex-wrap gap-1 sm:gap-2 max-w-[280px] sm:max-w-none">
             <button id="editModeBtn"
                 class="bg-yellow-400 text-black px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-yellow-500 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
                 ✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>
@@ -41,10 +41,6 @@
             <button id="loadConfigBtn"
                 class="bg-blue-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-blue-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
                 📂 <span class="hidden sm:inline">LOAD</span>
-            </button>
-            <button id="shareClientBtn"
-                class="bg-orange-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-orange-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
-                🔗 <span class="hidden sm:inline">SHARE</span>
             </button>
         </div>
 
@@ -308,21 +304,6 @@
 
     <script>
         // =====================================================
-        // MODE DETECTION SYSTEM (Engineer vs Client View)
-        // =====================================================
-        const urlParams = new URLSearchParams(window.location.search);
-        const encodedConfig = urlParams.get('config');
-        const modeParam = urlParams.get('mode');
-        
-        // Determine if this is client view mode
-        const isClientView = window.location.pathname.includes('/view') || 
-                            encodedConfig !== null ||
-                            modeParam === 'view' ||
-                            modeParam === 'client';
-        
-        console.log('🎯 Dashboard Mode:', isClientView ? 'CLIENT VIEW (Read-Only)' : 'ENGINEER MODE (Full Edit)');
-        
-        // =====================================================
         // CONFIGURATION STATE
         // =====================================================
         let editMode = false;
@@ -358,266 +339,6 @@
 
         // Store default config for reset functionality
         const defaultConfig = { ...currentConfig };
-
-        // =====================================================
-        // CLIENT VIEW MODE SETUP
-        // =====================================================
-        function setupClientView() {
-            console.log('🔒 Setting up CLIENT VIEW MODE');
-            
-            // Hide all control buttons
-            const controlButtons = document.getElementById('controlButtons');
-            if (controlButtons) {
-                controlButtons.style.display = 'none';
-            }
-            
-            // Hide CSV upload button
-            const csvUploadBtn = document.querySelector('[onclick*="csvFile"]');
-            if (csvUploadBtn) {
-                csvUploadBtn.style.display = 'none';
-            }
-            
-            // Add client view indicator
-            const header = document.querySelector('header');
-            if (header) {
-                const indicator = document.createElement('div');
-                indicator.className = 'bg-blue-600 text-white px-4 py-2 text-sm font-bold mb-4 text-center border-2 border-black';
-                indicator.innerHTML = '👁️ CLIENT VIEW MODE - Report Provided by F2G Solutions';
-                header.insertAdjacentElement('afterend', indicator);
-            }
-            
-            // Make all fields read-only
-            disableAllEditing();
-            
-            // Hide add/delete buttons
-            hideEditableElements();
-            
-            // Load config from URL
-            if (encodedConfig) {
-                loadConfigFromURL();
-            }
-            
-            console.log('✅ Client view mode activated');
-        }
-        
-        function disableAllEditing() {
-            // Disable all contenteditable fields
-            document.querySelectorAll('.editable-field').forEach(el => {
-                el.contentEditable = false;
-                el.style.cursor = 'default';
-                el.style.outline = 'none';
-                el.style.backgroundColor = 'transparent';
-            });
-            
-            // Disable all inputs
-            document.querySelectorAll('input, textarea, select').forEach(el => {
-                el.disabled = true;
-            });
-        }
-        
-        function hideEditableElements() {
-            // Hide add buttons
-            const addBtns = ['addPerformanceBtn', 'addImpactsBtn', 'addAnalysisBtn', 'addRecommendationsBtn'];
-            addBtns.forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) btn.style.display = 'none';
-            });
-            
-            // Hide delete buttons
-            document.querySelectorAll('.field-delete-btn').forEach(el => {
-                el.style.display = 'none';
-            });
-        }
-        
-        function loadConfigFromURL() {
-            if (!encodedConfig) {
-                console.warn('No config parameter in URL');
-                return;
-            }
-            
-            try {
-                // Decode base64 config
-                const jsonString = atob(encodedConfig);
-                const config = JSON.parse(jsonString);
-                
-                console.log('📥 Loading config from URL...');
-                
-                // Apply config
-                currentConfig = config;
-                applyConfig();
-                
-                // If CSV data is embedded, render map
-                if (config.csvData) {
-                    console.log('📍 Rendering map with embedded CSV data');
-                    csvData = config.csvData;
-                    parsedData = parseCSV(csvData);
-                    
-                    // Wait for map to be ready
-                    if (mapReady) {
-                        renderMap(csvData);
-                        // If KPI panel was showing, update charts
-                        if (showingKPIs && parsedData.length > 0) {
-                            updateCharts();
-                        }
-                    } else {
-                        // Map will render when loaded
-                        console.log('Map not ready yet, will render on load');
-                    }
-                }
-                
-                console.log('✅ Configuration loaded successfully');
-            } catch (error) {
-                console.error('❌ Failed to load configuration:', error);
-                alert('Invalid configuration link. Please contact F2G Solutions for assistance.');
-            }
-        }
-        
-        // =====================================================
-        // SHARE WITH CLIENT FUNCTIONALITY
-        // =====================================================
-        function shareWithClient() {
-            console.log('🔗 Generating client share link...');
-            
-            // Save current state first
-            saveCurrentState();
-            
-            // Include CSV data and parsed data in config for client view
-            const clientConfig = {
-                ...currentConfig,
-                csvData: csvData,                    // Include raw CSV for map rendering
-                parsedDataLength: parsedData.length  // Include data count for validation
-            };
-            
-            try {
-                // Encode config as base64
-                const jsonString = JSON.stringify(clientConfig);
-                const encodedConfig = btoa(jsonString);
-                
-                // Generate client URL
-                const baseURL = window.location.origin + window.location.pathname;
-                const clientURL = `${baseURL}view?config=${encodedConfig}`;
-                
-                console.log('✅ Client URL generated');
-                console.log('📏 URL length:', clientURL.length, 'characters');
-                
-                // Check URL length (browsers support ~2000-8000 chars)
-                if (clientURL.length > 8000) {
-                    alert('⚠️ Warning: Configuration is very large. The link may not work in all browsers. Consider using a smaller CSV file or reducing data.');
-                }
-                
-                // Show share modal
-                showShareModal(clientURL);
-                
-            } catch (error) {
-                console.error('❌ Failed to generate share link:', error);
-                alert('Error generating share link. The configuration may be too large.');
-            }
-        }
-        
-        function showShareModal(url) {
-            // Remove existing modal if present
-            const existingModal = document.querySelector('.share-modal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-            
-            // Create modal
-            const modal = document.createElement('div');
-            modal.className = 'share-modal fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4';
-            modal.innerHTML = `
-                <div class="bg-white p-6 md:p-8 max-w-3xl w-full border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] max-h-[90vh] overflow-y-auto">
-                    <div class="flex justify-between items-start mb-4">
-                        <h2 class="text-2xl font-black">🔗 Share Report with Client</h2>
-                        <button onclick="this.closest('.share-modal').remove();" 
-                            class="text-2xl font-bold hover:text-red-600 transition-colors">
-                            ×
-                        </button>
-                    </div>
-                    
-                    <div class="bg-yellow-50 border-2 border-yellow-600 p-4 mb-4">
-                        <p class="font-bold text-yellow-900 mb-2">📋 Instructions:</p>
-                        <ol class="text-sm text-yellow-900 space-y-1 ml-4 list-decimal">
-                            <li>Copy the link below</li>
-                            <li>Send it to your client via email or secure messaging</li>
-                            <li>Client will have VIEW-ONLY access (cannot edit)</li>
-                            <li>Link includes all current data, analysis, and KPI charts</li>
-                        </ol>
-                    </div>
-                    
-                    <p class="font-bold mb-2">Shareable Link:</p>
-                    <div class="border-2 border-black p-3 bg-gray-100 mb-4 break-all font-mono text-xs md:text-sm max-h-40 overflow-y-auto">
-                        ${url}
-                    </div>
-                    
-                    <div class="flex flex-col md:flex-row gap-3">
-                        <button onclick="copyToClipboard('${url.replace(/'/g, "\\'")}');"
-                            class="bg-green-600 text-white px-6 py-3 font-bold border-2 border-black hover:bg-green-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-1">
-                            📋 COPY LINK
-                        </button>
-                        <button onclick="this.closest('.share-modal').remove();"
-                            class="bg-gray-600 text-white px-6 py-3 font-bold border-2 border-black hover:bg-gray-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                            CLOSE
-                        </button>
-                    </div>
-                    
-                    <div class="mt-6 bg-blue-50 border-2 border-blue-600 p-4">
-                        <p class="font-bold text-blue-900 mb-2">ℹ️ What Clients Can Do:</p>
-                        <ul class="text-sm text-blue-900 space-y-1 ml-4 list-disc">
-                            <li>View all report sections and analysis</li>
-                            <li>Interact with map (zoom, pan, click markers)</li>
-                            <li>View KPI charts and statistics</li>
-                            <li>Take screenshots for their records</li>
-                        </ul>
-                        <p class="font-bold text-blue-900 mt-3 mb-2">🔒 What Clients CANNOT Do:</p>
-                        <ul class="text-sm text-blue-900 space-y-1 ml-4 list-disc">
-                            <li>Edit any text fields or values</li>
-                            <li>Upload new CSV data</li>
-                            <li>Save changes or configurations</li>
-                            <li>Access engineer features</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="mt-4 text-xs text-gray-600 border-t pt-4">
-                        <p>⚠️ <strong>Security Note:</strong> This link contains the full report configuration. Send only via secure channels (email, secure messaging). Do not post publicly.</p>
-                        <p class="mt-2">📏 <strong>Link Length:</strong> ${url.length} characters ${url.length > 4000 ? '(long URL - may not work in all browsers)' : '(normal length)'}</p>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-        }
-        
-        function copyToClipboard(text) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text)
-                    .then(() => {
-                        alert('✅ Link copied to clipboard!\n\nYou can now paste it in an email to your client.');
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy:', err);
-                        fallbackCopy(text);
-                    });
-            } else {
-                fallbackCopy(text);
-            }
-        }
-        
-        function fallbackCopy(text) {
-            // Fallback for older browsers
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                alert('✅ Link copied to clipboard!');
-            } catch (err) {
-                alert('❌ Failed to copy. Please copy the link manually.');
-            }
-            document.body.removeChild(textarea);
-        }
 
         // Reset to default configuration
         function resetToDefault() {
@@ -1355,11 +1076,6 @@
             map.on('load', function() {
                 mapReady = true;
                 console.log('Map loaded successfully and ready');
-                
-                // If in client view mode, setup the view after map loads
-                if (isClientView) {
-                    setupClientView();
-                }
             });
 
             // Add error handling (suppress alert for tile load failures; they rarely block rendering)
@@ -1623,26 +1339,7 @@
         });
 
         // Initialize saved state when page loads
-        if (isClientView) {
-            console.log('🔒 Initializing CLIENT VIEW MODE');
-            // In client view, don't load from localStorage
-            // Wait for map to load, then setup client view
-            document.addEventListener('DOMContentLoaded', function() {
-                initMap();
-            });
-        } else {
-            console.log('✏️ Initializing ENGINEER MODE');
-            // Normal engineer mode - load saved state
-            loadSavedState();
-        }
-        
-        // Add Share button event listener (engineer mode only)
-        if (!isClientView) {
-            const shareBtn = document.getElementById('shareClientBtn');
-            if (shareBtn) {
-                shareBtn.addEventListener('click', shareWithClient);
-            }
-        }
+        loadSavedState();
     </script>
 </body>
 
