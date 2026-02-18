@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F2G-SOLUTIONS - Drive Testing Dashboard</title>
+    <link rel="icon" type="image/png" href="f2g_logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+    <div class="dashboard-container p-4 md:p-6">
+        <div class="grid-bg"></div>
+        <div class="scanline"></div>
+
+        <!-- Edit Mode Toggle -->
+        <div class="fixed top-2 right-2 z-50 flex flex-wrap gap-1 sm:gap-2 max-w-[280px] sm:max-w-none">
+            <button id="editModeBtn"
+                class="bg-yellow-400 text-black px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-yellow-500 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                ✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>
+            </button>
+            <button id="resetBtn"
+                class="bg-red-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-red-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                🔄 <span class="hidden sm:inline">RESET</span>
+            </button>
+            <button id="kpisBtn"
+                class="bg-purple-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-purple-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                📊 <span class="hidden sm:inline">KPIs</span>
+            </button>
+            <button id="saveConfigBtn"
+                class="bg-green-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-green-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                💾 <span class="hidden sm:inline">SAVE</span>
+            </button>
+            <button id="loadConfigBtn"
+                class="bg-blue-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-blue-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                📂 <span class="hidden sm:inline">LOAD</span>
+            </button>
+        </div>
+
+        <header
+            class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-black pb-4 mb-4 shrink-0">
+            <div class="flex-1">
+                <div class="flex items-center gap-3">
+                    <div class="w-4 h-4 bg-orange-600 animate-pulse border border-black"></div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tighter leading-none editable-field" 
+                        data-field="title" contenteditable="false">
+                        [Test Case Type] : [Test Case Name]
+                    </h1>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3 text-xs md:text-sm font-bold font-mono">
+                    <span class="bg-black text-white px-3 py-1 editable-field" data-field="operator" contenteditable="false">
+                        OPERATOR: [Operator Name]
+                    </span>
+                    <span class="border-2 border-black px-3 py-1 bg-white/50 editable-field" data-field="route" contenteditable="false">
+                        ROUTE: [Start Location] > [End Location]
+                    </span>
+                    <span class="border-2 border-black px-3 py-1 bg-white/50 editable-field" data-field="status" contenteditable="false">
+                        STATUS: [Test Status]
+                    </span>
+                </div>
+            </div>
+
+            <div class="text-left md:text-right font-bold text-xs md:text-sm mt-4 md:mt-0 space-y-1">
+                <p class="editable-field" data-field="reference" contenteditable="false">REF: [Reference Standard]</p>
+                <p class="editable-field" data-field="device" contenteditable="false">TEST DEVICE: [Device Model]</p>
+            </div>
+        </header>
+
+        <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden">
+
+            <!-- MAP SECTION (NOT EDITABLE) -->
+            <div class="lg:col-span-2 flex flex-col h-[400px] sm:h-[500px] lg:h-auto border-thick bg-gray-900 relative group overflow-hidden">
+                <div id="map" style="width: 100%; height: 100%;"></div>
+
+                <div style="position: absolute; top: 8px; left: 8px; z-index: 1000; display: flex; flex-direction: column; gap: 8px;">
+                    <input type="file" id="csvFile" accept=".csv" style="display: none;">
+                    <button onclick="document.getElementById('csvFile').click()"
+                        class="bg-black text-white px-3 py-2 text-xs font-bold border-2 border-white hover:bg-white hover:text-black transition-all">
+                        📁 UPLOAD CSV
+                    </button>
+                    
+                    <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
+                        <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1">RSRP SIGNAL QUALITY</div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-3 h-3 bg-green-500 border border-white"></div> Excellent (≥-80 dBm)
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-3 h-3 bg-blue-500 border border-white"></div> Good (-80 to -90)
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-3 h-3 bg-amber-500 border border-white"></div> Fair (-90 to -100)
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-3 h-3 bg-orange-500 border border-white"></div> Poor (-100 to -110)
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 bg-red-500 border border-white"></div> Very Poor (&lt;-110)
+                        </div>
+
+                        <div class="font-bold text-white mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-4 h-4 rounded-full bg-[#f97316] border border-white flex items-center justify-center text-[10px]">↔</div> Handover
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⚡</div> Attach
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-4 h-4 rounded-full bg-[#9ca3af] border border-white flex items-center justify-center text-[10px]">🔌</div> Detach
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-4 h-4 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-[10px]">⚠</div> RLF
+                        </div>
+                        <div class="flex items-center gap-2 mb-1">📶 Cell Reselection</div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-full bg-[#a855f7] border border-white flex items-center justify-center text-[10px]">📞</div> CSFB
+                        </div>
+                    </div>
+                </div>
+
+                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; max-width: 280px;">
+                    <span class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
+                    <button id="mapViewBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        ☀️
+                    </button>
+                    <button id="zoomInBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        🔍+
+                    </button>
+                    <button id="zoomOutBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        🔍-
+                    </button>
+                    <button id="fullscreenBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
+                        ⛶
+                    </button>
+                </div>
+
+
+            </div>
+
+            <!-- RIGHT PANEL - ALL EDITABLE -->
+            <div id="dashboardPanel" class="flex flex-col gap-4 h-full overflow-y-auto pr-1">
+
+                <!-- PERFORMANCE SUMMARY -->
+                <div class="border-thick bg-white/50 p-4 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="section-title m-0 editable-field" data-field="performance-title" contenteditable="false">
+                            01 : PERFORMANCE SUMMARY
+                        </div>
+                        <div class="w-3 h-3 bg-green-500 border border-black rounded-full"></div>
+                    </div>
+                    <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="performanceContainer">
+                        <div class="editable-field text-sm" data-field="performance-content" contenteditable="false">
+                            Click on 'Edit Mode' to add performance summary.
+                        </div>
+                    </div>
+                    <button id="addPerformanceBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
+                        + ADD FIELD
+                    </button>
+                </div>
+
+                <!-- IMPACTS -->
+                <div class="border-thick bg-white/50 p-4 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="section-title mb-3 editable-field" data-field="impacts-title" contenteditable="false">
+                        02 : IMPACTS
+                    </div>
+                    <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="impactsContainer">
+                        <div class="editable-field text-sm" data-field="impacts-content" contenteditable="false">
+                            Click on 'Edit Mode' to add impacts analysis.
+                        </div>
+                    </div>
+                    <button id="addImpactsBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
+                        + ADD FIELD
+                    </button>
+                </div>
+
+                <!-- ANALYSIS -->
+                <div class="border-thick bg-white/50 p-4 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="section-title mb-3 editable-field" data-field="analysis-title" contenteditable="false">
+                        03 : ANALYSIS
+                    </div>
+                    <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="analysisContainer">
+                        <div class="editable-field text-sm" data-field="analysis-content" contenteditable="false">
+                            Click on 'Edit Mode' to add technical analysis.
+                        </div>
+                    </div>
+                    <button id="addAnalysisBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
+                        + ADD FIELD
+                    </button>
+                </div>
+
+                <!-- RECOMMENDATIONS -->
+                <div class="border-thick bg-white/50 p-4 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <div class="section-title mb-3 editable-field" data-field="recommendations-title" contenteditable="false">
+                        04 : RECOMMANDATIONS
+                    </div>
+                    <div class="border-2 border-black p-3 bg-white/80 min-h-[100px]" id="recommendationsContainer">
+                        <div class="editable-field text-sm" data-field="recommendations-content" contenteditable="false">
+                            Click on 'Edit Mode' to add recommendations.
+                        </div>
+                    </div>
+                    <button id="addRecommendationsBtn" class="hidden mt-3 w-full bg-black text-white py-2 text-xs font-bold hover:bg-gray-800">
+                        + ADD FIELD
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- KPI VISUALIZATION PANEL (HIDDEN BY DEFAULT) -->
+            <div id="kpiPanel" class="hidden flex-col gap-4 h-full overflow-y-auto pr-1 bg-gray-900 p-4">
+                <div class="text-white text-center mb-4">
+                    <h2 class="text-xl font-bold mb-2">📊 KPI VISUALIZATION</h2>
+                    <p class="text-sm text-gray-400">Real-time signal quality metrics</p>
+                </div>
+
+                <!-- KPI Tabs -->
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button class="kpi-tab active bg-blue-600 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrp">RSRP</button>
+                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrq">RSRQ</button>
+                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="sinr">SINR</button>
+                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="pci">PCI</button>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="border-4 border-white bg-gray-800 p-4" style="height: 300px;">
+                    <canvas id="kpiChart"></canvas>
+                </div>
+
+                <!-- PCI Changes Chart -->
+                <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
+                    <h3 class="text-white font-bold mb-2 text-sm">PCI Changes</h3>
+                    <canvas id="pciChart"></canvas>
+                </div>
+
+                <!-- All KPIs Comparison Chart -->
+                <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 300px;">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-white font-bold text-sm">All KPIs Comparison</h3>
+                        <div class="flex gap-3 text-xs">
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="toggleRSRP" checked class="w-3 h-3">
+                                <span class="text-blue-400">RSRP</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="toggleRSRQ" checked class="w-3 h-3">
+                                <span class="text-green-400">RSRQ</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" id="toggleSINR" checked class="w-3 h-3">
+                                <span class="text-yellow-400">SINR</span>
+                            </label>
+                        </div>
+                    </div>
+                    <canvas id="allKpisChart"></canvas>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <h3 class="text-white font-bold mb-2 text-sm">Statistics</h3>
+                        <div id="kpiStats" class="text-white text-xs space-y-1">
+                            <div>Min: <span id="statMin" class="text-red-400">-</span></div>
+                            <div>Avg: <span id="statAvg" class="text-yellow-400">-</span></div>
+                            <div>Max: <span id="statMax" class="text-green-400">-</span></div>
+                        </div>
+                    </div>
+
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <h3 class="text-white font-bold mb-2 text-sm">Signal Quality</h3>
+                        <div id="signalQuality" class="text-white text-xs space-y-1">
+                            <div>🟢 Excellent: <span id="qualExcellent">0</span> (0%)</div>
+                            <div>🔵 Good: <span id="qualGood">0</span> (0%)</div>
+                            <div>🟡 Fair: <span id="qualFair">0</span> (0%)</div>
+                            <div>🔴 Poor: <span id="qualPoor">0</span> (0%)</div>
+                        </div>
+                    </div>
+
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <h3 class="text-white font-bold mb-2 text-sm">Events</h3>
+                        <div id="eventsList" class="text-white text-xs space-y-1 max-h-24 overflow-y-auto">
+                            <div class="text-gray-400">No events</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FOOTER (EDITABLE) -->
+        <footer class="relative z-10 mt-6 pt-4 border-t-4 border-black text-xs font-bold" style="display: flex; justify-content: space-between;">
+            <span class="editable-field" data-field="footer-left" contenteditable="false">© 2026 PKFOKAM48 - TELCO ACADEMY</span>
+            <span class="editable-field" data-field="footer-right" contenteditable="false">F2G SOLUTIONS: CONFIDENTIAL-INTERNAL USE ONLY</span>
+        </footer>
+
+    </div>
+
+    <!-- Hidden file input for loading config -->
+    <input type="file" id="loadConfigFile" accept=".json" style="display: none;">
+
+    <script>
+        // =====================================================
+        // CONFIGURATION STATE
+        // =====================================================
+        let editMode = false;
+        let csvData = null;
+        let parsedData = [];
+        let kpiChart = null;
+        let pciChart = null;
+        let allKpisChart = null;
+        let showingKPIs = false;
+        let currentMapStyle = 'light'; // Track current map style (light/dark)
+        let map = null; // Map instance
+        let markers = []; // Store markers for cleanup
+        let layerIds = []; // Track added layer ids for cleanup
+        let mapReady = false; // Track if map is fully loaded
+        let currentConfig = {
+            title: "[Test Case Type] : [Test Case Name]",
+            operator: "OPERATOR: [Operator Name]",
+            route: "ROUTE: [Start Location] > [End Location]",
+            status: "STATUS: [Test Status]",
+            reference: "REF: [Reference Standard]",
+            device: "TEST DEVICE: [Device Model]",
+            "performance-title": "01 : PERFORMANCE SUMMARY",
+            "performance-content": "Click on 'Edit Mode' to add performance summary.",
+            "impacts-title": "02 : IMPACTS",
+            "impacts-content": "Click on 'Edit Mode' to add impacts analysis.",
+            "analysis-title": "03 : ANALYSIS",
+            "analysis-content": "Click on 'Edit Mode' to add technical analysis.",
+            "recommendations-title": "04 : RECOMMANDATIONS",
+            "recommendations-content": "Click on 'Edit Mode' to add recommendations.",
+            "footer-left": "© 2026 PKFOKAM48 - TELCO ACADEMY",
+            "footer-right": "F2G SOLUTIONS: CONFIDENTIAL-INTERNAL USE ONLY"
+        };
+
+        // Store default config for reset functionality
+        const defaultConfig = { ...currentConfig };
+
+        // Reset to default configuration
+        function resetToDefault() {
+            if (confirm('Are you sure you want to reset all content to default? This will clear all your changes and cannot be undone.')) {
+                // Clear localStorage
+                localStorage.removeItem('dashboardConfig');
+
+                // Reset to default config and clear all additional fields
+                currentConfig = { ...defaultConfig };
+                currentConfig.additionalFields = {
+                    performance: [],
+                    impacts: [],
+                    analysis: [],
+                    recommendations: []
+                };
+
+                // Remove all additional fields from the DOM
+                document.querySelectorAll('#performanceContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#impactsContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#analysisContainer .border-t').forEach(el => el.remove());
+                document.querySelectorAll('#recommendationsContainer .border-t').forEach(el => el.remove());
+
+                // Reset all editable fields to default
+                document.querySelectorAll('.editable-field').forEach(el => {
+                    const field = el.dataset.field;
+                    if (field && currentConfig.hasOwnProperty(field)) {
+                        el.textContent = currentConfig[field];
+                    }
+                });
+
+                // Turn off edit mode
+                if (editMode) {
+                    document.getElementById('editModeBtn').click();
+                }
+
+                // Also clear the map (markers, per-segment layers) and CSV state
+                try {
+                    clearMap();
+                    csvData = null;
+                    parsedData = [];
+                    const pc = document.getElementById('pointCount');
+                    if (pc) pc.textContent = '0';
+                    // Reset map view to default center/zoom if map exists
+                    if (map && typeof map.setCenter === 'function') {
+                        map.setCenter([11.5021, 3.8480]);
+                        map.setZoom(12);
+                    }
+                } catch (e) {
+                    console.warn('Error clearing map during reset:', e);
+                }
+
+                alert('Dashboard reset to default successfully!');
+            }
+        }
+
+        // Load saved state from localStorage on page load
+        function loadSavedState() {
+            const saved = localStorage.getItem('dashboardConfig');
+            if (saved) {
+                try {
+                    const savedConfig = JSON.parse(saved);
+                    currentConfig = { ...currentConfig, ...savedConfig };
+                    applyConfig();
+                } catch (e) {
+                    console.log('Error loading saved state:', e);
+                }
+            }
+        }
+
+        // Save state to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('dashboardConfig', JSON.stringify(currentConfig));
+        }
+
+        // =====================================================
+        // EDIT MODE TOGGLE
+        // =====================================================
+        document.getElementById('editModeBtn').addEventListener('click', function() {
+            editMode = !editMode;
+            const mobileText = editMode ? '✏️ <span class="hidden sm:inline">EDIT MODE: ON</span>' : '✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>';
+            this.innerHTML = mobileText;
+            this.classList.toggle('bg-yellow-400', !editMode);
+            this.classList.toggle('bg-green-500', editMode);
+            
+            // Enable/disable contenteditable
+            document.querySelectorAll('.editable-field').forEach(el => {
+                el.contentEditable = editMode;
+                if (editMode) {
+                    el.style.outline = '2px dashed #FF7900';
+                    el.style.outlineOffset = '2px';
+                    // Handle empty fields - add placeholder if empty
+                    if (el.textContent.trim() === '') {
+                        el.textContent = 'Click to edit';
+                        el.style.color = '#999';
+                    }
+                } else {
+                    el.style.outline = 'none';
+                    // Remove placeholder styling
+                    if (el.textContent === 'Click to edit') {
+                        el.textContent = '';
+                    }
+                    el.style.color = '';
+                }
+            });
+
+            // Show/hide add buttons
+            document.getElementById('addPerformanceBtn').classList.toggle('hidden', !editMode);
+            document.getElementById('addImpactsBtn').classList.toggle('hidden', !editMode);
+            document.getElementById('addAnalysisBtn').classList.toggle('hidden', !editMode);
+            document.getElementById('addRecommendationsBtn').classList.toggle('hidden', !editMode);
+
+            // Show/hide delete buttons for additional fields
+            document.querySelectorAll('.field-delete-btn').forEach(btn => {
+                btn.style.display = editMode ? 'block' : 'none';
+            });
+
+            // Save state when exiting edit mode
+            if (!editMode) {
+                saveCurrentState();
+                saveToLocalStorage();
+            }
+        });
+
+        // Handle focus events for editable fields
+        document.addEventListener('focusin', function(e) {
+            if (e.target.classList.contains('editable-field') && e.target.textContent === 'Click to edit') {
+                e.target.textContent = '';
+                e.target.style.color = '';
+            }
+        });
+
+        document.addEventListener('focusout', function(e) {
+            if (e.target.classList.contains('editable-field') && e.target.textContent.trim() === '' && editMode) {
+                e.target.textContent = 'Click to edit';
+                e.target.style.color = '#999';
+            }
+        });
+
+        // =====================================================
+        // SAVE/LOAD CONFIGURATION
+        // =====================================================
+        function saveCurrentState() {
+            // Save editable fields (including empty ones)
+            document.querySelectorAll('.editable-field').forEach(el => {
+                const field = el.dataset.field;
+                if (field) {
+                    let content = el.textContent.trim();
+                    // Don't save placeholder text, save as empty string
+                    if (content === 'Click to edit') {
+                        content = '';
+                    }
+                    currentConfig[field] = content;
+                }
+            });
+            
+            // Save additional fields for each section
+            currentConfig.additionalFields = {
+                performance: [],
+                impacts: [],
+                analysis: [],
+                recommendations: []
+            };
+            
+            // Save performance additional fields
+            document.querySelectorAll('#performanceContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent && textContent !== 'Click to edit') {
+                    currentConfig.additionalFields.performance.push(textContent);
+                }
+            });
+            
+            // Save impacts additional fields
+            document.querySelectorAll('#impactsContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent && textContent !== 'Click to edit') {
+                    currentConfig.additionalFields.impacts.push(textContent);
+                }
+            });
+            
+            // Save analysis additional fields
+            document.querySelectorAll('#analysisContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent && textContent !== 'Click to edit') {
+                    currentConfig.additionalFields.analysis.push(textContent);
+                }
+            });
+            
+            // Save recommendations additional fields
+            document.querySelectorAll('#recommendationsContainer .border-t').forEach(field => {
+                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
+                if (textContent && textContent !== 'Click to edit') {
+                    currentConfig.additionalFields.recommendations.push(textContent);
+                }
+            });
+        }
+
+        // =====================================================
+        // ADD FIELD FUNCTIONALITY
+        // =====================================================
+        function addFieldToSection(sectionId, fieldName) {
+            const container = document.getElementById(sectionId);
+            const newField = document.createElement('div');
+            newField.className = 'border-t border-gray-300 pt-2 mt-2 relative';
+            newField.innerHTML = `
+                <button class="field-delete-btn absolute top-0 right-0 text-red-600 text-xs font-bold hover:text-red-800" onclick="this.parentElement.remove()" style="display: ${editMode ? 'block' : 'none'}">✕</button>
+                <div class="editable-field text-sm" contenteditable="${editMode}" style="${editMode ? 'outline: 2px dashed #FF7900; outline-offset: 2px;' : ''}">
+                    New ${fieldName} field - click to edit
+                </div>
+            `;
+            container.appendChild(newField);
+        }
+        
+        function addFieldToSectionWithContent(sectionId, fieldName, content) {
+            const container = document.getElementById(sectionId);
+            const newField = document.createElement('div');
+            newField.className = 'border-t border-gray-300 pt-2 mt-2 relative';
+            newField.innerHTML = `
+                <button class="field-delete-btn absolute top-0 right-0 text-red-600 text-xs font-bold hover:text-red-800" onclick="this.parentElement.remove()" style="display: ${editMode ? 'block' : 'none'}">✕</button>
+                <div class="editable-field text-sm" contenteditable="${editMode}" style="${editMode ? 'outline: 2px dashed #FF7900; outline-offset: 2px;' : ''}">
+                    ${content}
+                </div>
+            `;
+            container.appendChild(newField);
+        }
+
+        document.getElementById('addPerformanceBtn').addEventListener('click', function() {
+            addFieldToSection('performanceContainer', 'performance');
+        });
+
+        document.getElementById('addImpactsBtn').addEventListener('click', function() {
+            addFieldToSection('impactsContainer', 'impacts');
+        });
+
+        document.getElementById('addAnalysisBtn').addEventListener('click', function() {
+            addFieldToSection('analysisContainer', 'analysis');
+        });
+
+        document.getElementById('addRecommendationsBtn').addEventListener('click', function() {
+            addFieldToSection('recommendationsContainer', 'recommendations');
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            resetToDefault();
+        });
+
+        // =====================================================
+        // KPI VISUALIZATION
+        // =====================================================
+        document.getElementById('kpisBtn').addEventListener('click', function() {
+            showingKPIs = !showingKPIs;
+            const dashboardPanel = document.getElementById('dashboardPanel');
+            const kpiPanel = document.getElementById('kpiPanel');
+            
+            if (showingKPIs) {
+                dashboardPanel.classList.add('hidden');
+                kpiPanel.classList.remove('hidden');
+                kpiPanel.classList.add('flex');
+                this.classList.remove('bg-purple-600');
+                this.classList.add('bg-green-600');
+                this.innerHTML = '📋 <span class="hidden sm:inline">DASHBOARD</span>';
+                
+                if (parsedData.length > 0) {
+                    renderKPIChart('rsrp');
+                    renderPCIChart();
+                    renderAllKPIsChart();
+                    
+                    // Add checkbox listeners
+                    setTimeout(() => {
+                        document.getElementById('toggleRSRP').addEventListener('change', updateAllKPIsChart);
+                        document.getElementById('toggleRSRQ').addEventListener('change', updateAllKPIsChart);
+                        document.getElementById('toggleSINR').addEventListener('change', updateAllKPIsChart);
+                    }, 100);
+                }
+            } else {
+                dashboardPanel.classList.remove('hidden');
+                kpiPanel.classList.add('hidden');
+                kpiPanel.classList.remove('flex');
+                this.classList.remove('bg-green-600');
+                this.classList.add('bg-purple-600');
+                this.innerHTML = '📊 <span class="hidden sm:inline">KPIs</span>';
+            }
+        });
+
+        // KPI Tab switching
+        document.querySelectorAll('.kpi-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.kpi-tab').forEach(t => {
+                    t.classList.remove('active', 'bg-blue-600');
+                    t.classList.add('bg-gray-700');
+                });
+                this.classList.add('active', 'bg-blue-600');
+                this.classList.remove('bg-gray-700');
+                renderKPIChart(this.dataset.kpi);
+            });
+        });
+
+        function renderKPIChart(kpiType) {
+            if (parsedData.length === 0) return;
+
+            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const values = parsedData.map(d => parseFloat(d[kpiType]) || 0);
+
+            // Calculate statistics
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+
+            document.getElementById('statMin').textContent = min.toFixed(2);
+            document.getElementById('statAvg').textContent = avg;
+            document.getElementById('statMax').textContent = max.toFixed(2);
+
+            // Calculate signal quality distribution (for RSRP)
+            if (kpiType === 'rsrp') {
+                const excellent = values.filter(v => v >= -80).length;
+                const good = values.filter(v => v >= -90 && v < -80).length;
+                const fair = values.filter(v => v >= -100 && v < -90).length;
+                const poor = values.filter(v => v < -100).length;
+                const total = values.length;
+
+                document.getElementById('qualExcellent').textContent = `${excellent} (${((excellent/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualGood').textContent = `${good} (${((good/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualFair').textContent = `${fair} (${((fair/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualPoor').textContent = `${poor} (${((poor/total)*100).toFixed(0)}%)`;
+            }
+
+            // Update events list
+            const events = parsedData.filter(d => d.event && d.event.trim() !== '');
+            const eventsList = document.getElementById('eventsList');
+            if (events.length > 0) {
+                eventsList.innerHTML = events.map(e => 
+                    `<div>${e.time?.split('T')[1]?.slice(0, 8) || '-'} ${e.event.toUpperCase()}</div>`
+                ).join('');
+            }
+
+            // Chart colors based on KPI type
+            const colors = {
+                rsrp: { line: '#3b82f6', fill: 'rgba(59, 130, 246, 0.2)' },
+                rsrq: { line: '#10b981', fill: 'rgba(16, 185, 129, 0.2)' },
+                sinr: { line: '#f59e0b', fill: 'rgba(245, 158, 11, 0.2)' },
+                pci: { line: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.2)' }
+            };
+
+            const ctx = document.getElementById('kpiChart').getContext('2d');
+            
+            if (kpiChart) {
+                kpiChart.destroy();
+            }
+
+            kpiChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: kpiType.toUpperCase(),
+                        data: values,
+                        borderColor: colors[kpiType].line,
+                        backgroundColor: colors[kpiType].fill,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#fff', font: { family: 'JetBrains Mono' } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { 
+                                color: '#9ca3af',
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: { size: 9, family: 'JetBrains Mono' }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#9ca3af',
+                                font: { family: 'JetBrains Mono' }
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPCIChart() {
+            if (parsedData.length === 0) return;
+
+            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const pciValues = parsedData.map(d => parseInt(d.pci) || 0);
+
+            const ctx = document.getElementById('pciChart').getContext('2d');
+            
+            if (pciChart) pciChart.destroy();
+
+            pciChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'PCI',
+                        data: pciValues,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 3,
+                        pointBackgroundColor: function(context) {
+                            const index = context.dataIndex;
+                            if (index === 0) return '#8b5cf6';
+                            return pciValues[index] !== pciValues[index - 1] ? '#ef4444' : '#8b5cf6';
+                        },
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono' },
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const index = context.dataIndex;
+                                    if (index > 0 && pciValues[index] !== pciValues[index - 1]) {
+                                        return `Handover: ${pciValues[index - 1]} → ${pciValues[index]}`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: '#9ca3af', font: { family: 'JetBrains Mono' } },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAllKPIsChart() {
+            if (parsedData.length === 0) return;
+
+            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const rsrpValues = parsedData.map(d => parseFloat(d.rsrp) || -100);
+            const rsrqValues = parsedData.map(d => parseFloat(d.rsrq) || -10);
+            const sinrValues = parsedData.map(d => parseFloat(d.sinr) || 0);
+
+            const showRSRP = document.getElementById('toggleRSRP')?.checked !== false;
+            const showRSRQ = document.getElementById('toggleRSRQ')?.checked !== false;
+            const showSINR = document.getElementById('toggleSINR')?.checked !== false;
+
+            const datasets = [];
+            if (showRSRP) {
+                datasets.push({
+                    label: 'RSRP',
+                    data: rsrpValues,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y',
+                    pointRadius: 1
+                });
+            }
+            if (showRSRQ) {
+                datasets.push({
+                    label: 'RSRQ',
+                    data: rsrqValues,
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y1',
+                    pointRadius: 1
+                });
+            }
+            if (showSINR) {
+                datasets.push({
+                    label: 'SINR',
+                    data: sinrValues,
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y2',
+                    pointRadius: 1
+                });
+            }
+
+            const ctx = document.getElementById('allKpisChart').getContext('2d');
+            
+            if (allKpisChart) allKpisChart.destroy();
+
+            allKpisChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            display: showRSRP,
+                            ticks: { color: '#3b82f6', font: { family: 'JetBrains Mono' } },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            display: showRSRQ,
+                            ticks: { color: '#10b981', font: { family: 'JetBrains Mono' } },
+                            grid: { drawOnChartArea: false }
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: false,
+                            ticks: { color: '#f59e0b' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAllKPIsChart() {
+            renderAllKPIsChart();
+        }
+
+        document.getElementById('saveConfigBtn').addEventListener('click', async function() {
+            saveCurrentState();
+            saveToLocalStorage();
+            
+            const defaultName = `test-case-config-${new Date().toISOString().slice(0,10)}.json`;
+            const dataStr = JSON.stringify(currentConfig, null, 2);
+            
+            // Try modern File System Access API first (Chrome/Edge)
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: defaultName,
+                        types: [{
+                            description: 'JSON Files',
+                            accept: { 'application/json': ['.json'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(dataStr);
+                    await writable.close();
+                    alert('Configuration saved!');
+                    return;
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error(err);
+                    return;
+                }
+            }
+            
+            // Fallback for other browsers
+            const fileName = prompt('Enter filename for configuration:', defaultName.replace('.json', ''));
+            if (fileName) {
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('Configuration saved!');
+            }
+        });
+
+        document.getElementById('loadConfigBtn').addEventListener('click', function() {
+            document.getElementById('loadConfigFile').click();
+        });
+
+        document.getElementById('loadConfigFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const config = JSON.parse(event.target.result);
+                    currentConfig = config;
+                    applyConfig();
+                    alert('Configuration loaded successfully!');
+                } catch (err) {
+                    alert('Error loading configuration: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function applyConfig() {
+            // Apply all fields (including empty ones)
+            document.querySelectorAll('.editable-field').forEach(el => {
+                const field = el.dataset.field;
+                if (field && currentConfig.hasOwnProperty(field)) {
+                    el.textContent = currentConfig[field];
+                }
+            });
+            
+            // Clear existing additional fields first
+            document.querySelectorAll('#performanceContainer .border-t').forEach(el => el.remove());
+            document.querySelectorAll('#impactsContainer .border-t').forEach(el => el.remove());
+            document.querySelectorAll('#analysisContainer .border-t').forEach(el => el.remove());
+            document.querySelectorAll('#recommendationsContainer .border-t').forEach(el => el.remove());
+            
+            // Load additional fields if they exist
+            if (currentConfig.additionalFields) {
+                // Load performance additional fields
+                if (currentConfig.additionalFields.performance) {
+                    currentConfig.additionalFields.performance.forEach(text => {
+                        addFieldToSectionWithContent('performanceContainer', 'performance', text);
+                    });
+                }
+                
+                // Load impacts additional fields
+                if (currentConfig.additionalFields.impacts) {
+                    currentConfig.additionalFields.impacts.forEach(text => {
+                        addFieldToSectionWithContent('impactsContainer', 'impacts', text);
+                    });
+                }
+                
+                // Load analysis additional fields
+                if (currentConfig.additionalFields.analysis) {
+                    currentConfig.additionalFields.analysis.forEach(text => {
+                        addFieldToSectionWithContent('analysisContainer', 'analysis', text);
+                    });
+                }
+                
+                // Load recommendations additional fields
+                if (currentConfig.additionalFields.recommendations) {
+                    currentConfig.additionalFields.recommendations.forEach(text => {
+                        addFieldToSectionWithContent('recommendationsContainer', 'recommendations', text);
+                    });
+                }
+            }
+        }
+
+        // =====================================================
+        // MAP FUNCTIONALITY (FROM ORIGINAL)
+        // =====================================================
+
+        function getMapStyle() {
+            // Return proper map styles based on current mode
+            if (currentMapStyle === 'dark') {
+                // Dark mode: use CartoDB dark basemap
+                return {
+                    version: 8,
+                    sources: {
+                        'osm': {
+                            type: 'raster',
+                            tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+                            tileSize: 256,
+                            attribution: '© OpenStreetMap contributors, © CARTO'
+                        }
+                    },
+                    layers: [{
+                        id: 'osm-raster',
+                        type: 'raster',
+                        source: 'osm'
+                    }],
+                    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+                };
+            } else {
+                // Light mode: use OpenStreetMap tiles
+                return {
+                    version: 8,
+                    sources: {
+                        'osm': {
+                            type: 'raster',
+                            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            tileSize: 256,
+                            attribution: '© OpenStreetMap contributors'
+                        }
+                    },
+                    layers: [{
+                        id: 'osm-raster',
+                        type: 'raster',
+                        source: 'osm'
+                    }],
+                    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf'
+                };
+            }
+        }
+
+        function initMap() {
+            map = new maplibregl.Map({
+                container: 'map',
+                style: getMapStyle(),
+                center: [11.5021, 3.8480],
+                zoom: 12
+            });
+
+            // Add load event handler for stability
+            map.on('load', function() {
+                mapReady = true;
+                console.log('Map loaded successfully and ready');
+            });
+
+            // Add error handling (suppress alert for tile load failures; they rarely block rendering)
+            map.on('error', function(e) {
+                console.error('Map error:', e);
+            });
+
+            // Add resize handling for stability
+            window.addEventListener('resize', function() {
+                if (map) {
+                    setTimeout(function() {
+                        map.resize();
+                    }, 100);
+                }
+            });
+        }
+
+        function clearMap() {
+            markers.forEach(m => m.remove());
+            markers = [];
+            layerIds.forEach(id => {
+                if (map.getLayer(id)) map.removeLayer(id);
+                if (map.getSource(id)) map.removeSource(id);
+            });
+            layerIds = [];
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            return lines.slice(1).map(line => {
+                const values = line.split(',');
+                const obj = {};
+                headers.forEach((h, i) => obj[h] = values[i]?.trim());
+                return obj;
+            });
+        }
+
+        function getColor(rsrp) {
+            if (rsrp >= -80) return '#22c55e';
+            if (rsrp >= -90) return '#3b82f6';
+            if (rsrp >= -100) return '#f59e0b';
+            if (rsrp >= -110) return '#f97316';
+            return '#ef4444';
+        }
+
+        function renderMap(csvText) {
+            clearMap();
+            const data = parseCSV(csvText);
+            parsedData = data; // Store for KPI visualization
+            const coords = [];
+
+            data.forEach((row, idx) => {
+                const lat = parseFloat(row.latitude);
+                const lon = parseFloat(row.longitude);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const rsrp = parseFloat(row.rsrp) || -100;
+                    coords.push({ lat, lon, rsrp, color: getColor(rsrp), row, idx });
+                }
+            });
+
+            // Draw path
+            for (let i = 0; i < coords.length - 1; i++) {
+                const p1 = coords[i], p2 = coords[i + 1];
+                const srcId = `seg-${i}`;
+                map.addSource(srcId, {
+                    type: 'geojson',
+                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [[p1.lon, p1.lat], [p2.lon, p2.lat]] } }
+                });
+                map.addLayer({ id: srcId, type: 'line', source: srcId, paint: { 'line-color': p1.color, 'line-width': 6, 'line-opacity': 0.9 } });
+                layerIds.push(srcId);
+            }
+
+            const eventIcons = {
+                'handover': { icon: '↔', color: '#f97316', label: 'Handover', circleIcon: true },
+                'cell_reselection': { icon: '📶', color: '#8b5cf6', label: 'Cell Reselection' },
+                'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
+                'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
+                'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
+                'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true }
+            };
+
+            // Add markers
+            coords.forEach((p, i) => {
+                const row = p.row;
+                const hasEvent = row.event && row.event.trim() !== '';
+
+                if (!hasEvent) {
+                    const el = document.createElement('div');
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
+                    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                            <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 Point #${row['#'] || i + 1}</div>
+                            <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                            <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
+                            <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                        </div>
+                    `);
+                    markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                }
+            });
+
+            // Event markers
+            coords.filter(p => p.row.event && p.row.event.trim() !== '').forEach((p, i) => {
+                const row = p.row;
+                const evtKey = row.event.toLowerCase().trim();
+                const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
+
+                const el = document.createElement('div');
+                if (evt.circleIcon) {
+                    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${evt.color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
+                } else {
+                    el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
+                }
+
+                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                        <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label}</div>
+                        <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                        <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
+                        <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>
+                    </div>
+                `);
+                markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+            });
+
+            // Start/End markers
+            if (coords.length > 0) {
+                const startEl = document.createElement('div');
+                startEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🟢</div>';
+                markers.push(new maplibregl.Marker({ element: startEl }).setLngLat([coords[0].lon, coords[0].lat]).addTo(map));
+                const endEl = document.createElement('div');
+                endEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🏁</div>';
+                markers.push(new maplibregl.Marker({ element: endEl }).setLngLat([coords[coords.length - 1].lon, coords[coords.length - 1].lat]).addTo(map));
+            }
+
+            document.getElementById('pointCount').textContent = coords.length;
+
+            if (coords.length > 0) {
+                const lngLats = coords.map(c => [c.lon, c.lat]);
+                const bounds = lngLats.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(lngLats[0], lngLats[0]));
+                map.fitBounds(bounds, { padding: 50 });
+            }
+
+            // Auto-populate L3 messages (removed - no longer needed)
+        }
+
+        document.getElementById('csvFile').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                csvData = event.target.result;
+                if (map.isStyleLoaded()) {
+                    renderMap(csvData);
+                } else {
+                    setTimeout(() => renderMap(csvData), 500);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // =====================================================
+        // INITIALIZATION
+        // =====================================================
+        initMap();
+        map.on('load', () => {
+            if (csvData) renderMap(csvData);
+        });
+
+        // Load saved state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedState();
+        });
+
+        // Auto-save on input changes
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('editable-field')) {
+                setTimeout(() => {
+                    saveCurrentState();
+                    saveToLocalStorage();
+                }, 1000); // Debounce saves
+            }
+        });
+
+        // Map control buttons
+        document.getElementById('mapViewBtn').addEventListener('click', function() {
+            // Toggle between light and dark map styles
+            currentMapStyle = currentMapStyle === 'light' ? 'dark' : 'light';
+            
+            if (map && mapReady) {
+                map.setStyle(getMapStyle());
+                
+                // Update button emoji
+                this.innerHTML = currentMapStyle === 'dark' ? '🌙' : '☀️';
+                
+                console.log('Map style changed to:', currentMapStyle);
+
+                // Re-render data after style change
+                map.once('styledata', () => {
+                    if (csvData) {
+                        setTimeout(() => renderMap(csvData), 500);
+                    }
+                });
+            } else {
+                console.warn('Map not ready yet');
+            }
+        });
+
+        document.getElementById('zoomInBtn').addEventListener('click', function() {
+            map.zoomIn();
+        });
+
+        document.getElementById('zoomOutBtn').addEventListener('click', function() {
+            map.zoomOut();
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', function() {
+            const mapContainer = document.getElementById('map').parentElement;
+            if (!document.fullscreenElement) {
+                mapContainer.requestFullscreen().then(() => {
+                    this.innerHTML = '⛶';
+                }).catch(err => {
+                    console.log('Fullscreen error:', err);
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    this.innerHTML = '⛶';
+                });
+            }
+        });
+
+        // Listen for fullscreen changes
+        document.addEventListener('fullscreenchange', function() {
+            const btn = document.getElementById('fullscreenBtn');
+            btn.innerHTML = '⛶';
+            // Ensure map layout and style reflow in fullscreen/exit-fullscreen
+            if (map) {
+                try {
+                    // Resize map to container changes
+                    setTimeout(() => map.resize(), 60);
+                    // Reapply current basemap style to force repaint (helps when switching modes in fullscreen)
+                    if (typeof map.setStyle === 'function') {
+                        map.setStyle(getMapStyle());
+                        map.once('styledata', () => {
+                            if (csvData) {
+                                // Re-render overlays after style change
+                                setTimeout(() => renderMap(csvData), 200);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Error during fullscreen style refresh:', e);
+                }
+            }
+        });
+
+        // Initialize saved state when page loads
+        loadSavedState();
+    </script>
+</body>
+
+</html>
