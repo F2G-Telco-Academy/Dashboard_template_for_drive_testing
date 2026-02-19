@@ -10,6 +10,13 @@ A professional telecom network validation dashboard for creating **customizable 
 - Visual indicators show which fields are editable (orange dashed outlines)
 - Guided placeholder text in all sections
 
+### 🔗 **Client View Sharing**
+- Generate shareable read-only URLs for clients
+- Compressed URLs with gzip (60-80% size reduction)
+- Embedded CSV data and configuration in URL
+- Client view shows blue banner and disables all editing
+- No server required - works entirely client-side
+
 ### 📊 **KPI Visualization**
 - Real-time signal quality charts (RSRP, RSRQ, SINR, PCI)
 - Toggle visibility of individual KPI lines
@@ -68,6 +75,13 @@ Click "📂 LOAD" → Select previously saved JSON file
 All fields restored including empty ones
 ```
 
+### 7. **Share with Client**
+```
+Click "🔗 SHARE" → Copy generated URL
+Send URL to client for read-only view
+Client sees dashboard with embedded data (no CSV upload needed)
+```
+
 ---
 
 ## 📋 CSV Format Requirements
@@ -115,7 +129,30 @@ All fields restored including empty ones
 3. Fill in 4 analysis sections with your findings
 4. View KPI charts for data validation
 5. Save configuration for future reference
-6. Present to client or team
+6. Share with client using 🔗 SHARE button
+7. Present to client or team
+```
+
+---
+
+## 🔗 Client View Sharing
+
+### **How It Works**
+1. **Engineer Mode**: Upload CSV, customize dashboard, click "🔗 SHARE"
+2. **URL Generation**: Creates compressed URL with config + CSV data
+3. **Client View**: Client opens URL → sees read-only dashboard with data
+
+### **Features**
+- ✅ **Compressed URLs**: Gzip compression (60-80% smaller)
+- ✅ **URL-Safe Encoding**: Works in emails, chat, browsers
+- ✅ **Read-Only Mode**: Client cannot edit or upload files
+- ✅ **No Server Required**: All data embedded in URL
+- ✅ **Automatic Loading**: Map and data render automatically
+
+### **Share Workflow**
+```
+Engineer: Upload CSV → Customize → Click 🔗 SHARE → Copy URL
+Client: Open URL → View dashboard (read-only)
 ```
 
 ---
@@ -203,6 +240,16 @@ All fields restored including empty ones
 - Use Chrome or Edge for "Save As" dialog
 - Other browsers use default download folder
 
+**Q: Share URL too long or doesn't work**
+- URLs are compressed with gzip (60-80% reduction)
+- Use URL shortener if needed for very large datasets
+- Ensure CSV file is reasonable size (<5000 points recommended)
+
+**Q: Client view shows error loading configuration**
+- Ensure full URL is copied (including ?mode=view&config=...)
+- Try opening in different browser
+- Check if URL was truncated in email/chat
+
 ---
 
 ## 📖 Standards Compliance
@@ -215,7 +262,15 @@ All fields restored including empty ones
 
 ## 🔄 Version History
 
-**v3.0 (Current - Universal Template)**
+**v3.1 (Current - Client View Sharing)**
+- ✅ Client view sharing with compressed URLs
+- ✅ URL-safe base64 encoding for share links
+- ✅ Gzip compression (60-80% size reduction)
+- ✅ Read-only mode with blue banner
+- ✅ Automatic CSV data embedding in URLs
+- ✅ Fixed pako decompression (ungzip instead of inflate)
+
+**v3.0 (Universal Template)**
 - ✅ Generic template for any test case type
 - ✅ Guided placeholder text in all sections
 - ✅ File System Access API for save location picker
