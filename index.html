@@ -13,6 +13,8 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body>
@@ -46,6 +48,10 @@
             <button id="shareClientBtn"
                 class="bg-cyan-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-cyan-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
                 🔗 <span class="hidden sm:inline">SHARE</span>
+            </button>
+            <button id="exportPdfBtn"
+                class="bg-orange-600 text-white px-1 sm:px-3 py-1 sm:py-2 text-[9px] sm:text-xs font-bold border-2 sm:border-3 border-black hover:bg-orange-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                📄 <span class="hidden sm:inline">PDF</span>
             </button>
         </div>
 
@@ -223,12 +229,31 @@
                     <p class="text-sm text-gray-400">Real-time signal quality metrics</p>
                 </div>
 
-                <!-- KPI Tabs -->
-                <div class="flex gap-2 mb-4 flex-wrap">
-                    <button class="kpi-tab active bg-blue-600 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrp">RSRP</button>
-                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrq">RSRQ</button>
-                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="sinr">SINR</button>
-                    <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="pci">PCI</button>
+                <!-- KPI Tabs, Chart Type & View Mode Selector -->
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="kpi-tab active bg-blue-600 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrp">RSRP</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrq">RSRQ</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="sinr">SINR</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="pci">PCI</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="all">📊 ALL</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="cqi">CQI</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="mcs">MCS</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="bler">BLER</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="throughput_dl_mbps">DL Mbps</button>
+                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="throughput_ul_mbps">UL Mbps</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex gap-1 bg-gray-800 rounded border border-gray-600 overflow-hidden">
+                            <button class="chart-type-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-type="line">📈 Line</button>
+                            <button class="chart-type-btn bg-gray-700 text-white px-2 py-1 text-xs font-bold" data-type="area">📊 Area</button>
+                            <button class="chart-type-btn bg-gray-700 text-white px-2 py-1 text-xs font-bold" data-type="bar">📊 Bar</button>
+                        </div>
+                        <div class="flex gap-1 bg-gray-800 rounded border border-gray-600 overflow-hidden">
+                            <button class="view-mode-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-mode="grid">🔲 Grid</button>
+                            <button class="view-mode-btn bg-gray-700 text-white px-2 py-1 text-xs font-bold" data-mode="table">📋 Table</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Chart Container -->
@@ -236,52 +261,77 @@
                     <canvas id="kpiChart"></canvas>
                 </div>
 
-                <!-- PCI Changes Chart -->
-                <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
-                    <h3 class="text-white font-bold mb-2 text-sm">PCI Changes</h3>
-                    <canvas id="pciChart"></canvas>
+<!-- KPI Distribution Histogram -->
+                <div id="kpiHistogramContainer" class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 300px; display: none;">
+                    <h3 class="text-white font-bold mb-2 text-sm" id="histogramTitle">Distribution Histogram</h3>
+                    <canvas id="kpiHistogram"></canvas>
                 </div>
 
-                <!-- All KPIs Comparison Chart -->
-                <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 300px;">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-white font-bold text-sm">All KPIs Comparison</h3>
-                        <div class="flex gap-3 text-xs">
-                            <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="checkbox" id="toggleRSRP" checked class="w-3 h-3">
-                                <span class="text-blue-400">RSRP</span>
-                            </label>
-                            <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="checkbox" id="toggleRSRQ" checked class="w-3 h-3">
-                                <span class="text-green-400">RSRQ</span>
-                            </label>
-                            <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="checkbox" id="toggleSINR" checked class="w-3 h-3">
-                                <span class="text-yellow-400">SINR</span>
-                            </label>
-                        </div>
+                <!-- Scatter Plot Comparisons -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
+                        <h3 class="text-white font-bold mb-2 text-sm">RSRP vs SINR</h3>
+                        <canvas id="scatterRsrpSinr"></canvas>
                     </div>
-                    <canvas id="allKpisChart"></canvas>
+                    <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
+                        <h3 class="text-white font-bold mb-2 text-sm">CQI vs MCS</h3>
+                        <canvas id="scatterCqiMcs"></canvas>
+                    </div>
+                    <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
+                        <h3 class="text-white font-bold mb-2 text-sm">RSRP vs Throughput DL</h3>
+                        <canvas id="scatterRsrpTput"></canvas>
+                    </div>
+                    <div class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 250px;">
+                        <h3 class="text-white font-bold mb-2 text-sm">SINR vs Throughput DL</h3>
+                        <canvas id="scatterSinrTput"></canvas>
+                    </div>
                 </div>
 
-                <!-- Statistics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <div class="text-xs text-gray-400 mb-1">CURRENT VALUE</div>
+                        <div class="text-2xl font-bold font-mono break-words" id="summaryCurrentValue">-</div>
+                        <div class="text-xs mt-1" id="summaryCurrentTrend">-</div>
+                    </div>
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <div class="text-xs text-gray-400 mb-1">MINIMUM</div>
+                        <div class="text-2xl font-bold font-mono break-words" id="summaryMin">-</div>
+                        <div class="text-xs text-gray-400 mt-1">Worst value</div>
+                    </div>
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <div class="text-xs text-gray-400 mb-1">AVERAGE</div>
+                        <div class="text-2xl font-bold font-mono break-words" id="summaryAvg">-</div>
+                        <div class="text-xs text-gray-400 mt-1">Mean value</div>
+                    </div>
+                    <div class="border-4 border-white bg-gray-800 p-4">
+                        <div class="text-xs text-gray-400 mb-1">MAXIMUM</div>
+                        <div class="text-2xl font-bold font-mono break-words" id="summaryMax">-</div>
+                        <div class="text-xs text-gray-400 mt-1">Best value</div>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards - Grid/Table View -->
+                <div id="statsGridView" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="border-4 border-white bg-gray-800 p-4">
                         <h3 class="text-white font-bold mb-2 text-sm">Statistics</h3>
                         <div id="kpiStats" class="text-white text-xs space-y-1">
-                            <div>Min: <span id="statMin" class="text-red-400">-</span></div>
-                            <div>Avg: <span id="statAvg" class="text-yellow-400">-</span></div>
-                            <div>Max: <span id="statMax" class="text-green-400">-</span></div>
+                            <div>Min: <span id="statMin">-</span></div>
+                            <div>P10: <span id="statP10">-</span></div>
+                            <div>P50: <span id="statP50">-</span></div>
+                            <div>P90: <span id="statP90">-</span></div>
+                            <div>Avg: <span id="statAvg">-</span></div>
+                            <div>Max: <span id="statMax">-</span></div>
                         </div>
                     </div>
 
                     <div class="border-4 border-white bg-gray-800 p-4">
                         <h3 class="text-white font-bold mb-2 text-sm">Signal Quality</h3>
                         <div id="signalQuality" class="text-white text-xs space-y-1">
-                            <div>🟢 Excellent: <span id="qualExcellent">0</span> (0%)</div>
-                            <div>🔵 Good: <span id="qualGood">0</span> (0%)</div>
-                            <div>🟡 Fair: <span id="qualFair">0</span> (0%)</div>
-                            <div>🔴 Poor: <span id="qualPoor">0</span> (0%)</div>
+                            <div>🟢 Excellent: <span id="qualExcellent">0</span> (<span id="qualExcellentPct">0</span>%)</div>
+                            <div>🔵 Good: <span id="qualGood">0</span> (<span id="qualGoodPct">0</span>%)</div>
+                            <div>🟡 Fair: <span id="qualFair">0</span> (<span id="qualFairPct">0</span>%)</div>
+                            <div>🔴 Poor: <span id="qualPoor">0</span> (<span id="qualPoorPct">0</span>%)</div>
                         </div>
                     </div>
 
@@ -292,6 +342,52 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Statistics Table View -->
+                <div id="statsTableView" class="hidden border-4 border-white bg-gray-800 overflow-hidden">
+                    <table class="w-full text-white text-xs">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="py-2 px-3 text-left font-bold">Metric</th>
+                                <th class="py-2 px-3 text-right font-bold">Value</th>
+                                <th class="py-2 px-3 text-right font-bold">Quality</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statsTableBody">
+                            <tr class="border-t border-gray-700">
+                                <td class="py-2 px-3">Minimum</td>
+                                <td class="py-2 px-3 text-right font-mono" id="tableMin">-</td>
+                                <td class="py-2 px-3 text-right" id="tableMinQuality">-</td>
+                            </tr>
+                            <tr class="border-t border-gray-700">
+                                <td class="py-2 px-3">10th Percentile (P10)</td>
+                                <td class="py-2 px-3 text-right font-mono" id="tableP10">-</td>
+                                <td class="py-2 px-3 text-right" id="tableP10Quality">-</td>
+                            </tr>
+                            <tr class="border-t border-gray-700">
+                                <td class="py-2 px-3">Median (P50)</td>
+                                <td class="py-2 px-3 text-right font-mono" id="tableP50">-</td>
+                                <td class="py-2 px-3 text-right" id="tableP50Quality">-</td>
+                            </tr>
+                            <tr class="border-t border-gray-700">
+                                <td class="py-2 px-3">90th Percentile (P90)</td>
+                                <td class="py-2 px-3 text-right font-mono" id="tableP90">-</td>
+                                <td class="py-2 px-3 text-right" id="tableP90Quality">-</td>
+                            </tr>
+                            <tr class="border-t border-gray-700">
+                                <td class="py-2 px-3">Average</td>
+                                <td class="py-2 px-3 text-right font-mono" id="tableAvg">-</td>
+                                <td class="py-2 px-3 text-right" id="tableAvgQuality">-</td>
+                            </tr>
+                            <tr class="border-t border-gray-700">
+                                <td class="py-2 px-3">Maximum</td>
+                                <td class="py-2 px-3 text-right font-mono" id="tableMax">-</td>
+                                <td class="py-2 px-3 text-right" id="tableMaxQuality">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
 
         </div>
@@ -338,9 +434,15 @@
         let csvData = null;
         let parsedData = [];
         let kpiChart = null;
-        let pciChart = null;
-        let allKpisChart = null;
+        let scatterRsrpSinr = null;
+        let scatterCqiMcs = null;
+        let scatterRsrpTput = null;
+        let scatterSinrTput = null;
+        let kpiHistogramChart = null;
         let showingKPIs = false;
+        let currentChartType = 'line';
+        let currentKpiType = 'rsrp';
+        let currentViewMode = 'grid';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
         let map = null; // Map instance
         let markers = []; // Store markers for cleanup
@@ -636,15 +738,8 @@
                 
                 if (parsedData.length > 0) {
                     renderKPIChart('rsrp');
-                    renderPCIChart();
-                    renderAllKPIsChart();
-                    
-                    // Add checkbox listeners
-                    setTimeout(() => {
-                        document.getElementById('toggleRSRP').addEventListener('change', updateAllKPIsChart);
-                        document.getElementById('toggleRSRQ').addEventListener('change', updateAllKPIsChart);
-                        document.getElementById('toggleSINR').addEventListener('change', updateAllKPIsChart);
-                    }, 100);
+                    renderScatterPlots();
+                    renderKPIHistogram('rsrp', parsedData.map(d => parseFloat(d.rsrp) || -100));
                 }
             } else {
                 dashboardPanel.classList.remove('hidden');
@@ -665,24 +760,309 @@
                 });
                 this.classList.add('active', 'bg-blue-600');
                 this.classList.remove('bg-gray-700');
-                renderKPIChart(this.dataset.kpi);
+                currentKpiType = this.dataset.kpi;
+                renderKPIChart(currentKpiType);
             });
         });
+
+        // Chart Type switching
+        document.querySelectorAll('.chart-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.chart-type-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-blue-600');
+                    b.classList.add('bg-gray-700');
+                });
+                this.classList.add('active', 'bg-blue-600');
+                this.classList.remove('bg-gray-700');
+                currentChartType = this.dataset.type;
+                renderKPIChart(currentKpiType);
+            });
+        });
+
+        // View Mode switching
+        document.querySelectorAll('.view-mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.view-mode-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-blue-600');
+                    b.classList.add('bg-gray-700');
+                });
+                this.classList.add('active', 'bg-blue-600');
+                this.classList.remove('bg-gray-700');
+                currentViewMode = this.dataset.mode;
+                toggleViewMode();
+            });
+        });
+
+        function toggleViewMode() {
+            const gridView = document.getElementById('statsGridView');
+            const tableView = document.getElementById('statsTableView');
+            if (currentViewMode === 'grid') {
+                gridView.classList.remove('hidden');
+                tableView.classList.add('hidden');
+            } else {
+                gridView.classList.add('hidden');
+                tableView.classList.remove('hidden');
+            }
+        }
+
+        function getColorForValue(value, kpiType) {
+            if (kpiType === 'rsrp') {
+                if (value >= -80) return '#22c55e';
+                if (value >= -90) return '#3b82f6';
+                if (value >= -100) return '#f59e0b';
+                return '#ef4444';
+            } else if (kpiType === 'rsrq') {
+                if (value >= -10) return '#22c55e';
+                if (value >= -15) return '#3b82f6';
+                if (value >= -20) return '#f59e0b';
+                return '#ef4444';
+            } else if (kpiType === 'sinr') {
+                if (value >= 20) return '#22c55e';
+                if (value >= 13) return '#3b82f6';
+                if (value >= 0) return '#f59e0b';
+                return '#ef4444';
+            }
+            return '#9ca3af';
+        }
+
+        function getQualityLabel(value, kpiType) {
+            if (kpiType === 'rsrp') {
+                if (value >= -80) return '🟢 Excellent';
+                if (value >= -90) return '🔵 Good';
+                if (value >= -100) return '🟡 Fair';
+                return '🔴 Poor';
+            } else if (kpiType === 'rsrq') {
+                if (value >= -10) return '🟢 Excellent';
+                if (value >= -15) return '🔵 Good';
+                if (value >= -20) return '🟡 Fair';
+                return '🔴 Poor';
+            } else if (kpiType === 'sinr') {
+                if (value >= 20) return '🟢 Excellent';
+                if (value >= 13) return '🔵 Good';
+                if (value >= 0) return '🟡 Fair';
+                return '🔴 Poor';
+            }
+            return '-';
+        }
+
+        function renderMultipleMetricsChart(labels) {
+            const rsrpValues = parsedData.map(d => parseFloat(d.rsrp) || -100);
+            const rsrqValues = parsedData.map(d => parseFloat(d.rsrq) || -10);
+            const sinrValues = parsedData.map(d => parseFloat(d.sinr) || 0);
+
+            const ctx = document.getElementById('kpiChart').getContext('2d');
+            if (kpiChart) kpiChart.destroy();
+
+            let rsrpGradient = null, rsrqGradient = null, sinrGradient = null;
+            if (currentChartType === 'area') {
+                rsrpGradient = ctx.createLinearGradient(0, 0, 0, 300);
+                rsrpGradient.addColorStop(0, '#3b82f680');
+                rsrpGradient.addColorStop(1, '#3b82f610');
+                rsrqGradient = ctx.createLinearGradient(0, 0, 0, 300);
+                rsrqGradient.addColorStop(0, '#10b98180');
+                rsrqGradient.addColorStop(1, '#10b98110');
+                sinrGradient = ctx.createLinearGradient(0, 0, 0, 300);
+                sinrGradient.addColorStop(0, '#f59e0b80');
+                sinrGradient.addColorStop(1, '#f59e0b10');
+            }
+
+            kpiChart = new Chart(ctx, {
+                type: currentChartType === 'bar' ? 'bar' : 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'RSRP (dBm)',
+                            data: rsrpValues,
+                            borderColor: '#3b82f6',
+                            backgroundColor: currentChartType === 'area' ? rsrpGradient : '#3b82f6',
+                            borderWidth: 2,
+                            fill: currentChartType === 'area',
+                            tension: 0.3,
+                            yAxisID: 'y',
+                            pointRadius: 1
+                        },
+                        {
+                            label: 'RSRQ (dB)',
+                            data: rsrqValues,
+                            borderColor: '#10b981',
+                            backgroundColor: currentChartType === 'area' ? rsrqGradient : '#10b981',
+                            borderWidth: 2,
+                            fill: currentChartType === 'area',
+                            tension: 0.3,
+                            yAxisID: 'y1',
+                            pointRadius: 1
+                        },
+                        {
+                            label: 'SINR (dB)',
+                            data: sinrValues,
+                            borderColor: '#f59e0b',
+                            backgroundColor: currentChartType === 'area' ? sinrGradient : '#f59e0b',
+                            borderWidth: 2,
+                            fill: currentChartType === 'area',
+                            tension: 0.3,
+                            yAxisID: 'y2',
+                            pointRadius: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'JetBrains Mono', size: 12 },
+                            bodyFont: { family: 'JetBrains Mono', size: 11 },
+                            padding: 12,
+                            borderColor: '#fff',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'RSRP (dBm)', color: '#3b82f6', font: { family: 'JetBrains Mono' } },
+                            ticks: { color: '#3b82f6', font: { family: 'JetBrains Mono' } },
+                            grid: { color: 'rgba(59, 130, 246, 0.2)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'RSRQ (dB)', color: '#10b981', font: { family: 'JetBrains Mono' } },
+                            ticks: { color: '#10b981', font: { family: 'JetBrains Mono' } },
+                            grid: { drawOnChartArea: false }
+                        },
+                        y2: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: false },
+                            ticks: { display: false },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+
+            const min = Math.min(...rsrpValues);
+            const max = Math.max(...rsrpValues);
+            const avg = rsrpValues.reduce((a, b) => a + b, 0) / rsrpValues.length;
+            const currentValue = rsrpValues[rsrpValues.length - 1];
+            const prevValue = rsrpValues.length > 1 ? rsrpValues[rsrpValues.length - 2] : currentValue;
+            const trend = currentValue > prevValue ? '↑' : currentValue < prevValue ? '↓' : '→';
+            const trendColor = currentValue > prevValue ? '#22c55e' : currentValue < prevValue ? '#ef4444' : '#9ca3af';
+            
+            document.getElementById('summaryCurrentValue').textContent = currentValue.toFixed(2);
+            document.getElementById('summaryCurrentValue').style.color = getColorForValue(currentValue, 'rsrp');
+            document.getElementById('summaryCurrentTrend').innerHTML = `<span style="color:${trendColor}">${trend} ${Math.abs(currentValue - prevValue).toFixed(2)}</span> from previous`;
+            document.getElementById('summaryMin').textContent = min.toFixed(2);
+            document.getElementById('summaryMin').style.color = getColorForValue(min, 'rsrp');
+            document.getElementById('summaryAvg').textContent = avg.toFixed(2);
+            document.getElementById('summaryAvg').style.color = getColorForValue(avg, 'rsrp');
+            document.getElementById('summaryMax').textContent = max.toFixed(2);
+            document.getElementById('summaryMax').style.color = getColorForValue(max, 'rsrp');
+        }
+
+        function calculatePercentiles(values) {
+            const sorted = [...values].sort((a, b) => a - b);
+            return {
+                p10: sorted[Math.floor(sorted.length * 0.1)],
+                p50: sorted[Math.floor(sorted.length * 0.5)],
+                p90: sorted[Math.floor(sorted.length * 0.9)]
+            };
+        }
 
         function renderKPIChart(kpiType) {
             if (parsedData.length === 0) return;
 
             const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            
+            if (kpiType === 'all') {
+                renderMultipleMetricsChart(labels);
+                return;
+            }
+            
             const values = parsedData.map(d => parseFloat(d[kpiType]) || 0);
 
             // Calculate statistics
             const min = Math.min(...values);
             const max = Math.max(...values);
-            const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+            const avg = (values.reduce((a, b) => a + b, 0) / values.length);
+            const percentiles = calculatePercentiles(values);
 
+            // Color-code statistics
             document.getElementById('statMin').textContent = min.toFixed(2);
-            document.getElementById('statAvg').textContent = avg;
+            document.getElementById('statMin').style.color = getColorForValue(min, kpiType);
+            
+            document.getElementById('statP10').textContent = percentiles.p10.toFixed(2);
+            document.getElementById('statP10').style.color = getColorForValue(percentiles.p10, kpiType);
+            
+            document.getElementById('statP50').textContent = percentiles.p50.toFixed(2);
+            document.getElementById('statP50').style.color = getColorForValue(percentiles.p50, kpiType);
+            
+            document.getElementById('statP90').textContent = percentiles.p90.toFixed(2);
+            document.getElementById('statP90').style.color = getColorForValue(percentiles.p90, kpiType);
+            
+            document.getElementById('statAvg').textContent = avg.toFixed(2);
+            document.getElementById('statAvg').style.color = getColorForValue(avg, kpiType);
+            
             document.getElementById('statMax').textContent = max.toFixed(2);
+            document.getElementById('statMax').style.color = getColorForValue(max, kpiType);
+
+            // Update summary cards
+            const currentValue = values[values.length - 1];
+            const prevValue = values.length > 1 ? values[values.length - 2] : currentValue;
+            const trend = currentValue > prevValue ? '↑' : currentValue < prevValue ? '↓' : '→';
+            const trendColor = currentValue > prevValue ? '#22c55e' : currentValue < prevValue ? '#ef4444' : '#9ca3af';
+            
+            document.getElementById('summaryCurrentValue').textContent = currentValue.toFixed(2);
+            document.getElementById('summaryCurrentValue').style.color = getColorForValue(currentValue, kpiType);
+            document.getElementById('summaryCurrentTrend').innerHTML = `<span style="color:${trendColor}">${trend} ${Math.abs(currentValue - prevValue).toFixed(2)}</span> from previous`;
+            
+            document.getElementById('summaryMin').textContent = min.toFixed(2);
+            document.getElementById('summaryMin').style.color = getColorForValue(min, kpiType);
+            
+            document.getElementById('summaryAvg').textContent = avg.toFixed(2);
+            document.getElementById('summaryAvg').style.color = getColorForValue(avg, kpiType);
+            
+            document.getElementById('summaryMax').textContent = max.toFixed(2);
+            document.getElementById('summaryMax').style.color = getColorForValue(max, kpiType);
+
+            // Update table view
+            document.getElementById('tableMin').textContent = min.toFixed(2);
+            document.getElementById('tableMin').style.color = getColorForValue(min, kpiType);
+            document.getElementById('tableMinQuality').textContent = getQualityLabel(min, kpiType);
+            
+            document.getElementById('tableP10').textContent = percentiles.p10.toFixed(2);
+            document.getElementById('tableP10').style.color = getColorForValue(percentiles.p10, kpiType);
+            document.getElementById('tableP10Quality').textContent = getQualityLabel(percentiles.p10, kpiType);
+            
+            document.getElementById('tableP50').textContent = percentiles.p50.toFixed(2);
+            document.getElementById('tableP50').style.color = getColorForValue(percentiles.p50, kpiType);
+            document.getElementById('tableP50Quality').textContent = getQualityLabel(percentiles.p50, kpiType);
+            
+            document.getElementById('tableP90').textContent = percentiles.p90.toFixed(2);
+            document.getElementById('tableP90').style.color = getColorForValue(percentiles.p90, kpiType);
+            document.getElementById('tableP90Quality').textContent = getQualityLabel(percentiles.p90, kpiType);
+            
+            document.getElementById('tableAvg').textContent = avg.toFixed(2);
+            document.getElementById('tableAvg').style.color = getColorForValue(avg, kpiType);
+            document.getElementById('tableAvgQuality').textContent = getQualityLabel(avg, kpiType);
+            
+            document.getElementById('tableMax').textContent = max.toFixed(2);
+            document.getElementById('tableMax').style.color = getColorForValue(max, kpiType);
+            document.getElementById('tableMaxQuality').textContent = getQualityLabel(max, kpiType);
 
             // Calculate signal quality distribution (for RSRP)
             if (kpiType === 'rsrp') {
@@ -692,10 +1072,22 @@
                 const poor = values.filter(v => v < -100).length;
                 const total = values.length;
 
-                document.getElementById('qualExcellent').textContent = `${excellent} (${((excellent/total)*100).toFixed(0)}%)`;
-                document.getElementById('qualGood').textContent = `${good} (${((good/total)*100).toFixed(0)}%)`;
-                document.getElementById('qualFair').textContent = `${fair} (${((fair/total)*100).toFixed(0)}%)`;
-                document.getElementById('qualPoor').textContent = `${poor} (${((poor/total)*100).toFixed(0)}%)`;
+                document.getElementById('qualExcellent').textContent = excellent;
+                document.getElementById('qualExcellentPct').textContent = ((excellent/total)*100).toFixed(1);
+                document.getElementById('qualGood').textContent = good;
+                document.getElementById('qualGoodPct').textContent = ((good/total)*100).toFixed(1);
+                document.getElementById('qualFair').textContent = fair;
+                document.getElementById('qualFairPct').textContent = ((fair/total)*100).toFixed(1);
+                document.getElementById('qualPoor').textContent = poor;
+                document.getElementById('qualPoorPct').textContent = ((poor/total)*100).toFixed(1);
+            }
+
+            // Show histogram for all KPIs except 'all' and 'pci'
+            if (kpiType !== 'all' && kpiType !== 'pci') {
+                renderKPIHistogram(kpiType, values);
+                document.getElementById('kpiHistogramContainer').style.display = 'block';
+            } else {
+                document.getElementById('kpiHistogramContainer').style.display = 'none';
             }
 
             // Update events list
@@ -712,7 +1104,12 @@
                 rsrp: { line: '#3b82f6', fill: 'rgba(59, 130, 246, 0.2)' },
                 rsrq: { line: '#10b981', fill: 'rgba(16, 185, 129, 0.2)' },
                 sinr: { line: '#f59e0b', fill: 'rgba(245, 158, 11, 0.2)' },
-                pci: { line: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.2)' }
+                pci: { line: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.2)' },
+                cqi: { line: '#ec4899', fill: 'rgba(236, 72, 153, 0.2)' },
+                mcs: { line: '#14b8a6', fill: 'rgba(20, 184, 166, 0.2)' },
+                bler: { line: '#f97316', fill: 'rgba(249, 115, 22, 0.2)' },
+                throughput_dl_mbps: { line: '#22c55e', fill: 'rgba(34, 197, 94, 0.2)' },
+                throughput_ul_mbps: { line: '#a855f7', fill: 'rgba(168, 85, 247, 0.2)' }
             };
 
             const ctx = document.getElementById('kpiChart').getContext('2d');
@@ -721,20 +1118,28 @@
                 kpiChart.destroy();
             }
 
+            // Create gradient for area chart
+            let gradient = null;
+            if (currentChartType === 'area') {
+                gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, colors[kpiType].line + '80');
+                gradient.addColorStop(1, colors[kpiType].line + '10');
+            }
+
             kpiChart = new Chart(ctx, {
-                type: 'line',
+                type: currentChartType === 'bar' ? 'bar' : 'line',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: kpiType.toUpperCase(),
                         data: values,
                         borderColor: colors[kpiType].line,
-                        backgroundColor: colors[kpiType].fill,
+                        backgroundColor: currentChartType === 'area' ? gradient : (currentChartType === 'bar' ? colors[kpiType].line : colors[kpiType].fill),
                         borderWidth: 2,
-                        fill: true,
-                        tension: 0.1,
-                        pointRadius: 2,
-                        pointHoverRadius: 5
+                        fill: currentChartType === 'area',
+                        tension: currentChartType === 'line' || currentChartType === 'area' ? 0.3 : 0,
+                        pointRadius: currentChartType === 'bar' ? 0 : 2,
+                        pointHoverRadius: currentChartType === 'bar' ? 0 : 5
                     }]
                 },
                 options: {
@@ -746,9 +1151,54 @@
                             labels: { color: '#fff', font: { family: 'JetBrains Mono' } }
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            titleFont: { family: 'JetBrains Mono' },
-                            bodyFont: { family: 'JetBrains Mono' }
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'JetBrains Mono', size: 12 },
+                            bodyFont: { family: 'JetBrains Mono', size: 11 },
+                            padding: 12,
+                            borderColor: '#fff',
+                            borderWidth: 1,
+                            callbacks: {
+                                title: function(context) {
+                                    const idx = context[0].dataIndex;
+                                    return 'Time: ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return null;
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    
+                                    const rsrp = parseFloat(point.rsrp) || 0;
+                                    const rsrq = parseFloat(point.rsrq) || 0;
+                                    const sinr = parseFloat(point.sinr) || 0;
+                                    const pci = point.pci || '-';
+                                    const cqi = point.cqi || '-';
+                                    const mcs = point.mcs || '-';
+                                    const bler = point.bler || '-';
+                                    const dl = point.throughput_dl_mbps || '-';
+                                    const ul = point.throughput_ul_mbps || '-';
+                                    
+                                    const quality = rsrp >= -80 ? '🟢 Excellent' : 
+                                                   rsrp >= -90 ? '🔵 Good' : 
+                                                   rsrp >= -100 ? '🟡 Fair' : '🔴 Poor';
+                                    
+
+                                    return [
+                                        '━━━━━━━━━━━━━━━━━━━',
+                                        'RSRP: ' + rsrp.toFixed(2) + ' dBm',
+                                        'RSRQ: ' + rsrq.toFixed(2) + ' dB',
+                                        'SINR: ' + sinr.toFixed(2) + ' dB',
+                                        'PCI: ' + pci,
+                                        'CQI: ' + cqi + ' | MCS: ' + mcs,
+                                        'BLER: ' + bler + '%',
+                                        'DL: ' + dl + ' Mbps | UL: ' + ul + ' Mbps',
+                                        '━━━━━━━━━━━━━━━━━━━',
+                                        'Quality: ' + quality
+                                    ];
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -773,36 +1223,69 @@
             });
         }
 
-        function renderPCIChart() {
+function renderScatterPlots() {
             if (parsedData.length === 0) return;
 
-            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
-            const pciValues = parsedData.map(d => parseInt(d.pci) || 0);
+            const rsrpVals = parsedData.map(d => parseFloat(d.rsrp) || -100);
+            const sinrVals = parsedData.map(d => parseFloat(d.sinr) || 0);
+            const cqiVals = parsedData.map(d => parseFloat(d.cqi) || 0);
+            const mcsVals = parsedData.map(d => parseFloat(d.mcs) || 0);
+            const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
 
-            const ctx = document.getElementById('pciChart').getContext('2d');
+            if (scatterRsrpSinr) scatterRsrpSinr.destroy();
+            scatterRsrpSinr = new Chart(document.getElementById('scatterRsrpSinr'), {
+                type: 'scatter',
+                data: { datasets: [{ data: rsrpVals.map((r, i) => ({ x: sinrVals[i], y: r })), backgroundColor: '#3b82f6', pointRadius: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'SINR (dB)', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } }, y: { title: { display: true, text: 'RSRP (dBm)', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } } } }
+            });
+
+            if (scatterCqiMcs) scatterCqiMcs.destroy();
+            scatterCqiMcs = new Chart(document.getElementById('scatterCqiMcs'), {
+                type: 'scatter',
+                data: { datasets: [{ data: cqiVals.map((c, i) => ({ x: c, y: mcsVals[i] })), backgroundColor: '#ec4899', pointRadius: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'CQI', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } }, y: { title: { display: true, text: 'MCS', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } } } }
+            });
+
+            if (scatterRsrpTput) scatterRsrpTput.destroy();
+            scatterRsrpTput = new Chart(document.getElementById('scatterRsrpTput'), {
+                type: 'scatter',
+                data: { datasets: [{ data: rsrpVals.map((r, i) => ({ x: r, y: tputDlVals[i] })), backgroundColor: '#22c55e', pointRadius: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'RSRP (dBm)', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } }, y: { title: { display: true, text: 'DL Throughput (Mbps)', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } } } }
+            });
+
+            if (scatterSinrTput) scatterSinrTput.destroy();
+            scatterSinrTput = new Chart(document.getElementById('scatterSinrTput'), {
+                type: 'scatter',
+                data: { datasets: [{ data: sinrVals.map((s, i) => ({ x: s, y: tputDlVals[i] })), backgroundColor: '#f59e0b', pointRadius: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'SINR (dB)', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } }, y: { title: { display: true, text: 'DL Throughput (Mbps)', color: '#fff' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } } } }
+            });
+        }
+
+        function renderKPIHistogram(kpiType, values) {
+            if (values.length === 0) return;
+
+            const kpiLabels = { rsrp: 'RSRP (dBm)', rsrq: 'RSRQ (dB)', sinr: 'SINR (dB)', cqi: 'CQI', mcs: 'MCS', bler: 'BLER (%)', throughput_dl_mbps: 'DL Throughput (Mbps)', throughput_ul_mbps: 'UL Throughput (Mbps)' };
+            const kpiColors = { rsrp: '#3b82f6', rsrq: '#10b981', sinr: '#f59e0b', cqi: '#ec4899', mcs: '#14b8a6', bler: '#f97316', throughput_dl_mbps: '#22c55e', throughput_ul_mbps: '#a855f7' };
             
-            if (pciChart) pciChart.destroy();
+            document.getElementById('histogramTitle').textContent = `${kpiLabels[kpiType] || kpiType.toUpperCase()} Distribution Histogram`;
 
-            pciChart = new Chart(ctx, {
-                type: 'line',
+            const binSize = kpiType === 'rsrp' ? 5 : kpiType === 'rsrq' ? 2 : kpiType === 'sinr' ? 5 : kpiType === 'cqi' ? 1 : kpiType === 'mcs' ? 2 : kpiType === 'bler' ? 5 : 10;
+            const bins = {};
+            values.forEach(v => {
+                const bin = Math.floor(v / binSize) * binSize;
+                bins[bin] = (bins[bin] || 0) + 1;
+            });
+
+            const binData = Object.entries(bins).map(([bin, count]) => ({ bin: `${bin} to ${parseInt(bin) + binSize}`, binValue: parseInt(bin), count: count })).sort((a, b) => a.binValue - b.binValue);
+
+            const ctx = document.getElementById('kpiHistogram').getContext('2d');
+            if (kpiHistogramChart) kpiHistogramChart.destroy();
+
+            kpiHistogramChart = new Chart(ctx, {
+                type: 'bar',
                 data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'PCI',
-                        data: pciValues,
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        fill: false,
-                        pointRadius: 3,
-                        pointBackgroundColor: function(context) {
-                            const index = context.dataIndex;
-                            if (index === 0) return '#8b5cf6';
-                            return pciValues[index] !== pciValues[index - 1] ? '#ef4444' : '#8b5cf6';
-                        },
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1
-                    }]
+                    labels: binData.map(d => d.bin),
+                    datasets: [{ label: 'Sample Count', data: binData.map(d => d.count), backgroundColor: kpiColors[kpiType] || '#3b82f6', borderColor: '#fff', borderWidth: 1 }]
                 },
                 options: {
                     responsive: true,
@@ -810,135 +1293,18 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            backgroundColor: 'rgba(0,0,0,0.9)',
                             titleFont: { family: 'JetBrains Mono' },
                             bodyFont: { family: 'JetBrains Mono' },
-                            callbacks: {
-                                afterLabel: function(context) {
-                                    const index = context.dataIndex;
-                                    if (index > 0 && pciValues[index] !== pciValues[index - 1]) {
-                                        return `Handover: ${pciValues[index - 1]} → ${pciValues[index]}`;
-                                    }
-                                    return '';
-                                }
-                            }
+                            callbacks: { label: function(context) { const pct = ((context.parsed.y / values.length) * 100).toFixed(1); return ['Count: ' + context.parsed.y, 'Percentage: ' + pct + '%']; } }
                         }
                     },
                     scales: {
-                        x: {
-                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        },
-                        y: {
-                            ticks: { color: '#9ca3af', font: { family: 'JetBrains Mono' } },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        }
+                        x: { ticks: { color: '#9ca3af', font: { size: 9, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 }, grid: { color: 'rgba(255,255,255,0.1)' }, title: { display: true, text: kpiLabels[kpiType] || kpiType.toUpperCase(), color: '#fff', font: { family: 'JetBrains Mono' } } },
+                        y: { ticks: { color: '#9ca3af', font: { family: 'JetBrains Mono' } }, grid: { color: 'rgba(255,255,255,0.1)' }, title: { display: true, text: 'Count', color: '#fff', font: { family: 'JetBrains Mono' } } }
                     }
                 }
             });
-        }
-
-        function renderAllKPIsChart() {
-            if (parsedData.length === 0) return;
-
-            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
-            const rsrpValues = parsedData.map(d => parseFloat(d.rsrp) || -100);
-            const rsrqValues = parsedData.map(d => parseFloat(d.rsrq) || -10);
-            const sinrValues = parsedData.map(d => parseFloat(d.sinr) || 0);
-
-            const showRSRP = document.getElementById('toggleRSRP')?.checked !== false;
-            const showRSRQ = document.getElementById('toggleRSRQ')?.checked !== false;
-            const showSINR = document.getElementById('toggleSINR')?.checked !== false;
-
-            const datasets = [];
-            if (showRSRP) {
-                datasets.push({
-                    label: 'RSRP',
-                    data: rsrpValues,
-                    borderColor: '#3b82f6',
-                    borderWidth: 2,
-                    fill: false,
-                    yAxisID: 'y',
-                    pointRadius: 1
-                });
-            }
-            if (showRSRQ) {
-                datasets.push({
-                    label: 'RSRQ',
-                    data: rsrqValues,
-                    borderColor: '#10b981',
-                    borderWidth: 2,
-                    fill: false,
-                    yAxisID: 'y1',
-                    pointRadius: 1
-                });
-            }
-            if (showSINR) {
-                datasets.push({
-                    label: 'SINR',
-                    data: sinrValues,
-                    borderColor: '#f59e0b',
-                    borderWidth: 2,
-                    fill: false,
-                    yAxisID: 'y2',
-                    pointRadius: 1
-                });
-            }
-
-            const ctx = document.getElementById('allKpisChart').getContext('2d');
-            
-            if (allKpisChart) allKpisChart.destroy();
-
-            allKpisChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            titleFont: { family: 'JetBrains Mono' },
-                            bodyFont: { family: 'JetBrains Mono' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#9ca3af', font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        },
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                            display: showRSRP,
-                            ticks: { color: '#3b82f6', font: { family: 'JetBrains Mono' } },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            display: showRSRQ,
-                            ticks: { color: '#10b981', font: { family: 'JetBrains Mono' } },
-                            grid: { drawOnChartArea: false }
-                        },
-                        y2: {
-                            type: 'linear',
-                            display: false,
-                            ticks: { color: '#f59e0b' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateAllKPIsChart() {
-            renderAllKPIsChart();
         }
 
         document.getElementById('saveConfigBtn').addEventListener('click', async function() {
@@ -1139,11 +1505,18 @@
 
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace('#', 'number'));
             return lines.slice(1).map(line => {
                 const values = line.split(',');
                 const obj = {};
-                headers.forEach((h, i) => obj[h] = values[i]?.trim());
+                headers.forEach((h, i) => {
+                    const val = values[i]?.trim();
+                    if (h === 'rsrp' || h === 'rsrq' || h === 'sinr') {
+                        obj[h] = val && val !== '' ? val : '0';
+                    } else {
+                        obj[h] = val;
+                    }
+                });
                 return obj;
             });
         }
@@ -1422,6 +1795,82 @@
 
         document.getElementById('closeErrorBtn').addEventListener('click', function() {
             document.getElementById('errorModal').style.display = 'none';
+        });
+
+        document.getElementById('exportPdfBtn').addEventListener('click', async function() {
+            if (!parsedData || parsedData.length === 0) {
+                alert('Please upload CSV data first.');
+                return;
+            }
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ <span class="hidden sm:inline">Generating...</span>';
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                const title = document.querySelector('[data-field="title"]').textContent;
+                pdf.text(title, pageWidth / 2, 20, { align: 'center' });
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'normal');
+                const operator = document.querySelector('[data-field="operator"]').textContent;
+                const route = document.querySelector('[data-field="route"]').textContent;
+                pdf.text(operator, 15, 30);
+                pdf.text(route, 15, 36);
+                pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, 42);
+                pdf.text(`Total Points: ${parsedData.length}`, 15, 48);
+                pdf.setFontSize(12);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('KPI Statistics Summary', 15, 60);
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'normal');
+                let yPos = 68;
+                ['rsrp', 'rsrq', 'sinr'].forEach(kpi => {
+                    const values = parsedData.map(d => parseFloat(d[kpi]) || 0);
+                    const min = Math.min(...values).toFixed(2);
+                    const max = Math.max(...values).toFixed(2);
+                    const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+                    const percentiles = calculatePercentiles(values);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(`${kpi.toUpperCase()}:`, 15, yPos);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`Min: ${min} | P10: ${percentiles.p10.toFixed(2)} | P50: ${percentiles.p50.toFixed(2)} | P90: ${percentiles.p90.toFixed(2)} | Avg: ${avg} | Max: ${max}`, 35, yPos);
+                    yPos += 6;
+                });
+                yPos += 5;
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Signal Quality Distribution (RSRP)', 15, yPos);
+                yPos += 6;
+                const rsrpValues = parsedData.map(d => parseFloat(d.rsrp) || -100);
+                const excellent = rsrpValues.filter(v => v >= -80).length;
+                const good = rsrpValues.filter(v => v >= -90 && v < -80).length;
+                const fair = rsrpValues.filter(v => v >= -100 && v < -90).length;
+                const poor = rsrpValues.filter(v => v < -100).length;
+                const total = rsrpValues.length;
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Excellent: ${excellent} (${((excellent/total)*100).toFixed(1)}%) | Good: ${good} (${((good/total)*100).toFixed(1)}%)`, 15, yPos);
+                yPos += 6;
+                pdf.text(`Fair: ${fair} (${((fair/total)*100).toFixed(1)}%) | Poor: ${poor} (${((poor/total)*100).toFixed(1)}%)`, 15, yPos);
+                pdf.setFontSize(8);
+                pdf.setFont('helvetica', 'italic');
+                const footerLeft = document.querySelector('[data-field="footer-left"]').textContent;
+                const footerRight = document.querySelector('[data-field="footer-right"]').textContent;
+                pdf.text(footerLeft, 15, pageHeight - 10);
+                pdf.text(footerRight, pageWidth - 15, pageHeight - 10, { align: 'right' });
+                const fileName = `KPI-Report-${new Date().toISOString().slice(0,10)}.pdf`;
+                pdf.save(fileName);
+                btn.disabled = false;
+                btn.innerHTML = '📄 <span class="hidden sm:inline">PDF</span>';
+                alert('PDF report generated successfully!');
+            } catch (error) {
+                console.error('PDF error:', error);
+                alert('Error generating PDF: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = '📄 <span class="hidden sm:inline">PDF</span>';
+            }
         });
 
         // =====================================================
