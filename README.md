@@ -18,11 +18,21 @@ A professional telecom network validation dashboard for creating **customizable 
 - No server required - works entirely client-side
 
 ### 📊 **KPI Visualization**
-- Real-time signal quality charts (RSRP, RSRQ, SINR, PCI)
-- Toggle visibility of individual KPI lines
-- PCI changes tracking with handover detection
-- Multi-KPI comparison charts
+- Real-time signal quality charts (RSRP, RSRQ, SINR, CQI, MCS, BLER, Throughput)
+- Multiple chart types: Line, Area, Bar
+- **Enhanced KPI Comparison Section** (6 dual-axis line charts)
+  - RSRP + SINR (time-based comparison)
+  - CQI + MCS (time-based comparison)
+  - RSRP + Throughput DL (time-based comparison)
+  - SINR + Throughput DL (time-based comparison)
+  - RSRQ + RSRP (time-based comparison)
+  - Throughput DL + BLER (time-based comparison)
+- Dual Y-axes with color-coded labels for each KPI
+- Interactive hover effects showing all values at each point
+- Click-to-zoom functionality for detailed analysis
+- Distribution histograms for all KPIs
 - Statistics and signal quality distribution
+- Grid/Table view modes
 
 ### 💾 **Save & Load Configurations**
 - Save entire dashboard configuration as JSON file
@@ -88,8 +98,20 @@ Client sees dashboard with embedded data (no CSV upload needed)
 
 ### Required Columns:
 ```csv
+#,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event,cqi,mcs,bler,throughput_dl_mbps,throughput_ul_mbps
+```
+
+### Minimum Required (for basic functionality):
+```csv
 #,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event
 ```
+
+### Optional Columns (for enhanced comparison charts):
+- `cqi` - Channel Quality Indicator (0-15)
+- `mcs` - Modulation and Coding Scheme (0-28)
+- `bler` - Block Error Rate (%)
+- `throughput_dl_mbps` - Downlink Throughput (Mbps)
+- `throughput_ul_mbps` - Uplink Throughput (Mbps)
 
 ### Example Rows:
 ```csv
@@ -121,16 +143,19 @@ Client sees dashboard with embedded data (no CSV upload needed)
 - Data throughput validation
 - RLF mitigation
 - Cell reselection optimization
+- **Time-based KPI correlation analysis** (NEW)
+- **Signal quality vs throughput trends** (NEW)
 
 ### **Workflow Example**
 ```
 1. Upload drive test CSV
 2. Edit title: "[Your Test Type] : [Your Test Name]"
 3. Fill in 4 analysis sections with your findings
-4. View KPI charts for data validation
-5. Save configuration for future reference
-6. Share with client using 🔗 SHARE button
-7. Present to client or team
+4. View KPI charts and comparison section for data validation
+5. Analyze KPI relationships in 6 professional scatter plots
+6. Save configuration for future reference
+7. Share with client using 🔗 SHARE button
+8. Present to client or team
 ```
 
 ---
@@ -262,7 +287,17 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.1 (Current - Client View Sharing)**
+**v3.2 (Current - Enhanced KPI Comparison)**
+- ✅ Professional KPI comparison section (6 dual-axis line charts)
+- ✅ Time-based comparison showing KPI trends side-by-side
+- ✅ Dual Y-axes with color-coded labels matching line colors
+- ✅ Enhanced tooltips showing all KPI values at each time point
+- ✅ Click-to-zoom functionality for detailed analysis
+- ✅ Single-column layout for better visibility
+- ✅ ECA-style professional visualization
+- ✅ Fixed tooltip duplication issue
+
+**v3.1 (Client View Sharing)**
 - ✅ Client view sharing with compressed URLs
 - ✅ URL-safe base64 encoding for share links
 - ✅ Gzip compression (60-80% size reduction)
@@ -286,6 +321,13 @@ Client: Open URL → View dashboard (read-only)
 **v1.0**
 - Basic CSV visualization
 - Map-based drive test display
+
+---
+
+## 📚 Additional Documentation
+
+- **USER-GUIDE.md** - Comprehensive user guide for all dashboard features
+- **CHANGES_SUMMARY.md** - Technical documentation of recent changes and improvements
 
 ---
 
