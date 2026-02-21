@@ -1226,9 +1226,23 @@ function renderScatterPlots() {
         // CLIENT VIEW FUNCTIONALITY
         // =====================================================
         function setupClientView() {
-            // Hide all control buttons
+            // Hide control buttons except KPIs button
             const controlButtons = document.getElementById('controlButtons');
-            if (controlButtons) controlButtons.style.display = 'none';
+            if (controlButtons) {
+                // Hide individual buttons except KPIs
+                const editBtn = document.getElementById('editModeBtn');
+                const resetBtn = document.getElementById('resetBtn');
+                const saveBtn = document.getElementById('saveConfigBtn');
+                const loadBtn = document.getElementById('loadConfigBtn');
+                const shareBtn = document.getElementById('shareClientBtn');
+                
+                if (editBtn) editBtn.style.display = 'none';
+                if (resetBtn) resetBtn.style.display = 'none';
+                if (saveBtn) saveBtn.style.display = 'none';
+                if (loadBtn) loadBtn.style.display = 'none';
+                if (shareBtn) shareBtn.style.display = 'none';
+                // kpisBtn remains visible by default
+            }
 
             // Disable CSV upload
             const csvUploadBtn = document.querySelector('button[onclick="document.getElementById(\'csvFile\').click()"]');
@@ -1246,14 +1260,18 @@ function renderScatterPlots() {
                 el.style.cursor = 'default';
             });
 
-            // Hide add buttons
+            // Hide add buttons (but not kpisBtn)
             document.querySelectorAll('[id$="Btn"]').forEach(btn => {
                 if (btn.id.startsWith('add')) btn.style.display = 'none';
             });
+            
+            // Ensure kpisBtn is visible
+            const kpisBtn = document.getElementById('kpisBtn');
+            if (kpisBtn) kpisBtn.style.display = '';
 
             // Add client view banner
             const banner = document.createElement('div');
-            banner.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:#3b82f6; color:white; padding:10px; text-align:center; font-weight:bold; z-index:10000; font-family:"JetBrains Mono",monospace; font-size:14px;';
+            banner.style.cssText = 'position:fixed; top:0; left:0; width:100%; background:#3b82f6; color:white; padding:10px; text-align:center; font-weight:bold; z-index:40; font-family:"JetBrains Mono",monospace; font-size:14px;';
             banner.textContent = '👁️ CLIENT VIEW MODE - Read Only';
             document.body.prepend(banner);
 
@@ -1369,83 +1387,7 @@ function renderScatterPlots() {
             document.getElementById('errorModal').style.display = 'none';
         });
 
-        document.getElementById('exportPdfBtn').addEventListener('click', async function() {
-            if (!parsedData || parsedData.length === 0) {
-                alert('Please upload CSV data first.');
-                return;
-            }
-            const btn = this;
-            btn.disabled = true;
-            btn.innerHTML = '⏳ <span class="hidden sm:inline">Generating...</span>';
-            try {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                pdf.setFontSize(16);
-                pdf.setFont('helvetica', 'bold');
-                const title = document.querySelector('[data-field="title"]').textContent;
-                pdf.text(title, pageWidth / 2, 20, { align: 'center' });
-                pdf.setFontSize(10);
-                pdf.setFont('helvetica', 'normal');
-                const operator = document.querySelector('[data-field="operator"]').textContent;
-                const route = document.querySelector('[data-field="route"]').textContent;
-                pdf.text(operator, 15, 30);
-                pdf.text(route, 15, 36);
-                pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, 42);
-                pdf.text(`Total Points: ${parsedData.length}`, 15, 48);
-                pdf.setFontSize(12);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('KPI Statistics Summary', 15, 60);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                let yPos = 68;
-                ['rsrp', 'rsrq', 'sinr'].forEach(kpi => {
-                    const values = parsedData.map(d => parseFloat(d[kpi]) || 0);
-                    const min = Math.min(...values).toFixed(2);
-                    const max = Math.max(...values).toFixed(2);
-                    const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
-                    const percentiles = calculatePercentiles(values);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text(`${kpi.toUpperCase()}:`, 15, yPos);
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text(`Min: ${min} | P10: ${percentiles.p10.toFixed(2)} | P50: ${percentiles.p50.toFixed(2)} | P90: ${percentiles.p90.toFixed(2)} | Avg: ${avg} | Max: ${max}`, 35, yPos);
-                    yPos += 6;
-                });
-                yPos += 5;
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Signal Quality Distribution (RSRP)', 15, yPos);
-                yPos += 6;
-                const rsrpValues = parsedData.map(d => parseFloat(d.rsrp) || -100);
-                const excellent = rsrpValues.filter(v => v >= -80).length;
-                const good = rsrpValues.filter(v => v >= -90 && v < -80).length;
-                const fair = rsrpValues.filter(v => v >= -100 && v < -90).length;
-                const poor = rsrpValues.filter(v => v < -100).length;
-                const total = rsrpValues.length;
-                pdf.setFont('helvetica', 'normal');
-                pdf.text(`Excellent: ${excellent} (${((excellent/total)*100).toFixed(1)}%) | Good: ${good} (${((good/total)*100).toFixed(1)}%)`, 15, yPos);
-                yPos += 6;
-                pdf.text(`Fair: ${fair} (${((fair/total)*100).toFixed(1)}%) | Poor: ${poor} (${((poor/total)*100).toFixed(1)}%)`, 15, yPos);
-                pdf.setFontSize(8);
-                pdf.setFont('helvetica', 'italic');
-                const footerLeft = document.querySelector('[data-field="footer-left"]').textContent;
-                const footerRight = document.querySelector('[data-field="footer-right"]').textContent;
-                pdf.text(footerLeft, 15, pageHeight - 10);
-                pdf.text(footerRight, pageWidth - 15, pageHeight - 10, { align: 'right' });
-                const fileName = `KPI-Report-${new Date().toISOString().slice(0,10)}.pdf`;
-                pdf.save(fileName);
-                btn.disabled = false;
-                btn.innerHTML = '📄 <span class="hidden sm:inline">PDF</span>';
-                alert('PDF report generated successfully!');
-            } catch (error) {
-                console.error('PDF error:', error);
-                alert('Error generating PDF: ' + error.message);
-                btn.disabled = false;
-                btn.innerHTML = '📄 <span class="hidden sm:inline">PDF</span>';
-            }
-        });
-
-        // =====================================================
+// =====================================================
         // INITIALIZATION
         // =====================================================
         initMap();
