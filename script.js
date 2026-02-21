@@ -1,4 +1,4 @@
-﻿
+
         // =====================================================
         // CONFIGURATION STATE
         // =====================================================
@@ -1609,9 +1609,20 @@ function renderScatterPlots() {
 
                 // Use hash instead of query params to avoid 400 Bad Request on Netlify
                 const shareUrl = `${window.location.origin}${window.location.pathname}#mode=view&config=${encoded}`;
-
-                document.getElementById('shareUrl').value = shareUrl;
+                
+                document.getElementById('shareUrl').value = 'Generating short URL...';
                 document.getElementById('shareModal').style.display = 'flex';
+
+                // Shorten URL using TinyURL API
+                fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(shareUrl)}`)
+                    .then(response => response.text())
+                    .then(shortUrl => {
+                        document.getElementById('shareUrl').value = shortUrl;
+                    })
+                    .catch(error => {
+                        console.error('URL shortening failed:', error);
+                        document.getElementById('shareUrl').value = shareUrl;
+                    });
             } catch (error) {
                 showError('Failed to generate share URL: ' + error.message);
             }
