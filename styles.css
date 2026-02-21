@@ -83,8 +83,9 @@ body {
 }
 
 .chart-zoomable:hover {
-    transform: scale(1.02);
+    transform: scale(1.01);
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    border-color: #3b82f6 !important;
 }
 
 /* Fade in animation */
