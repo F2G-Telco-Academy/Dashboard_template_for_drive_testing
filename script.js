@@ -1610,23 +1610,8 @@ function renderScatterPlots() {
                 // Use hash instead of query params to avoid 400 Bad Request on Netlify
                 const shareUrl = `${window.location.origin}${window.location.pathname}#mode=view&config=${encoded}`;
                 
-                document.getElementById('shareUrl').value = 'Generating short URL...';
+                document.getElementById('shareUrl').value = shareUrl;
                 document.getElementById('shareModal').style.display = 'flex';
-
-                // Shorten URL using is.gd API (CORS-friendly)
-                fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(shareUrl)}`)
-                    .then(response => response.text())
-                    .then(shortUrl => {
-                        if (shortUrl.startsWith('http')) {
-                            document.getElementById('shareUrl').value = shortUrl;
-                        } else {
-                            document.getElementById('shareUrl').value = shareUrl;
-                        }
-                    })
-                    .catch(error => {
-                        console.error('URL shortening failed:', error);
-                        document.getElementById('shareUrl').value = shareUrl;
-                    });
             } catch (error) {
                 showError('Failed to generate share URL: ' + error.message);
             }
