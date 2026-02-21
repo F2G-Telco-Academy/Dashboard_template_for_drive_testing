@@ -1492,4 +1492,104 @@ function renderScatterPlots() {
 
         // Initialize saved state when page loads
         loadSavedState();
+
+        // =====================================================
+        // CHART ZOOM MODAL FUNCTIONALITY
+        // =====================================================
+        let zoomedChart = null;
+
+        function openChartZoom(chartTitle, chartConfig) {
+            const modal = document.getElementById('chartZoomModal');
+            const canvas = document.getElementById('chartZoomCanvas');
+            const title = document.getElementById('chartZoomTitle');
+            
+            title.textContent = chartTitle;
+            modal.style.display = 'flex';
+            
+            // Destroy existing chart if any
+            if (zoomedChart) {
+                zoomedChart.destroy();
+            }
+            
+            // Create new chart with provided config
+            const ctx = canvas.getContext('2d');
+            zoomedChart = new Chart(ctx, chartConfig);
+        }
+
+        function closeChartZoom() {
+            const modal = document.getElementById('chartZoomModal');
+            modal.style.display = 'none';
+            if (zoomedChart) {
+                zoomedChart.destroy();
+                zoomedChart = null;
+            }
+        }
+
+        // Close button
+        document.getElementById('closeChartZoomBtn').addEventListener('click', closeChartZoom);
+
+        // Close on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('chartZoomModal').style.display === 'flex') {
+                closeChartZoom();
+            }
+        });
+
+        // Close on background click
+        document.getElementById('chartZoomModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeChartZoom();
+            }
+        });
+
+        // Make chart containers clickable after KPI panel is shown
+        function makeChartsZoomable() {
+            // Main KPI Chart
+            const mainChartContainer = document.querySelector('#kpiPanel .border-4.border-white.bg-gray-800.p-4[style*="height: 300px"]');
+            if (mainChartContainer && !mainChartContainer.classList.contains('chart-zoomable')) {
+                mainChartContainer.classList.add('chart-zoomable');
+                mainChartContainer.addEventListener('click', function() {
+                    if (kpiChart) {
+                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Chart`, kpiChart.config);
+                    }
+                });
+            }
+
+            // Histogram
+            const histogramContainer = document.getElementById('kpiHistogramContainer');
+            if (histogramContainer && !histogramContainer.classList.contains('chart-zoomable')) {
+                histogramContainer.classList.add('chart-zoomable');
+                histogramContainer.addEventListener('click', function() {
+                    if (kpiHistogramChart) {
+                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Distribution Histogram`, kpiHistogramChart.config);
+                    }
+                });
+            }
+
+            // Scatter plots
+            const scatterContainers = document.querySelectorAll('#kpiPanel .grid.grid-cols-1.md\\:grid-cols-2 > div');
+            scatterContainers.forEach((container, index) => {
+                if (!container.classList.contains('chart-zoomable')) {
+                    container.classList.add('chart-zoomable');
+                    container.addEventListener('click', function() {
+                        const title = container.querySelector('h3').textContent;
+                        let chart = null;
+                        if (index === 0 && scatterRsrpSinr) chart = scatterRsrpSinr;
+                        else if (index === 1 && scatterCqiMcs) chart = scatterCqiMcs;
+                        else if (index === 2 && scatterRsrpTput) chart = scatterRsrpTput;
+                        else if (index === 3 && scatterSinrTput) chart = scatterSinrTput;
+                        
+                        if (chart) {
+                            openChartZoom(`📊 ${title}`, chart.config);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Call makeChartsZoomable when KPI panel is shown
+        const originalKpisBtn = document.getElementById('kpisBtn');
+        originalKpisBtn.addEventListener('click', function() {
+            setTimeout(makeChartsZoomable, 100);
+        });
     
