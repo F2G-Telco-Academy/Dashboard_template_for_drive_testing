@@ -1613,11 +1613,15 @@ function renderScatterPlots() {
                 document.getElementById('shareUrl').value = 'Generating short URL...';
                 document.getElementById('shareModal').style.display = 'flex';
 
-                // Shorten URL using TinyURL API
-                fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(shareUrl)}`)
+                // Shorten URL using is.gd API (CORS-friendly)
+                fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(shareUrl)}`)
                     .then(response => response.text())
                     .then(shortUrl => {
-                        document.getElementById('shareUrl').value = shortUrl;
+                        if (shortUrl.startsWith('http')) {
+                            document.getElementById('shareUrl').value = shortUrl;
+                        } else {
+                            document.getElementById('shareUrl').value = shareUrl;
+                        }
                     })
                     .catch(error => {
                         console.error('URL shortening failed:', error);
