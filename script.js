@@ -41,11 +41,26 @@
             "footer-right": "F2G SOLUTIONS: CONFIDENTIAL-INTERNAL USE ONLY"
         };
 
-        // Client View Detection
-        const urlParams = new URLSearchParams(window.location.search);
-        const encodedConfig = urlParams.get('config');
-        const modeParam = urlParams.get('mode');
-        const isClientView = !!(encodedConfig || modeParam === 'view');
+        // Client View Detection - Use hash instead of query params to avoid 400 errors
+        let encodedConfig = null;
+        let isClientView = false;
+        
+        // Check URL hash first (new format)
+        if (window.location.hash) {
+            const hash = window.location.hash.substring(1); // Remove #
+            const hashParams = new URLSearchParams(hash);
+            encodedConfig = hashParams.get('config');
+            const modeParam = hashParams.get('mode');
+            isClientView = !!(encodedConfig || modeParam === 'view');
+        }
+        
+        // Fallback to query params (old format for backward compatibility)
+        if (!isClientView) {
+            const urlParams = new URLSearchParams(window.location.search);
+            encodedConfig = urlParams.get('config');
+            const modeParam = urlParams.get('mode');
+            isClientView = !!(encodedConfig || modeParam === 'view');
+        }
 
         // Store default config for reset functionality
         const defaultConfig = { ...currentConfig };
@@ -1592,7 +1607,8 @@ function renderScatterPlots() {
                 // Make URL-safe
                 const encoded = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-                const shareUrl = `${window.location.origin}${window.location.pathname}?mode=view&config=${encoded}`;
+                // Use hash instead of query params to avoid 400 Bad Request on Netlify
+                const shareUrl = `${window.location.origin}${window.location.pathname}#mode=view&config=${encoded}`;
 
                 document.getElementById('shareUrl').value = shareUrl;
                 document.getElementById('shareModal').style.display = 'flex';
