@@ -262,27 +262,56 @@
                     <canvas id="kpiHistogram"></canvas>
                 </div>
 
-                <!-- KPI Comparison Section -->
+                <!-- KPI Comparison Section - Time Series -->
                 <div class="border-4 border-white bg-gray-800 p-4">
-                    <h3 class="text-white font-bold mb-4 text-base border-b-2 border-gray-600 pb-2">📊 KPI COMPARISON ANALYSIS</h3>
+                    <h3 class="text-white font-bold mb-4 text-base border-b-2 border-gray-600 pb-2">📊 KPI COMPARISON ANALYSIS (Time Series)</h3>
                     <div class="grid grid-cols-1 gap-4">
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compRsrpSinr"></canvas>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 250px;">
+                            <h4 class="text-white text-xs font-bold mb-2">RSRP (dBm)</h4>
+                            <canvas id="compRsrpOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compCqiMcs"></canvas>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 200px;">
+                            <h4 class="text-white text-xs font-bold mb-2">RSRQ (dB)</h4>
+                            <canvas id="compRsrqOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compRsrpTput"></canvas>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 200px;">
+                            <h4 class="text-white text-xs font-bold mb-2">SINR (dB)</h4>
+                            <canvas id="compSinrOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compSinrTput"></canvas>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 250px;">
+                            <h4 class="text-white text-xs font-bold mb-2">DL Throughput (Mbps)</h4>
+                            <canvas id="compTputOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compRsrqRsrp"></canvas>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 200px;">
+                            <h4 class="text-white text-xs font-bold mb-2">BLER (%)</h4>
+                            <canvas id="compBlerOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compBlerTput"></canvas>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 200px;">
+                            <h4 class="text-white text-xs font-bold mb-2">CQI</h4>
+                            <canvas id="compCqiOnly" style="height: 150px;"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 200px;">
+                            <h4 class="text-white text-xs font-bold mb-2">MCS</h4>
+                            <canvas id="compMcsOnly" style="height: 150px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Correlation Analysis Section - Scatter Plots -->
+                <div class="border-4 border-white bg-gray-800 p-4">
+                    <h3 class="text-white font-bold mb-4 text-base border-b-2 border-gray-600 pb-2">🔬 CORRELATION ANALYSIS (Scatter Plots)</h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 400px;">
+                            <canvas id="scatterTputSinr"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 400px;">
+                            <canvas id="scatterTputRsrp"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 400px;">
+                            <canvas id="scatterMcsCqi"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 400px;">
+                            <canvas id="scatterBlerTput"></canvas>
                         </div>
                     </div>
                 </div>
