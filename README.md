@@ -20,14 +20,21 @@ A professional telecom network validation dashboard for creating **customizable 
 ### 📊 **KPI Visualization**
 - Real-time signal quality charts (RSRP, RSRQ, SINR, CQI, MCS, BLER, Throughput)
 - Multiple chart types: Line, Area, Bar
-- **Enhanced KPI Comparison Section** (6 dual-axis line charts)
-  - RSRP + SINR (time-based comparison)
-  - CQI + MCS (time-based comparison)
-  - RSRP + Throughput DL (time-based comparison)
-  - SINR + Throughput DL (time-based comparison)
-  - RSRQ + RSRP (time-based comparison)
-  - Throughput DL + BLER (time-based comparison)
-- Dual Y-axes with color-coded labels for each KPI
+- **KPI Comparison Section** (7 separate time-series charts)
+  - RSRP (dBm) - Independent optimized scale
+  - RSRQ (dB) - Independent optimized scale
+  - SINR (dB) - Independent optimized scale
+  - Throughput DL (Mbps) - Independent optimized scale
+  - BLER (%) - Dynamic scale based on actual data range
+  - CQI - Independent optimized scale
+  - MCS - Independent optimized scale
+- **Correlation Analysis Section** (4 scatter plots)
+  - Throughput vs SINR with percentile trend lines
+  - Throughput vs RSRP with percentile trend lines
+  - MCS vs CQI with percentile trend lines
+  - Throughput vs BLER with percentile trend lines
+- Each chart optimized for temporal pattern analysis
+- Horizontal time labels with optimal spacing (5 ticks max)
 - Interactive hover effects showing all values at each point
 - Click-to-zoom functionality for detailed analysis
 - Distribution histograms for all KPIs
@@ -152,7 +159,7 @@ Client sees dashboard with embedded data (no CSV upload needed)
 2. Edit title: "[Your Test Type] : [Your Test Name]"
 3. Fill in 4 analysis sections with your findings
 4. View KPI charts and comparison section for data validation
-5. Analyze KPI relationships in 6 professional scatter plots
+5. Analyze KPI relationships in 4 professional scatter plots
 6. Save configuration for future reference
 7. Share with client using 🔗 SHARE button
 8. Present to client or team
@@ -287,7 +294,17 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.2 (Current - Enhanced KPI Comparison)**
+**v3.3 (Current - Separate Stacked Charts)**
+- ✅ Replaced dual Y-axis charts with separate stacked charts for optimal temporal analysis
+- ✅ 7 independent time-series charts with optimized Y-axis scales
+- ✅ Dynamic BLER scale based on actual data range (not fixed 0-100%)
+- ✅ Improved X-axis readability: horizontal labels, 5 ticks max, 8px padding
+- ✅ Reordered KPI charts: RSRP, RSRQ, SINR, Throughput DL, BLER, CQI, MCS
+- ✅ 4 scatter plots for correlation analysis with percentile trend lines
+- ✅ Removed scale mismatch issues for better visibility
+- ✅ Each metric now uses full chart height for maximum clarity
+
+**v3.2 (Enhanced KPI Comparison)**
 - ✅ Professional KPI comparison section (6 dual-axis line charts)
 - ✅ Time-based comparison showing KPI trends side-by-side
 - ✅ Dual Y-axes with color-coded labels matching line colors
