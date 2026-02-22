@@ -27,6 +27,7 @@
         let currentKpiType = 'rsrp';
         let currentViewMode = 'grid';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
+        let kpiTheme = 'dark'; // Track KPI panel theme (light/dark)
         let map = null; // Map instance
         let markers = []; // Store markers for cleanup
         let layerIds = []; // Track added layer ids for cleanup
@@ -685,29 +686,21 @@
 
             // Chart colors based on KPI type
             const colors = {
-                rsrp: { line: '#3b82f6', fill: 'rgba(59, 130, 246, 0.2)' },
-                rsrq: { line: '#10b981', fill: 'rgba(16, 185, 129, 0.2)' },
-                sinr: { line: '#f59e0b', fill: 'rgba(245, 158, 11, 0.2)' },
-                pci: { line: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.2)' },
-                cqi: { line: '#ec4899', fill: 'rgba(236, 72, 153, 0.2)' },
-                mcs: { line: '#14b8a6', fill: 'rgba(20, 184, 166, 0.2)' },
-                bler: { line: '#f97316', fill: 'rgba(249, 115, 22, 0.2)' },
-                throughput_dl_mbps: { line: '#22c55e', fill: 'rgba(34, 197, 94, 0.2)' },
-                throughput_ul_mbps: { line: '#a855f7', fill: 'rgba(168, 85, 247, 0.2)' }
+                rsrp: { line: kpiTheme === 'dark' ? '#3b82f6' : '#1e40af', fill: 'transparent' },
+                rsrq: { line: kpiTheme === 'dark' ? '#10b981' : '#059669', fill: 'transparent' },
+                sinr: { line: kpiTheme === 'dark' ? '#f59e0b' : '#d97706', fill: 'transparent' },
+                pci: { line: kpiTheme === 'dark' ? '#8b5cf6' : '#7c3aed', fill: 'transparent' },
+                cqi: { line: kpiTheme === 'dark' ? '#ec4899' : '#db2777', fill: 'transparent' },
+                mcs: { line: kpiTheme === 'dark' ? '#14b8a6' : '#0d9488', fill: 'transparent' },
+                bler: { line: kpiTheme === 'dark' ? '#f97316' : '#ea580c', fill: 'transparent' },
+                throughput_dl_mbps: { line: kpiTheme === 'dark' ? '#22c55e' : '#16a34a', fill: 'transparent' },
+                throughput_ul_mbps: { line: kpiTheme === 'dark' ? '#a855f7' : '#9333ea', fill: 'transparent' }
             };
 
             const ctx = document.getElementById('kpiChart').getContext('2d');
             
             if (kpiChart) {
                 kpiChart.destroy();
-            }
-
-            // Create gradient for area chart
-            let gradient = null;
-            if (currentChartType === 'area') {
-                gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                gradient.addColorStop(0, colors[kpiType].line + '80');
-                gradient.addColorStop(1, colors[kpiType].line + '10');
             }
 
             kpiChart = new Chart(ctx, {
@@ -718,9 +711,9 @@
                         label: kpiType.toUpperCase(),
                         data: values,
                         borderColor: colors[kpiType].line,
-                        backgroundColor: currentChartType === 'area' ? gradient : (currentChartType === 'bar' ? colors[kpiType].line : colors[kpiType].fill),
+                        backgroundColor: currentChartType === 'bar' ? colors[kpiType].line : 'transparent',
                         borderWidth: 2,
-                        fill: currentChartType === 'area',
+                        fill: false,
                         tension: currentChartType === 'line' || currentChartType === 'area' ? 0.3 : 0,
                         pointRadius: currentChartType === 'bar' ? 0 : 2,
                         pointHoverRadius: currentChartType === 'bar' ? 0 : 5
@@ -732,7 +725,7 @@
                     plugins: {
                         legend: {
                             display: true,
-                            labels: { color: '#fff', font: { family: 'JetBrains Mono' } }
+                            labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono' } }
                         },
                         tooltip: {
                             backgroundColor: 'rgba(0,0,0,0.9)',
@@ -788,19 +781,19 @@
                     scales: {
                         x: {
                             ticks: { 
-                                color: '#9ca3af',
+                                color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563',
                                 maxRotation: 45,
                                 minRotation: 45,
                                 font: { size: 9, family: 'JetBrains Mono' }
                             },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
+                            grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
                         },
                         y: {
                             ticks: { 
-                                color: '#9ca3af',
+                                color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563',
                                 font: { family: 'JetBrains Mono' }
                             },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
+                            grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
                         }
                     }
                 }
@@ -827,7 +820,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'CQI', data: cqiVals, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.2)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'CQI', data: cqiVals, borderColor: kpiTheme === 'dark' ? '#10b981' : '#059669', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -865,7 +858,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'MCS', data: mcsVals, borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,0.2)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'MCS', data: mcsVals, borderColor: kpiTheme === 'dark' ? '#ec4899' : '#db2777', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -904,7 +897,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'SINR (dB)', data: sinrVals, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.2)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'SINR (dB)', data: sinrVals, borderColor: kpiTheme === 'dark' ? '#f59e0b' : '#d97706', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -943,7 +936,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'RSRP (dBm)', data: rsrpVals, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', borderWidth: 3, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'RSRP (dBm)', data: rsrpVals, borderColor: kpiTheme === 'dark' ? '#3b82f6' : '#1e40af', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -982,7 +975,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'RSRQ (dB)', data: rsrqVals, borderColor: '#14b8a6', backgroundColor: 'rgba(20,184,166,0.2)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'RSRQ (dB)', data: rsrqVals, borderColor: kpiTheme === 'dark' ? '#14b8a6' : '#0d9488', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -1020,7 +1013,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'DL Throughput (Mbps)', data: tputDlVals, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.2)', borderWidth: 3, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'DL Throughput (Mbps)', data: tputDlVals, borderColor: kpiTheme === 'dark' ? '#22c55e' : '#16a34a', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -1059,7 +1052,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'BLER (%)', data: blerVals, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 2, pointRadius: 0, fill: true, tension: 0.4 }
+                        { label: 'BLER (%)', data: blerVals, borderColor: kpiTheme === 'dark' ? '#ef4444' : '#dc2626', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -1155,13 +1148,13 @@ function renderScatterPlots() {
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs SINR', color: '#fff', font: { size: 14 } },
+                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: { display: true, text: 'Throughput vs SINR', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'SINR (dB)', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { title: { display: true, text: 'Throughput (Mbps)', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } }
+                        x: { title: { display: true, text: 'SINR (dB)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
@@ -1186,13 +1179,13 @@ function renderScatterPlots() {
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs RSRP', color: '#fff', font: { size: 14 } },
+                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: { display: true, text: 'Throughput vs RSRP', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'RSRP (dBm)', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { title: { display: true, text: 'Throughput (Mbps)', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } }
+                        x: { title: { display: true, text: 'RSRP (dBm)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
@@ -1217,13 +1210,13 @@ function renderScatterPlots() {
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'MCS vs CQI', color: '#fff', font: { size: 14 } },
+                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: { display: true, text: 'MCS vs CQI', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'CQI', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { title: { display: true, text: 'MCS', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } }
+                        x: { title: { display: true, text: 'CQI', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { title: { display: true, text: 'MCS', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
@@ -1248,13 +1241,13 @@ function renderScatterPlots() {
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: '#fff', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs BLER', color: '#fff', font: { size: 14 } },
+                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: { display: true, text: 'Throughput vs BLER', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'BLER (%)', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { title: { display: true, text: 'Throughput (Mbps)', color: '#fff', font: { size: 12 } }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.15)' } }
+                        x: { title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
@@ -1280,11 +1273,22 @@ function renderScatterPlots() {
             const ctx = document.getElementById('kpiHistogram').getContext('2d');
             if (kpiHistogramChart) kpiHistogramChart.destroy();
 
+            const histColors = {
+                rsrp: kpiTheme === 'dark' ? '#3b82f6' : '#1e40af',
+                rsrq: kpiTheme === 'dark' ? '#10b981' : '#059669',
+                sinr: kpiTheme === 'dark' ? '#f59e0b' : '#d97706',
+                cqi: kpiTheme === 'dark' ? '#ec4899' : '#db2777',
+                mcs: kpiTheme === 'dark' ? '#14b8a6' : '#0d9488',
+                bler: kpiTheme === 'dark' ? '#f97316' : '#ea580c',
+                throughput_dl_mbps: kpiTheme === 'dark' ? '#22c55e' : '#16a34a',
+                throughput_ul_mbps: kpiTheme === 'dark' ? '#a855f7' : '#9333ea'
+            };
+
             kpiHistogramChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: binData.map(d => d.bin),
-                    datasets: [{ label: 'Sample Count', data: binData.map(d => d.count), backgroundColor: kpiColors[kpiType] || '#3b82f6', borderColor: '#fff', borderWidth: 1 }]
+                    datasets: [{ label: 'Sample Count', data: binData.map(d => d.count), backgroundColor: histColors[kpiType] || (kpiTheme === 'dark' ? '#3b82f6' : '#1e40af'), borderColor: kpiTheme === 'dark' ? '#fff' : '#1f2937', borderWidth: 1 }]
                 },
                 options: {
                     responsive: true,
@@ -1299,8 +1303,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 }, grid: { color: 'rgba(255,255,255,0.1)' }, title: { display: true, text: kpiLabels[kpiType] || kpiType.toUpperCase(), color: '#fff', font: { family: 'JetBrains Mono' } } },
-                        y: { ticks: { color: '#9ca3af', font: { family: 'JetBrains Mono' } }, grid: { color: 'rgba(255,255,255,0.1)' }, title: { display: true, text: 'Count', color: '#fff', font: { family: 'JetBrains Mono' } } }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }, title: { display: true, text: kpiLabels[kpiType] || kpiType.toUpperCase(), color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono' } } },
+                        y: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { family: 'JetBrains Mono' } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }, title: { display: true, text: 'Count', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono' } } }
                     }
                 }
             });
@@ -1925,22 +1929,55 @@ function renderScatterPlots() {
         // =====================================================
         let zoomedChart = null;
 
-        function openChartZoom(chartTitle, chartConfig) {
+        function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
             const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
+            const modalContent = modal.querySelector('div');
+            const chartContainer = document.getElementById('chartZoomContainer');
             
             title.textContent = chartTitle;
             modal.style.display = 'flex';
             
-            // Destroy existing chart if any
-            if (zoomedChart) {
-                zoomedChart.destroy();
+            const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
+            const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+            const tickColor = kpiTheme === 'dark' ? '#9ca3af' : '#4b5563';
+            
+            if (kpiTheme === 'light') {
+                modal.style.background = 'rgba(255,255,255,0.95)';
+                modalContent.style.background = '#f3f4f6';
+                chartContainer.style.background = '#ffffff';
+                title.style.color = '#1f2937';
+            } else {
+                modal.style.background = 'rgba(0,0,0,0.95)';
+                modalContent.style.background = '#1f2937';
+                chartContainer.style.background = '#374151';
+                title.style.color = '#fff';
             }
             
-            // Create new chart with provided config
+            if (zoomedChart) zoomedChart.destroy();
+            
             const ctx = canvas.getContext('2d');
-            zoomedChart = new Chart(ctx, chartConfig);
+            const cfg = chartInstance.config;
+            
+            zoomedChart = new Chart(ctx, {
+                type: cfg.type,
+                data: cfg.data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: cfg.options.interaction,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: textColor, font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: textColor, font: { size: 14 } } : undefined,
+                        tooltip: cfg.options.plugins?.tooltip
+                    },
+                    scales: {
+                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: textColor, font: { size: 12 } } : undefined } : undefined,
+                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: textColor, font: { size: 12 } } : undefined } : undefined
+                    }
+                }
+            });
         }
 
         function closeChartZoom() {
@@ -1977,7 +2014,7 @@ function renderScatterPlots() {
                 mainChartContainer.classList.add('chart-zoomable');
                 mainChartContainer.addEventListener('click', function() {
                     if (kpiChart) {
-                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Chart`, kpiChart.config);
+                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Chart`, kpiChart);
                     }
                 });
             }
@@ -1988,7 +2025,7 @@ function renderScatterPlots() {
                 histogramContainer.classList.add('chart-zoomable');
                 histogramContainer.addEventListener('click', function() {
                     if (kpiHistogramChart) {
-                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Distribution Histogram`, kpiHistogramChart.config);
+                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Distribution Histogram`, kpiHistogramChart);
                     }
                 });
             }
@@ -2018,7 +2055,7 @@ function renderScatterPlots() {
                         else if (index === 10 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
                         if (chart) {
-                            openChartZoom(`📊 ${title}`, chart.config);
+                            openChartZoom(`📊 ${title}`, chart);
                         }
                     });
                 }
@@ -2029,5 +2066,65 @@ function renderScatterPlots() {
         const originalKpisBtn = document.getElementById('kpisBtn');
         originalKpisBtn.addEventListener('click', function() {
             setTimeout(makeChartsZoomable, 100);
+        });
+
+        // KPI Theme Toggle
+        document.getElementById('kpiThemeToggle').addEventListener('click', function() {
+            kpiTheme = kpiTheme === 'dark' ? 'light' : 'dark';
+            const panel = document.getElementById('kpiPanel');
+            
+            if (kpiTheme === 'light') {
+                panel.classList.remove('bg-gray-900');
+                panel.classList.add('bg-white');
+                this.innerHTML = '☀️ Light';
+                document.querySelectorAll('#kpiPanel .bg-gray-800').forEach(el => {
+                    el.classList.remove('bg-gray-800');
+                    el.classList.add('bg-gray-100');
+                });
+                document.querySelectorAll('#kpiPanel .bg-gray-900').forEach(el => {
+                    el.classList.remove('bg-gray-900');
+                    el.classList.add('bg-white');
+                });
+                document.querySelectorAll('#kpiPanel .text-white').forEach(el => {
+                    el.classList.remove('text-white');
+                    el.classList.add('text-gray-900');
+                });
+                document.querySelectorAll('#kpiPanel .text-gray-400').forEach(el => {
+                    el.classList.remove('text-gray-400');
+                    el.classList.add('text-gray-600');
+                });
+            } else {
+                panel.classList.remove('bg-white');
+                panel.classList.add('bg-gray-900');
+                this.innerHTML = '🌙 Dark';
+                document.querySelectorAll('#kpiPanel .bg-gray-100').forEach(el => {
+                    el.classList.remove('bg-gray-100');
+                    el.classList.add('bg-gray-800');
+                });
+                document.querySelectorAll('#kpiPanel .bg-white').forEach(el => {
+                    if (!el.id || el.id !== 'kpiPanel') {
+                        el.classList.remove('bg-white');
+                        el.classList.add('bg-gray-900');
+                    }
+                });
+                document.querySelectorAll('#kpiPanel .text-gray-900').forEach(el => {
+                    el.classList.remove('text-gray-900');
+                    el.classList.add('text-white');
+                });
+                document.querySelectorAll('#kpiPanel .text-gray-600').forEach(el => {
+                    el.classList.remove('text-gray-600');
+                    el.classList.add('text-gray-400');
+                });
+            }
+            
+            if (parsedData.length > 0) {
+                renderKPIChart(currentKpiType);
+                renderScatterPlots();
+                renderCorrelationScatters();
+                if (currentKpiType !== 'all' && currentKpiType !== 'pci') {
+                    const values = parsedData.map(d => parseFloat(d[currentKpiType]) || 0);
+                    renderKPIHistogram(currentKpiType, values);
+                }
+            }
         });
     
