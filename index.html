@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -220,10 +220,15 @@
             </div>
 
             <!-- KPI VISUALIZATION PANEL (HIDDEN BY DEFAULT) -->
-            <div id="kpiPanel" class="hidden flex-col gap-4 h-full overflow-y-auto pr-1 bg-gray-900 p-4">
-                <div class="text-white text-center mb-4">
-                    <h2 class="text-xl font-bold mb-2">📊 KPI VISUALIZATION</h2>
-                    <p class="text-sm text-gray-400">Real-time signal quality metrics</p>
+            <div id="kpiPanel" class="hidden flex-col gap-4 h-full overflow-y-auto pr-1 bg-white p-4">
+                <div class="text-gray-900 text-center mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-bold">📊 KPI VISUALIZATION</h2>
+                        <button id="kpiThemeToggle" class="bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-600 transition-all" title="Toggle Light/Dark Mode">
+                            ☀️ Light
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-600">Real-time signal quality metrics</p>
                 </div>
 
                 <!-- KPI Tabs, Chart Type & View Mode Selector -->
@@ -252,70 +257,99 @@
                 </div>
 
                 <!-- Chart Container -->
-                <div class="border-4 border-white bg-gray-800 p-4" style="height: 300px;">
+                <div class="border-4 border-black bg-white p-4" style="height: 300px;">
                     <canvas id="kpiChart"></canvas>
                 </div>
 
 <!-- KPI Distribution Histogram -->
-                <div id="kpiHistogramContainer" class="border-4 border-white bg-gray-800 p-4 pb-8" style="height: 300px; display: none;">
-                    <h3 class="text-white font-bold mb-2 text-sm" id="histogramTitle">Distribution Histogram</h3>
+                <div id="kpiHistogramContainer" class="border-4 border-black bg-white p-4 pb-8" style="height: 300px; display: none;">
+                    <h3 class="text-gray-900 font-bold mb-2 text-sm" id="histogramTitle">Distribution Histogram</h3>
                     <canvas id="kpiHistogram"></canvas>
                 </div>
 
-                <!-- KPI Comparison Section -->
-                <div class="border-4 border-white bg-gray-800 p-4">
-                    <h3 class="text-white font-bold mb-4 text-base border-b-2 border-gray-600 pb-2">📊 KPI COMPARISON ANALYSIS</h3>
+                <!-- KPI Comparison Section - Time Series -->
+                <div class="border-4 border-black bg-white p-4">
+                    <h3 class="text-gray-900 font-bold mb-4 text-base border-b-2 border-gray-300 pb-2">📊 KPI COMPARISON ANALYSIS (Time Series)</h3>
                     <div class="grid grid-cols-1 gap-4">
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compRsrpSinr"></canvas>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">RSRP (dBm)</h4>
+                            <canvas id="compRsrpOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compCqiMcs"></canvas>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">RSRQ (dB)</h4>
+                            <canvas id="compRsrqOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compRsrpTput"></canvas>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">SINR (dB)</h4>
+                            <canvas id="compSinrOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compSinrTput"></canvas>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">DL Throughput (Mbps)</h4>
+                            <canvas id="compTputOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compRsrqRsrp"></canvas>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">BLER (%)</h4>
+                            <canvas id="compBlerOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-600 bg-gray-900 p-3" style="height: 300px;">
-                            <canvas id="compBlerTput"></canvas>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">CQI</h4>
+                            <canvas id="compCqiOnly" style="height: 150px;"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">MCS</h4>
+                            <canvas id="compMcsOnly" style="height: 150px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Correlation Analysis Section - Scatter Plots -->
+                <div class="border-4 border-black bg-white p-4">
+                    <h3 class="text-gray-900 font-bold mb-4 text-base border-b-2 border-gray-300 pb-2">🔬 CORRELATION ANALYSIS (Scatter Plots)</h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                            <canvas id="scatterTputSinr"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                            <canvas id="scatterTputRsrp"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                            <canvas id="scatterMcsCqi"></canvas>
+                        </div>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                            <canvas id="scatterBlerTput"></canvas>
                         </div>
                     </div>
                 </div>
 
                 <!-- Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <div class="text-xs text-gray-400 mb-1">CURRENT VALUE</div>
+                    <div class="border-4 border-black bg-white p-4">
+                        <div class="text-xs text-gray-600 mb-1">CURRENT VALUE</div>
                         <div class="text-2xl font-bold font-mono break-words" id="summaryCurrentValue">-</div>
                         <div class="text-xs mt-1" id="summaryCurrentTrend">-</div>
                     </div>
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <div class="text-xs text-gray-400 mb-1">MINIMUM</div>
+                    <div class="border-4 border-black bg-white p-4">
+                        <div class="text-xs text-gray-600 mb-1">MINIMUM</div>
                         <div class="text-2xl font-bold font-mono break-words" id="summaryMin">-</div>
-                        <div class="text-xs text-gray-400 mt-1">Worst value</div>
+                        <div class="text-xs text-gray-600 mt-1">Worst value</div>
                     </div>
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <div class="text-xs text-gray-400 mb-1">AVERAGE</div>
+                    <div class="border-4 border-black bg-white p-4">
+                        <div class="text-xs text-gray-600 mb-1">AVERAGE</div>
                         <div class="text-2xl font-bold font-mono break-words" id="summaryAvg">-</div>
-                        <div class="text-xs text-gray-400 mt-1">Mean value</div>
+                        <div class="text-xs text-gray-600 mt-1">Mean value</div>
                     </div>
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <div class="text-xs text-gray-400 mb-1">MAXIMUM</div>
+                    <div class="border-4 border-black bg-white p-4">
+                        <div class="text-xs text-gray-600 mb-1">MAXIMUM</div>
                         <div class="text-2xl font-bold font-mono break-words" id="summaryMax">-</div>
-                        <div class="text-xs text-gray-400 mt-1">Best value</div>
+                        <div class="text-xs text-gray-600 mt-1">Best value</div>
                     </div>
                 </div>
 
                 <!-- Statistics Cards - Grid/Table View -->
                 <div id="statsGridView" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <h3 class="text-white font-bold mb-2 text-sm">Statistics</h3>
-                        <div id="kpiStats" class="text-white text-xs space-y-1">
+                    <div class="border-4 border-black bg-white p-4">
+                        <h3 class="text-gray-900 font-bold mb-2 text-sm">Statistics</h3>
+                        <div id="kpiStats" class="text-gray-900 text-xs space-y-1">
                             <div>Min: <span id="statMin">-</span></div>
                             <div>P10: <span id="statP10">-</span></div>
                             <div>P50: <span id="statP50">-</span></div>
@@ -325,9 +359,9 @@
                         </div>
                     </div>
 
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <h3 class="text-white font-bold mb-2 text-sm">Signal Quality</h3>
-                        <div id="signalQuality" class="text-white text-xs space-y-1">
+                    <div class="border-4 border-black bg-white p-4">
+                        <h3 class="text-gray-900 font-bold mb-2 text-sm">Signal Quality</h3>
+                        <div id="signalQuality" class="text-gray-900 text-xs space-y-1">
                             <div>🟢 Excellent: <span id="qualExcellent">0</span> (<span id="qualExcellentPct">0</span>%)</div>
                             <div>🔵 Good: <span id="qualGood">0</span> (<span id="qualGoodPct">0</span>%)</div>
                             <div>🟡 Fair: <span id="qualFair">0</span> (<span id="qualFairPct">0</span>%)</div>
@@ -335,18 +369,18 @@
                         </div>
                     </div>
 
-                    <div class="border-4 border-white bg-gray-800 p-4">
-                        <h3 class="text-white font-bold mb-2 text-sm">Events</h3>
-                        <div id="eventsList" class="text-white text-xs space-y-1 max-h-24 overflow-y-auto">
-                            <div class="text-gray-400">No events</div>
+                    <div class="border-4 border-black bg-white p-4">
+                        <h3 class="text-gray-900 font-bold mb-2 text-sm">Events</h3>
+                        <div id="eventsList" class="text-gray-900 text-xs space-y-1 max-h-24 overflow-y-auto">
+                            <div class="text-gray-600">No events</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Statistics Table View -->
-                <div id="statsTableView" class="hidden border-4 border-white bg-gray-800 overflow-hidden">
-                    <table class="w-full text-white text-xs">
-                        <thead class="bg-gray-700">
+                <div id="statsTableView" class="hidden border-4 border-black bg-white overflow-hidden">
+                    <table class="w-full text-gray-900 text-xs">
+                        <thead class="bg-gray-200">
                             <tr>
                                 <th class="py-2 px-3 text-left font-bold">Metric</th>
                                 <th class="py-2 px-3 text-right font-bold">Value</th>
@@ -354,32 +388,32 @@
                             </tr>
                         </thead>
                         <tbody id="statsTableBody">
-                            <tr class="border-t border-gray-700">
+                            <tr class="border-t border-gray-300">
                                 <td class="py-2 px-3">Minimum</td>
                                 <td class="py-2 px-3 text-right font-mono" id="tableMin">-</td>
                                 <td class="py-2 px-3 text-right" id="tableMinQuality">-</td>
                             </tr>
-                            <tr class="border-t border-gray-700">
+                            <tr class="border-t border-gray-300">
                                 <td class="py-2 px-3">10th Percentile (P10)</td>
                                 <td class="py-2 px-3 text-right font-mono" id="tableP10">-</td>
                                 <td class="py-2 px-3 text-right" id="tableP10Quality">-</td>
                             </tr>
-                            <tr class="border-t border-gray-700">
+                            <tr class="border-t border-gray-300">
                                 <td class="py-2 px-3">Median (P50)</td>
                                 <td class="py-2 px-3 text-right font-mono" id="tableP50">-</td>
                                 <td class="py-2 px-3 text-right" id="tableP50Quality">-</td>
                             </tr>
-                            <tr class="border-t border-gray-700">
+                            <tr class="border-t border-gray-300">
                                 <td class="py-2 px-3">90th Percentile (P90)</td>
                                 <td class="py-2 px-3 text-right font-mono" id="tableP90">-</td>
                                 <td class="py-2 px-3 text-right" id="tableP90Quality">-</td>
                             </tr>
-                            <tr class="border-t border-gray-700">
+                            <tr class="border-t border-gray-300">
                                 <td class="py-2 px-3">Average</td>
                                 <td class="py-2 px-3 text-right font-mono" id="tableAvg">-</td>
                                 <td class="py-2 px-3 text-right" id="tableAvgQuality">-</td>
                             </tr>
-                            <tr class="border-t border-gray-700">
+                            <tr class="border-t border-gray-300">
                                 <td class="py-2 px-3">Maximum</td>
                                 <td class="py-2 px-3 text-right font-mono" id="tableMax">-</td>
                                 <td class="py-2 px-3 text-right" id="tableMaxQuality">-</td>
@@ -427,13 +461,13 @@
     </div>
 
     <!-- Chart Zoom Modal -->
-    <div id="chartZoomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:10000; justify-content:center; align-items:center; animation:fadeIn 0.2s;">
-        <div style="background:#1f2937; padding:20px; border:4px solid white; width:95%; height:95%; max-width:1400px; max-height:900px; font-family:'JetBrains Mono',monospace; display:flex; flex-direction:column;">
+    <div id="chartZoomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; justify-content:center; align-items:center; animation:fadeIn 0.2s;">
+        <div style="padding:20px; border:4px solid white; width:95%; height:95%; max-width:1400px; max-height:900px; font-family:'JetBrains Mono',monospace; display:flex; flex-direction:column;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h2 id="chartZoomTitle" style="margin:0; font-size:20px; font-weight:800; color:white;">📊 Chart View</h2>
+                <h2 id="chartZoomTitle" style="margin:0; font-size:20px; font-weight:800;">📊 Chart View</h2>
                 <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:16px; border-radius:4px;">✕ CLOSE</button>
             </div>
-            <div style="flex:1; background:#374151; border:3px solid white; padding:20px; overflow:hidden;">
+            <div id="chartZoomContainer" style="flex:1; border:3px solid white; padding:20px; overflow:hidden;">
                 <canvas id="chartZoomCanvas"></canvas>
             </div>
         </div>
