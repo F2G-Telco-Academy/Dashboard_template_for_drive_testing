@@ -27,7 +27,7 @@
         let currentKpiType = 'rsrp';
         let currentViewMode = 'grid';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
-        let kpiTheme = 'dark'; // Track KPI panel theme (light/dark)
+        let kpiTheme = 'light'; // Track KPI panel theme (light/dark)
         let map = null; // Map instance
         let markers = []; // Store markers for cleanup
         let layerIds = []; // Track added layer ids for cleanup
@@ -686,15 +686,15 @@
 
             // Chart colors based on KPI type
             const colors = {
-                rsrp: { line: kpiTheme === 'dark' ? '#3b82f6' : '#1e40af', fill: 'transparent' },
-                rsrq: { line: kpiTheme === 'dark' ? '#10b981' : '#059669', fill: 'transparent' },
-                sinr: { line: kpiTheme === 'dark' ? '#f59e0b' : '#d97706', fill: 'transparent' },
-                pci: { line: kpiTheme === 'dark' ? '#8b5cf6' : '#7c3aed', fill: 'transparent' },
-                cqi: { line: kpiTheme === 'dark' ? '#ec4899' : '#db2777', fill: 'transparent' },
-                mcs: { line: kpiTheme === 'dark' ? '#14b8a6' : '#0d9488', fill: 'transparent' },
-                bler: { line: kpiTheme === 'dark' ? '#f97316' : '#ea580c', fill: 'transparent' },
-                throughput_dl_mbps: { line: kpiTheme === 'dark' ? '#22c55e' : '#16a34a', fill: 'transparent' },
-                throughput_ul_mbps: { line: kpiTheme === 'dark' ? '#a855f7' : '#9333ea', fill: 'transparent' }
+                rsrp: { line: '#3b82f6', fill: 'transparent' },
+                rsrq: { line: '#3b82f6', fill: 'transparent' },
+                sinr: { line: '#3b82f6', fill: 'transparent' },
+                pci: { line: '#3b82f6', fill: 'transparent' },
+                cqi: { line: '#3b82f6', fill: 'transparent' },
+                mcs: { line: '#3b82f6', fill: 'transparent' },
+                bler: { line: '#3b82f6', fill: 'transparent' },
+                throughput_dl_mbps: { line: '#3b82f6', fill: 'transparent' },
+                throughput_ul_mbps: { line: '#3b82f6', fill: 'transparent' }
             };
 
             const ctx = document.getElementById('kpiChart').getContext('2d');
@@ -820,7 +820,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'CQI', data: cqiVals, borderColor: kpiTheme === 'dark' ? '#10b981' : '#059669', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'CQI', data: cqiVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -844,8 +844,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'CQI', color: '#10b981', font: { size: 11, weight: 'bold' } }, ticks: { color: '#10b981', font: { size: 10 } }, grid: { color: 'rgba(16,185,129,0.15)' }, min: 0, max: Math.ceil(maxCqi * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'CQI', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxCqi * 1.1) }
                     }
                 }
             });
@@ -858,7 +858,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'MCS', data: mcsVals, borderColor: kpiTheme === 'dark' ? '#ec4899' : '#db2777', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'MCS', data: mcsVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -882,8 +882,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'MCS', color: '#ec4899', font: { size: 11, weight: 'bold' } }, ticks: { color: '#ec4899', font: { size: 10 } }, grid: { color: 'rgba(236,72,153,0.15)' }, min: 0, max: Math.ceil(maxMcs * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'MCS', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxMcs * 1.1) }
                     }
                 }
             });
@@ -897,7 +897,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'SINR (dB)', data: sinrVals, borderColor: kpiTheme === 'dark' ? '#f59e0b' : '#d97706', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'SINR (dB)', data: sinrVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -921,8 +921,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'SINR (dB)', color: '#f59e0b', font: { size: 11, weight: 'bold' } }, ticks: { color: '#f59e0b', font: { size: 10 } }, grid: { color: 'rgba(245,158,11,0.15)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'SINR (dB)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
                     }
                 }
             });
@@ -936,7 +936,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'RSRP (dBm)', data: rsrpVals, borderColor: kpiTheme === 'dark' ? '#3b82f6' : '#1e40af', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'RSRP (dBm)', data: rsrpVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -960,8 +960,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'RSRP (dBm)', color: '#3b82f6', font: { size: 11, weight: 'bold' } }, ticks: { color: '#3b82f6', font: { size: 10 } }, grid: { color: 'rgba(59,130,246,0.15)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'RSRP (dBm)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
                     }
                 }
             });
@@ -975,7 +975,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'RSRQ (dB)', data: rsrqVals, borderColor: kpiTheme === 'dark' ? '#14b8a6' : '#0d9488', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'RSRQ (dB)', data: rsrqVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -999,8 +999,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'RSRQ (dB)', color: '#14b8a6', font: { size: 11, weight: 'bold' } }, ticks: { color: '#14b8a6', font: { size: 10 } }, grid: { color: 'rgba(20,184,166,0.15)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'RSRQ (dB)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
                     }
                 }
             });
@@ -1013,7 +1013,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'DL Throughput (Mbps)', data: tputDlVals, borderColor: kpiTheme === 'dark' ? '#22c55e' : '#16a34a', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'DL Throughput (Mbps)', data: tputDlVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -1037,8 +1037,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: '#22c55e', font: { size: 11, weight: 'bold' } }, ticks: { color: '#22c55e', font: { size: 10 } }, grid: { color: 'rgba(34,197,94,0.15)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
                     }
                 }
             });
@@ -1052,7 +1052,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'BLER (%)', data: blerVals, borderColor: kpiTheme === 'dark' ? '#ef4444' : '#dc2626', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'BLER (%)', data: blerVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -1076,8 +1076,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: 'rgba(255,255,255,0.15)' } },
-                        y: { type: 'linear', title: { display: true, text: 'BLER (%)', color: '#ef4444', font: { size: 11, weight: 'bold' } }, ticks: { color: '#ef4444', font: { size: 10 } }, grid: { color: 'rgba(239,68,68,0.15)' }, min: 0, max: blerYMax }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: blerYMax }
                     }
                 }
             });
@@ -1274,14 +1274,14 @@ function renderScatterPlots() {
             if (kpiHistogramChart) kpiHistogramChart.destroy();
 
             const histColors = {
-                rsrp: kpiTheme === 'dark' ? '#3b82f6' : '#1e40af',
-                rsrq: kpiTheme === 'dark' ? '#10b981' : '#059669',
-                sinr: kpiTheme === 'dark' ? '#f59e0b' : '#d97706',
-                cqi: kpiTheme === 'dark' ? '#ec4899' : '#db2777',
-                mcs: kpiTheme === 'dark' ? '#14b8a6' : '#0d9488',
-                bler: kpiTheme === 'dark' ? '#f97316' : '#ea580c',
-                throughput_dl_mbps: kpiTheme === 'dark' ? '#22c55e' : '#16a34a',
-                throughput_ul_mbps: kpiTheme === 'dark' ? '#a855f7' : '#9333ea'
+                rsrp: '#3b82f6',
+                rsrq: '#3b82f6',
+                sinr: '#3b82f6',
+                cqi: '#3b82f6',
+                mcs: '#3b82f6',
+                bler: '#3b82f6',
+                throughput_dl_mbps: '#3b82f6',
+                throughput_ul_mbps: '#3b82f6'
             };
 
             kpiHistogramChart = new Chart(ctx, {
@@ -2008,10 +2008,11 @@ function renderScatterPlots() {
 
         // Make chart containers clickable after KPI panel is shown
         function makeChartsZoomable() {
-            // Main KPI Chart
-            const mainChartContainer = document.querySelector('#kpiPanel .border-4.border-white.bg-gray-800.p-4[style*="height: 300px"]');
+            // Main KPI Chart - updated selector for light mode
+            const mainChartContainer = document.querySelector('#kpiPanel > div.border-4.border-black.bg-white.p-4');
             if (mainChartContainer && !mainChartContainer.classList.contains('chart-zoomable')) {
                 mainChartContainer.classList.add('chart-zoomable');
+                mainChartContainer.style.cursor = 'pointer';
                 mainChartContainer.addEventListener('click', function() {
                     if (kpiChart) {
                         openChartZoom(`📊 ${currentKpiType.toUpperCase()} Chart`, kpiChart);
@@ -2085,6 +2086,10 @@ function renderScatterPlots() {
                     el.classList.remove('bg-gray-900');
                     el.classList.add('bg-white');
                 });
+                document.querySelectorAll('#kpiPanel .bg-gray-50').forEach(el => {
+                    el.classList.remove('bg-gray-50');
+                    el.classList.add('bg-white');
+                });
                 document.querySelectorAll('#kpiPanel .text-white').forEach(el => {
                     el.classList.remove('text-white');
                     el.classList.add('text-gray-900');
@@ -2106,6 +2111,10 @@ function renderScatterPlots() {
                         el.classList.remove('bg-white');
                         el.classList.add('bg-gray-900');
                     }
+                });
+                document.querySelectorAll('#kpiPanel .bg-gray-50').forEach(el => {
+                    el.classList.remove('bg-gray-50');
+                    el.classList.add('bg-gray-800');
                 });
                 document.querySelectorAll('#kpiPanel .text-gray-900').forEach(el => {
                     el.classList.remove('text-gray-900');
