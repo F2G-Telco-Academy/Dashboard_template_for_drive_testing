@@ -100,7 +100,7 @@
                 document.querySelectorAll('.editable-field').forEach(el => {
                     const field = el.dataset.field;
                     if (field && currentConfig.hasOwnProperty(field)) {
-                        el.textContent = currentConfig[field];
+                        el.innerHTML = currentConfig[field];
                     }
                 });
 
@@ -151,12 +151,16 @@
         // =====================================================
         // EDIT MODE TOGGLE
         // =====================================================
+        
         document.getElementById('editModeBtn').addEventListener('click', function() {
             editMode = !editMode;
             const mobileText = editMode ? '✏️ <span class="hidden sm:inline">EDIT MODE: ON</span>' : '✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>';
             this.innerHTML = mobileText;
             this.classList.toggle('bg-yellow-400', !editMode);
             this.classList.toggle('bg-green-500', editMode);
+            
+            // Show/hide formatting toolbar
+            document.getElementById('formatToolbar').style.display = editMode ? 'block' : 'none';
             
             // Enable/disable contenteditable
             document.querySelectorAll('.editable-field').forEach(el => {
@@ -165,15 +169,15 @@
                     el.style.outline = '2px dashed #FF7900';
                     el.style.outlineOffset = '2px';
                     // Handle empty fields - add placeholder if empty
-                    if (el.textContent.trim() === '') {
-                        el.textContent = 'Click to edit';
+                    if (el.innerHTML.trim() === '' || el.textContent.trim() === '') {
+                        el.innerHTML = 'Click to edit';
                         el.style.color = '#999';
                     }
                 } else {
                     el.style.outline = 'none';
                     // Remove placeholder styling
-                    if (el.textContent === 'Click to edit') {
-                        el.textContent = '';
+                    if (el.innerHTML === 'Click to edit') {
+                        el.innerHTML = '';
                     }
                     el.style.color = '';
                 }
@@ -199,15 +203,15 @@
 
         // Handle focus events for editable fields
         document.addEventListener('focusin', function(e) {
-            if (e.target.classList.contains('editable-field') && e.target.textContent === 'Click to edit') {
-                e.target.textContent = '';
+            if (e.target.classList.contains('editable-field') && e.target.innerHTML === 'Click to edit') {
+                e.target.innerHTML = '';
                 e.target.style.color = '';
             }
         });
 
         document.addEventListener('focusout', function(e) {
-            if (e.target.classList.contains('editable-field') && e.target.textContent.trim() === '' && editMode) {
-                e.target.textContent = 'Click to edit';
+            if (e.target.classList.contains('editable-field') && e.target.innerHTML.trim() === '' && editMode) {
+                e.target.innerHTML = 'Click to edit';
                 e.target.style.color = '#999';
             }
         });
@@ -220,7 +224,7 @@
             document.querySelectorAll('.editable-field').forEach(el => {
                 const field = el.dataset.field;
                 if (field) {
-                    let content = el.textContent.trim();
+                    let content = el.innerHTML.trim();
                     // Don't save placeholder text, save as empty string
                     if (content === 'Click to edit') {
                         content = '';
@@ -239,33 +243,33 @@
             
             // Save performance additional fields
             document.querySelectorAll('#performanceContainer .border-t').forEach(field => {
-                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
-                if (textContent && textContent !== 'Click to edit') {
-                    currentConfig.additionalFields.performance.push(textContent);
+                const htmlContent = field.querySelector('.editable-field')?.innerHTML?.trim();
+                if (htmlContent && htmlContent !== 'Click to edit') {
+                    currentConfig.additionalFields.performance.push(htmlContent);
                 }
             });
             
             // Save impacts additional fields
             document.querySelectorAll('#impactsContainer .border-t').forEach(field => {
-                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
-                if (textContent && textContent !== 'Click to edit') {
-                    currentConfig.additionalFields.impacts.push(textContent);
+                const htmlContent = field.querySelector('.editable-field')?.innerHTML?.trim();
+                if (htmlContent && htmlContent !== 'Click to edit') {
+                    currentConfig.additionalFields.impacts.push(htmlContent);
                 }
             });
             
             // Save analysis additional fields
             document.querySelectorAll('#analysisContainer .border-t').forEach(field => {
-                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
-                if (textContent && textContent !== 'Click to edit') {
-                    currentConfig.additionalFields.analysis.push(textContent);
+                const htmlContent = field.querySelector('.editable-field')?.innerHTML?.trim();
+                if (htmlContent && htmlContent !== 'Click to edit') {
+                    currentConfig.additionalFields.analysis.push(htmlContent);
                 }
             });
             
             // Save recommendations additional fields
             document.querySelectorAll('#recommendationsContainer .border-t').forEach(field => {
-                const textContent = field.querySelector('.editable-field')?.textContent?.trim();
-                if (textContent && textContent !== 'Click to edit') {
-                    currentConfig.additionalFields.recommendations.push(textContent);
+                const htmlContent = field.querySelector('.editable-field')?.innerHTML?.trim();
+                if (htmlContent && htmlContent !== 'Click to edit') {
+                    currentConfig.additionalFields.recommendations.push(htmlContent);
                 }
             });
         }
@@ -1393,7 +1397,7 @@ function renderScatterPlots() {
             document.querySelectorAll('.editable-field').forEach(el => {
                 const field = el.dataset.field;
                 if (field && currentConfig.hasOwnProperty(field)) {
-                    el.textContent = currentConfig[field];
+                    el.innerHTML = currentConfig[field];
                 }
             });
             
