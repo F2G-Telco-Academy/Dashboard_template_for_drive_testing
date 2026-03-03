@@ -434,6 +434,25 @@
 
     </div>
 
+    <!-- Formatting Toolbar (Hidden by default) -->
+    <div id="formatToolbar" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:white; padding:10px 15px; border:3px solid black; z-index:9999; box-shadow:4px 4px 0px black; font-family:'JetBrains Mono',monospace;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:bold; margin-right:5px;">FORMAT:</span>
+            <button onclick="document.execCommand('bold')" style="background:#1f2937; color:white; padding:6px 10px; border:2px solid black; font-weight:bold; cursor:pointer; font-size:12px;" title="Bold">B</button>
+            <button onclick="document.execCommand('italic')" style="background:#1f2937; color:white; padding:6px 10px; border:2px solid black; font-style:italic; cursor:pointer; font-size:12px;" title="Italic">I</button>
+            <button onclick="document.execCommand('underline')" style="background:#1f2937; color:white; padding:6px 10px; border:2px solid black; text-decoration:underline; cursor:pointer; font-size:12px;" title="Underline">U</button>
+            <div style="width:1px; height:24px; background:#ccc; margin:0 4px;"></div>
+            <button onclick="document.execCommand('foreColor', false, '#22c55e')" style="background:#22c55e; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Green">A</button>
+            <button onclick="document.execCommand('foreColor', false, '#3b82f6')" style="background:#3b82f6; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Blue">A</button>
+            <button onclick="document.execCommand('foreColor', false, '#ef4444')" style="background:#ef4444; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Red">A</button>
+            <button onclick="document.execCommand('foreColor', false, '#f59e0b')" style="background:#f59e0b; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Orange">A</button>
+            <button onclick="document.execCommand('foreColor', false, '#000000')" style="background:#000000; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Black">A</button>
+            <div style="width:1px; height:24px; background:#ccc; margin:0 4px;"></div>
+            <button onclick="document.execCommand('insertUnorderedList')" style="background:#1f2937; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:12px;" title="Bullet List">• List</button>
+            <button onclick="document.execCommand('removeFormat')" style="background:#ef4444; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Clear Formatting">✕ Clear</button>
+        </div>
+    </div>
+
     <!-- Hidden file input for loading config -->
     <input type="file" id="loadConfigFile" accept=".json" style="display: none;">
 
