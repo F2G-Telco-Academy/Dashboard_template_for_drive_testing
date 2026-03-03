@@ -9,6 +9,12 @@ A professional telecom network validation dashboard for creating **customizable 
 - Click on any text to modify: titles, routes, device info, analysis sections
 - Visual indicators show which fields are editable (orange dashed outlines)
 - Guided placeholder text in all sections
+- **Rich Text Formatting Toolbar** (NEW)
+  - Bold, Italic, Underline (Ctrl+B/I/U)
+  - Font size: 7 options (Tiny to XXL)
+  - Text color: 9 colors (Green, Blue, Red, Orange, Purple, Pink, Teal, Black, Gray)
+  - Clear formatting button
+  - All formatting preserved in save/load/share
 
 ### 🔗 **Client View Sharing**
 - Generate shareable read-only URLs for clients
@@ -58,46 +64,120 @@ A professional telecom network validation dashboard for creating **customizable 
 
 ## 🚀 Quick Start Guide
 
-### 1. **Upload Your Drive Test CSV**
+### 1. **Setup (First Time Only)**
+
+**Clone Repository**
+```bash
+git clone https://github.com/F2G-Telco-Academy/Dashboard_template_for_drive_testing.git
+cd Dashboard_template_for_drive_testing
+```
+
+**Configure API Key (for AI features)**
+```bash
+# 1. Copy environment template
+cp .env.template .env.local
+
+# 2. Get FREE Groq API key at: https://console.groq.com
+# 3. Edit .env.local and add your key:
+#    GROQ_API_KEY=gsk_your_actual_key_here
+
+# 4. Open script.js (line ~2307) and replace:
+#    const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+#    with your key from .env.local
+```
+
+**Launch App**
+```bash
+# Option A: VS Code Live Server (Recommended)
+# - Install "Live Server" extension
+# - Right-click index.html → "Open with Live Server"
+
+# Option B: Python
+python -m http.server 3000
+
+# Option C: Node.js
+npx http-server -p 3000
+```
+
+### 2. **Upload Your Drive Test CSV**
 ```
 Click "📁 UPLOAD CSV" → Select your CSV file
 ```
 
-### 2. **Enable Edit Mode**
+### 3. **Use AI Auto-Analysis (Optional)**
+```
+Click "🤖 AI" button in top bar
+Wait 10-20 seconds
+AI generates content for all 4 sections:
+- 01: Performance Summary
+- 02: Impacts
+- 03: Analysis
+- 04: Recommendations
+```
+
+### 4. **Enable Edit Mode**
 ```
 Click "✏️ EDIT MODE: OFF" to toggle ON
 All editable fields will show orange dashed outlines
 ```
 
-### 3. **Customize Your Test Case**
+### 5. **Customize Your Test Case**
 - **Header**: Edit test case type, name, operator, route, status, reference, device
 - **4 Analysis Sections**: Add performance summary, impacts, analysis, recommendations
 - **Add Fields**: Use "+" buttons to add additional fields per section
+- **Format Text**: Use formatting toolbar at bottom (appears when edit mode is ON)
+  - Select text → Apply bold, italic, underline
+  - Change font size or color from dropdowns
+  - All formatting preserved when saving
 
-### 4. **View KPIs**
+### 6. **View KPIs**
 ```
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
 ```
 
-### 5. **Save Configuration**
+### 7. **Save Configuration**
 ```
 Click "💾 SAVE" → Choose location and filename
 Configuration saved as JSON file
 ```
 
-### 6. **Load Configuration**
+### 8. **Load Configuration**
 ```
 Click "📂 LOAD" → Select previously saved JSON file
 All fields restored including empty ones
 ```
 
-### 7. **Share with Client**
+### 9. **Share with Client**
 ```
 Click "🔗 SHARE" → Copy generated URL
 Send URL to client for read-only view
 Client sees dashboard with embedded data (no CSV upload needed)
 ```
+
+---
+
+## 🤖 AI Auto-Analysis
+
+### **Features**
+- ✅ Auto-generates Performance Summary
+- ✅ Auto-generates Impacts analysis
+- ✅ Auto-generates Technical Analysis (2 paragraphs)
+- ✅ Auto-generates Recommendations (bullet points)
+- ✅ HTML-formatted with color-coded findings
+- ✅ Uses Groq AI (free unlimited tier)
+
+### **Setup**
+1. Get free API key at https://console.groq.com
+2. Copy `.env.template` to `.env.local`
+3. Add your key to `.env.local`
+4. Update `script.js` line ~2307 with your key
+5. Click "🤖 AI" button to generate
+
+### **Important**
+- ⚠️ Never commit `.env.local` to GitHub (already in `.gitignore`)
+- ⚠️ Each team member needs their own key
+- ✅ Keep your key in `.env.local` for reference
 
 ---
 
@@ -294,7 +374,16 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.3 (Current - Separate Stacked Charts)**
+**v3.4 (Current - Rich Text Formatting)**
+- ✅ Added rich text formatting toolbar (appears in edit mode)
+- ✅ Bold, Italic, Underline with keyboard shortcuts
+- ✅ Font size dropdown (7 sizes: Tiny to XXL)
+- ✅ Text color dropdown (9 colors with visual indicators)
+- ✅ HTML formatting preservation in save/load/share (innerHTML)
+- ✅ Compact toolbar design for mobile responsiveness
+- ✅ All formatting persists across all operations
+
+**v3.3 (Separate Stacked Charts)****
 - ✅ Replaced dual Y-axis charts with separate stacked charts for optimal temporal analysis
 - ✅ 7 independent time-series charts with optimized Y-axis scales
 - ✅ Dynamic BLER scale based on actual data range (not fixed 0-100%)
