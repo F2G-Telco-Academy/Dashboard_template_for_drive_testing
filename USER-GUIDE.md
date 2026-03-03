@@ -69,6 +69,34 @@ Click **"✏️ EDIT MODE: OFF"** button (top-right)
 
 ## 3. FEATURE OVERVIEW
 
+### 🆕 Rich Text Formatting Toolbar (NEW)
+
+**Location:** Bottom center (appears when edit mode is ON)
+
+**Features:**
+- **Bold (B)** - Ctrl+B keyboard shortcut
+- **Italic (I)** - Ctrl+I keyboard shortcut  
+- **Underline (U)** - Ctrl+U keyboard shortcut
+- **Font Size** - Dropdown with 7 sizes (Tiny, Small, Normal, Medium, Large, XL, XXL)
+- **Text Color** - Dropdown with 9 colors:
+  - 🟢 Green, 🔵 Blue, 🔴 Red, 🟠 Orange
+  - 🟣 Purple, 🦋 Pink, 🦍 Teal
+  - ⚫ Black, ⚪ Gray
+- **Clear Formatting** - Remove all styling
+
+**How to Use:**
+1. Enable edit mode
+2. Click in any editable field
+3. Select text you want to format
+4. Click formatting buttons or choose from dropdowns
+5. All formatting preserved when saving/loading/sharing
+
+**Pro Tips:**
+- Use colors to highlight important findings (e.g., red for issues, green for success)
+- Use bold for KPI values and section headers
+- Use different sizes for emphasis
+- Formatting works in all editable fields
+
 ### 🎯 Edit Mode Toggle
 
 **Location:** Top-right corner  
@@ -78,11 +106,13 @@ Click **"✏️ EDIT MODE: OFF"** button (top-right)
 - Text fields become editable
 - Orange outlines indicate editable areas
 - "Add" buttons appear for additional fields
+- **Formatting toolbar appears at bottom** (NEW)
 
 **When INACTIVE:**
 - Clean presentation view
 - Fields are read-only
 - Better for screenshots/exports
+- Formatting toolbar hidden
 
 ### 📊 KPI Visualization
 
@@ -171,6 +201,11 @@ Section 01 - Performance Summary: Add your KPI summary
 Section 02 - Impacts: Describe network/user impacts
 Section 03 - Analysis: Technical analysis details
 Section 04 - Recommendations: Your recommendations
+
+TIP: Use formatting toolbar to:
+- Bold important KPI values
+- Color-code findings (green=good, red=issues)
+- Adjust font sizes for emphasis
 ```
 
 5️⃣ **View KPIs**
@@ -268,18 +303,18 @@ Client sees clear visual evidence
 
 **Replace with your actual content when editing.**
 
-### Tip 2: Multi-Line Content
+### Tip 2: Multi-Line Content with Formatting
 
-**You can add detailed multi-line content:**
+**You can add detailed multi-line content with rich formatting:**
 ```
 PERFORMANCE SUMMARY:
-- 12 handover events, 98.7% success rate
-- Zero RLF occurrences
-- Average RSRP: -85 dBm
+- 12 handover events, 98.7% success rate (use green color)
+- Zero RLF occurrences (use bold)
+- Average RSRP: -85 dBm (use larger font)
 
 KEY FINDINGS:
-- Coverage excellent in urban areas
-- Weak spots identified at 3 locations
+- Coverage excellent in urban areas (green)
+- Weak spots identified at 3 locations (red, bold)
 ```
 
 ### Tip 3: Empty Fields
@@ -419,6 +454,9 @@ Must-Have Templates:
 
 | Action | Shortcut |
 |--------|----------|
+| Bold Text | Ctrl+B |
+| Italic Text | Ctrl+I |
+| Underline Text | Ctrl+U |
 | Toggle Edit Mode | Click button |
 | Save Config | Click 💾 SAVE |
 | Upload CSV | Click 📁 UPLOAD |
@@ -435,11 +473,12 @@ Must-Have Templates:
 4. Save Configuration
 
 **Remember:**
-- ✏️ Edit mode = Orange outlines
+- ✏️ Edit mode = Orange outlines + Formatting toolbar
 - 💾 Save often
 - 📊 View KPIs for validation
 - 📁 Name configs clearly
 - 🔄 RESET clears cache
+- 🆕 Use formatting for professional reports
 
 **Emergency Checklist:**
 - [ ] CSV uploaded
@@ -450,7 +489,7 @@ Must-Have Templates:
 
 ---
 
-**Document Version:** 3.0  
+**Document Version:** 3.4  
 **Last Updated:** 2026  
 **Organization:** PKFOKAM48 - TELCO ACADEMY  
 **Classification:** F2G SOLUTIONS - CONFIDENTIAL-INTERNAL USE ONLY  

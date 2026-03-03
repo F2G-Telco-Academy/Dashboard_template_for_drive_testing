@@ -9,6 +9,12 @@ A professional telecom network validation dashboard for creating **customizable 
 - Click on any text to modify: titles, routes, device info, analysis sections
 - Visual indicators show which fields are editable (orange dashed outlines)
 - Guided placeholder text in all sections
+- **Rich Text Formatting Toolbar** (NEW)
+  - Bold, Italic, Underline (Ctrl+B/I/U)
+  - Font size: 7 options (Tiny to XXL)
+  - Text color: 9 colors (Green, Blue, Red, Orange, Purple, Pink, Teal, Black, Gray)
+  - Clear formatting button
+  - All formatting preserved in save/load/share
 
 ### 🔗 **Client View Sharing**
 - Generate shareable read-only URLs for clients
@@ -73,6 +79,10 @@ All editable fields will show orange dashed outlines
 - **Header**: Edit test case type, name, operator, route, status, reference, device
 - **4 Analysis Sections**: Add performance summary, impacts, analysis, recommendations
 - **Add Fields**: Use "+" buttons to add additional fields per section
+- **Format Text**: Use formatting toolbar at bottom (appears when edit mode is ON)
+  - Select text → Apply bold, italic, underline
+  - Change font size or color from dropdowns
+  - All formatting preserved when saving
 
 ### 4. **View KPIs**
 ```
@@ -294,7 +304,16 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.3 (Current - Separate Stacked Charts)**
+**v3.4 (Current - Rich Text Formatting)**
+- ✅ Added rich text formatting toolbar (appears in edit mode)
+- ✅ Bold, Italic, Underline with keyboard shortcuts
+- ✅ Font size dropdown (7 sizes: Tiny to XXL)
+- ✅ Text color dropdown (9 colors with visual indicators)
+- ✅ HTML formatting preservation in save/load/share (innerHTML)
+- ✅ Compact toolbar design for mobile responsiveness
+- ✅ All formatting persists across all operations
+
+**v3.3 (Separate Stacked Charts)****
 - ✅ Replaced dual Y-axis charts with separate stacked charts for optimal temporal analysis
 - ✅ 7 independent time-series charts with optimized Y-axis scales
 - ✅ Dynamic BLER scale based on actual data range (not fixed 0-100%)
