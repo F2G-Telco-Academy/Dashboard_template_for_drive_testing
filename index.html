@@ -452,12 +452,18 @@
                 <option value="6">XL</option>
                 <option value="7">XXL</option>
             </select>
-            <div style="width:1px; height:24px; background:#ccc; margin:0 4px;"></div>
-            <button onclick="document.execCommand('foreColor', false, '#22c55e')" style="background:#22c55e; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Green">A</button>
-            <button onclick="document.execCommand('foreColor', false, '#3b82f6')" style="background:#3b82f6; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Blue">A</button>
-            <button onclick="document.execCommand('foreColor', false, '#ef4444')" style="background:#ef4444; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Red">A</button>
-            <button onclick="document.execCommand('foreColor', false, '#f59e0b')" style="background:#f59e0b; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Orange">A</button>
-            <button onclick="document.execCommand('foreColor', false, '#000000')" style="background:#000000; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Black">A</button>
+            <select onchange="document.execCommand('foreColor', false, this.value); this.selectedIndex=0;" style="background:#1f2937; color:white; padding:6px 8px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Text Color">
+                <option value="" selected>Color</option>
+                <option value="#22c55e" style="color:#22c55e;">● Green</option>
+                <option value="#3b82f6" style="color:#3b82f6;">● Blue</option>
+                <option value="#ef4444" style="color:#ef4444;">● Red</option>
+                <option value="#f59e0b" style="color:#f59e0b;">● Orange</option>
+                <option value="#8b5cf6" style="color:#8b5cf6;">● Purple</option>
+                <option value="#ec4899" style="color:#ec4899;">● Pink</option>
+                <option value="#14b8a6" style="color:#14b8a6;">● Teal</option>
+                <option value="#000000" style="color:#000000;">● Black</option>
+                <option value="#6b7280" style="color:#6b7280;">● Gray</option>
+            </select>
             <div style="width:1px; height:24px; background:#ccc; margin:0 4px;"></div>
             <button onclick="document.execCommand('removeFormat')" style="background:#ef4444; color:white; padding:6px 10px; border:2px solid black; cursor:pointer; font-size:11px; font-weight:bold;" title="Clear Formatting">✕ Clear</button>
         </div>
