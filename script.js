@@ -151,12 +151,16 @@
         // =====================================================
         // EDIT MODE TOGGLE
         // =====================================================
+        
         document.getElementById('editModeBtn').addEventListener('click', function() {
             editMode = !editMode;
             const mobileText = editMode ? '✏️ <span class="hidden sm:inline">EDIT MODE: ON</span>' : '✏️ <span class="hidden sm:inline">EDIT MODE: OFF</span>';
             this.innerHTML = mobileText;
             this.classList.toggle('bg-yellow-400', !editMode);
             this.classList.toggle('bg-green-500', editMode);
+            
+            // Show/hide formatting toolbar
+            document.getElementById('formatToolbar').style.display = editMode ? 'block' : 'none';
             
             // Enable/disable contenteditable
             document.querySelectorAll('.editable-field').forEach(el => {
