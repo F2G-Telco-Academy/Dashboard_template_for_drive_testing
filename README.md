@@ -85,18 +85,64 @@ A professional telecom network validation dashboard for creating **customizable 
 
 ## 🚀 Quick Start Guide
 
-### 1. **Upload Your Drive Test CSV**
+### 1. **Setup (First Time Only)**
+
+**Clone Repository**
+```bash
+git clone https://github.com/F2G-Telco-Academy/Dashboard_template_for_drive_testing.git
+cd Dashboard_template_for_drive_testing
+```
+
+**Configure API Key (for AI features)**
+```bash
+# 1. Copy environment template
+cp .env.template .env.local
+
+# 2. Get FREE Groq API key at: https://console.groq.com
+# 3. Edit .env.local and add your key:
+#    GROQ_API_KEY=gsk_your_actual_key_here
+
+# 4. Open script.js (line ~2307) and replace:
+#    const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+#    with your key from .env.local
+```
+
+**Launch App**
+```bash
+# Option A: VS Code Live Server (Recommended)
+# - Install "Live Server" extension
+# - Right-click index.html → "Open with Live Server"
+
+# Option B: Python
+python -m http.server 3000
+
+# Option C: Node.js
+npx http-server -p 3000
+```
+
+### 2. **Upload Your Drive Test CSV**
 ```
 Click "📁 UPLOAD CSV" → Select your CSV file
 ```
 
-### 2. **Enable Edit Mode**
+### 3. **Use AI Auto-Analysis (Optional)**
+```
+Click "🤖 AI" button in top bar
+Wait 10-20 seconds
+AI generates content for all 4 sections:
+- 01: Performance Summary
+- 02: Impacts
+- 03: Analysis
+- 04: Recommendations
+```
+
+### 4. **Enable Edit Mode**
 ```
 Click "✏️ EDIT MODE: OFF" to toggle ON
 All editable fields will show orange dashed outlines
 ```
 
-### 3. **Customize Your Test Case**
+### 5. **Customize Your Test Case**
 - **Header**: Edit test case type, name, operator, route, status, reference, device
 - **4 Analysis Sections**: Add performance summary, impacts, analysis, recommendations
 - **Add Fields**: Use "+" buttons to add additional fields per section
@@ -105,30 +151,54 @@ All editable fields will show orange dashed outlines
   - Change font size or color from dropdowns
   - All formatting preserved when saving
 
-### 4. **View KPIs**
+### 6. **View KPIs**
 ```
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
 ```
 
-### 5. **Save Configuration**
+### 7. **Save Configuration**
 ```
 Click "💾 SAVE" → Choose location and filename
 Configuration saved as JSON file
 ```
 
-### 6. **Load Configuration**
+### 8. **Load Configuration**
 ```
 Click "📂 LOAD" → Select previously saved JSON file
 All fields restored including empty ones
 ```
 
-### 7. **Share with Client**
+### 9. **Share with Client**
 ```
 Click "🔗 SHARE" → Copy generated URL
 Send URL to client for read-only view
 Client sees dashboard with embedded data (no CSV upload needed)
 ```
+
+---
+
+## 🤖 AI Auto-Analysis
+
+### **Features**
+- ✅ Auto-generates Performance Summary
+- ✅ Auto-generates Impacts analysis
+- ✅ Auto-generates Technical Analysis (2 paragraphs)
+- ✅ Auto-generates Recommendations (bullet points)
+- ✅ HTML-formatted with color-coded findings
+- ✅ Uses Groq AI (free unlimited tier)
+
+### **Setup**
+1. Get free API key at https://console.groq.com
+2. Copy `.env.template` to `.env.local`
+3. Add your key to `.env.local`
+4. Update `script.js` line ~2307 with your key
+5. Click "🤖 AI" button to generate
+
+### **Important**
+- ⚠️ Never commit `.env.local` to GitHub (already in `.gitignore`)
+- ⚠️ Each team member needs their own key
+- ✅ Keep your key in `.env.local` for reference
 
 ---
 

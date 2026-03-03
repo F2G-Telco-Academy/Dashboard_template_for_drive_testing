@@ -2057,12 +2057,14 @@ function renderScatterPlots() {
                 const saveBtn = document.getElementById('saveConfigBtn');
                 const loadBtn = document.getElementById('loadConfigBtn');
                 const shareBtn = document.getElementById('shareClientBtn');
+                const aiBtn = document.getElementById('autoAnalyzeBtn');
                 
                 if (editBtn) editBtn.style.display = 'none';
                 if (resetBtn) resetBtn.style.display = 'none';
                 if (saveBtn) saveBtn.style.display = 'none';
                 if (loadBtn) loadBtn.style.display = 'none';
                 if (shareBtn) shareBtn.style.display = 'none';
+                if (aiBtn) aiBtn.style.display = 'none';
                 // kpisBtn remains visible by default
             }
 
@@ -2569,3 +2571,202 @@ function renderScatterPlots() {
             }
         });
     
+
+// =====================================================
+// AI AUTO-ANALYSIS INTEGRATION
+// =====================================================
+
+async function autoAnalyzeWithAI() {
+    console.log('🤖 Starting AI auto-analysis...');
+    
+    if (!parsedData || parsedData.length === 0) {
+        alert('⚠️ Please upload a CSV file first before using AI analysis.');
+        return;
+    }
+    
+    const btn = document.getElementById('autoAnalyzeBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Analyzing with AI... Please wait';
+    btn.disabled = true;
+    
+    try {
+        const analysisData = prepareDataForAI();
+        
+        btn.innerHTML = '⏳ Generating Performance Summary...';
+        const performance = await callGroqAI(analysisData, 'performance');
+        document.querySelector('[data-field="performance-content"]').innerHTML = performance;
+        currentConfig['performance-content'] = performance;
+        
+        btn.innerHTML = '⏳ Generating Impacts...';
+        const impacts = await callGroqAI(analysisData, 'impacts');
+        document.querySelector('[data-field="impacts-content"]').innerHTML = impacts;
+        currentConfig['impacts-content'] = impacts;
+        
+        btn.innerHTML = '⏳ Generating Analysis...';
+        const analysis = await callGroqAI(analysisData, 'analysis');
+        document.querySelector('[data-field="analysis-content"]').innerHTML = analysis;
+        currentConfig['analysis-content'] = analysis;
+        
+        btn.innerHTML = '⏳ Generating Recommendations...';
+        const recommendations = await callGroqAI(analysisData, 'recommendations');
+        document.querySelector('[data-field="recommendations-content"]').innerHTML = recommendations;
+        currentConfig['recommendations-content'] = recommendations;
+        
+        saveToLocalStorage();
+        console.log('✅ AI analysis completed for all sections');
+        alert('✅ AI analysis generated successfully!\n\nReview all 4 sections.');
+        
+    } catch (error) {
+        console.error('❌ AI analysis failed:', error);
+        alert('❌ Failed to generate AI analysis:\n\n' + error.message + '\n\nPlease try again or contact support.');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+function prepareDataForAI() {
+    console.log('📊 Preparing data for AI analysis...');
+    
+    const stats = {
+        rsrp: calculateStatistics(parsedData, 'rsrp'),
+        rsrq: calculateStatistics(parsedData, 'rsrq'),
+        sinr: calculateStatistics(parsedData, 'sinr')
+    };
+    
+    if (parsedData.some(p => p.throughput_dl_mbps !== undefined)) {
+        stats.throughput_dl = calculateStatistics(parsedData, 'throughput_dl_mbps');
+    }
+    if (parsedData.some(p => p.bler !== undefined)) {
+        stats.bler = calculateStatistics(parsedData, 'bler');
+    }
+    if (parsedData.some(p => p.cqi !== undefined)) {
+        stats.cqi = calculateStatistics(parsedData, 'cqi');
+    }
+    if (parsedData.some(p => p.mcs !== undefined)) {
+        stats.mcs = calculateStatistics(parsedData, 'mcs');
+    }
+    
+    const qualityDist = calculateSignalQuality(parsedData);
+    
+    const events = {};
+    parsedData.forEach(point => {
+        if (point.event && point.event.trim() !== '') {
+            events[point.event] = (events[point.event] || 0) + 1;
+        }
+    });
+    
+    const data = {
+        testInfo: {
+            title: currentConfig.title || 'Drive Test Analysis',
+            operator: currentConfig.operator || 'Unknown Operator',
+            route: currentConfig.route || 'Unknown Route',
+            status: currentConfig.status || 'Unknown Status',
+            device: currentConfig.device || 'Unknown Device',
+            totalPoints: parsedData.length,
+            duration: calculateTestDuration()
+        },
+        statistics: stats,
+        qualityDistribution: qualityDist,
+        events: events,
+        sampleData: parsedData.slice(0, 5)
+    };
+    
+    console.log('✅ Data prepared:', data);
+    return data;
+}
+
+function calculateTestDuration() {
+    if (parsedData.length < 2) return 'Unknown';
+    
+    try {
+        const firstTime = new Date(parsedData[0].time);
+        const lastTime = new Date(parsedData[parsedData.length - 1].time);
+        const durationMs = lastTime - firstTime;
+        const durationMin = Math.round(durationMs / 60000);
+        return `${durationMin} minutes`;
+    } catch (e) {
+        return 'Unknown';
+    }
+}
+
+function calculateStatistics(data, field) {
+    const values = data.map(d => parseFloat(d[field]) || 0).filter(v => v !== 0);
+    if (values.length === 0) return { min: 0, max: 0, avg: 0, median: 0 };
+    
+    const sorted = [...values].sort((a, b) => a - b);
+    return {
+        min: Math.min(...values),
+        max: Math.max(...values),
+        avg: values.reduce((a, b) => a + b, 0) / values.length,
+        median: sorted[Math.floor(sorted.length / 2)]
+    };
+}
+
+function calculateSignalQuality(data) {
+    const rsrpValues = data.map(d => parseFloat(d.rsrp) || -100);
+    return {
+        excellent: rsrpValues.filter(v => v >= -80).length,
+        good: rsrpValues.filter(v => v >= -90 && v < -80).length,
+        fair: rsrpValues.filter(v => v >= -100 && v < -90).length,
+        poor: rsrpValues.filter(v => v < -100).length
+    };
+}
+
+async function callGroqAI(data, section) {
+    console.log(`🌐 Calling Groq AI for ${section}...`);
+    
+    const GROQ_API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+    
+    if (GROQ_API_KEY === 'YOUR_GROQ_API_KEY_HERE') {
+        throw new Error('Please configure your Groq API key in script.js\n\nGet FREE unlimited key at: https://console.groq.com');
+    }
+    
+    const prompt = buildPromptForSection(data, section);
+    
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 800,
+            temperature: 0.7
+        })
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Groq API error: ${error.error?.message || response.statusText}`);
+    }
+    
+    const result = await response.json();
+    return result.choices[0].message.content;
+}
+
+function buildPromptForSection(data, section) {
+    const stats = `RSRP: ${data.statistics.rsrp.avg.toFixed(1)} dBm (${data.statistics.rsrp.min} to ${data.statistics.rsrp.max}), RSRQ: ${data.statistics.rsrq.avg.toFixed(1)} dB, SINR: ${data.statistics.sinr.avg.toFixed(1)} dB. Quality: ${((data.qualityDistribution.excellent+data.qualityDistribution.good)/data.testInfo.totalPoints*100).toFixed(1)}% good/excellent, ${((data.qualityDistribution.poor)/data.testInfo.totalPoints*100).toFixed(1)}% poor.${data.statistics.throughput_dl ? ` Throughput: ${data.statistics.throughput_dl.avg.toFixed(2)} Mbps avg.` : ''}${data.statistics.bler ? ` BLER: ${data.statistics.bler.avg.toFixed(1)}% avg.` : ''} Events: ${Object.entries(data.events).map(([e,c])=>`${e}(${c})`).join(', ') || 'none'}.`;
+    
+    const prompts = {
+        performance: `As RF engineer, write 1 paragraph PERFORMANCE SUMMARY for drive test. ${stats} Focus on: overall performance rating, key metrics summary, test success/failure. Use HTML: <strong> for key points, <span style="color: #16a34a"> for good, <span style="color: #dc2626"> for bad, <br><br> for breaks. Return ONLY HTML.`,
+        
+        impacts: `As RF engineer, write 1 paragraph IMPACTS analysis. ${stats} Focus on: user experience impact, service quality impact, business impact. Use HTML: <strong> for key points, <span style="color: #16a34a"> for positive, <span style="color: #dc2626"> for negative, <span style="color: #f59e0b"> for warnings, <br><br> for breaks. Return ONLY HTML.`,
+        
+        analysis: `As RF engineer, write 2 paragraphs TECHNICAL ANALYSIS. ${stats} Cover: signal quality assessment, coverage strengths/weaknesses, event analysis, root causes. Use HTML: <strong> for findings, <span style="color: #16a34a"> for good, <span style="color: #dc2626"> for issues, <span style="color: #f59e0b"> for warnings, <br><br> between paragraphs, • for bullets. Return ONLY HTML.`,
+        
+        recommendations: `As RF engineer, write RECOMMENDATIONS (3-5 bullet points). ${stats} Provide: specific optimization actions, priority fixes, parameter adjustments. Format as: • <strong>Action</strong>: description<br>. Use <span style="color: #16a34a"> for quick wins, <span style="color: #f59e0b"> for medium priority, <span style="color: #dc2626"> for critical. Return ONLY HTML.`
+    };
+    
+    return prompts[section];
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const autoAnalyzeBtn = document.getElementById('autoAnalyzeBtn');
+    if (autoAnalyzeBtn) {
+        autoAnalyzeBtn.addEventListener('click', autoAnalyzeWithAI);
+        console.log('✅ Auto-analyze button initialized');
+    }
+});
