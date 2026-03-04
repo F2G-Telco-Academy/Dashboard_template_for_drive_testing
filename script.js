@@ -5,6 +5,9 @@
         let editMode = false;
         let csvData = null;
         let parsedData = [];
+        let rawParsedData = []; // Store unfiltered data
+        let currentTechFilter = 'all'; // Current technology filter
+        let detectedTechnology = null; // Auto-detected technology
         let kpiChart = null;
         let compCqiMcs = null;
         let compCqiOnly = null;
@@ -597,7 +600,39 @@
                 return;
             }
             
-            const values = parsedData.map(d => parseFloat(d[kpiType]) || 0);
+            // Determine which KPI to extract based on technology
+            let values = [];
+            const dominantTech = detectedTechnology || 'LTE';
+            
+            if (kpiType === 'rsrp') {
+                if (dominantTech === 'NR') {
+                    values = parsedData.map(d => parseFloat(d.nr_rsrp) || 0);
+                } else if (dominantTech === 'UMTS') {
+                    values = parsedData.map(d => parseFloat(d.wcdma_rscp) || 0);
+                } else if (dominantTech === 'GSM') {
+                    values = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
+                } else {
+                    values = parsedData.map(d => parseFloat(d.rsrp) || 0);
+                }
+            } else if (kpiType === 'rsrq') {
+                if (dominantTech === 'NR') {
+                    values = parsedData.map(d => parseFloat(d.nr_rsrq) || 0);
+                } else if (dominantTech === 'UMTS') {
+                    values = parsedData.map(d => parseFloat(d.wcdma_ecno) || 0);
+                } else if (dominantTech === 'GSM') {
+                    values = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || 0);
+                } else {
+                    values = parsedData.map(d => parseFloat(d.rsrq) || 0);
+                }
+            } else if (kpiType === 'sinr') {
+                if (dominantTech === 'NR') {
+                    values = parsedData.map(d => parseFloat(d.nr_sinr) || 0);
+                } else {
+                    values = parsedData.map(d => parseFloat(d.sinr) || 0);
+                }
+            } else {
+                values = parsedData.map(d => parseFloat(d[kpiType]) || 0);
+            }
 
             // Calculate statistics
             const min = Math.min(...values);
@@ -1528,22 +1563,61 @@ function renderScatterPlots() {
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace('#', 'number'));
+            
+            // Detect technology type from headers
+            const hasNR = headers.includes('nr_rsrp') || headers.includes('nr_pci');
+            const hasLTE = headers.includes('rsrp') || headers.includes('pci') || headers.includes('earfcn');
+            const hasUMTS = headers.includes('wcdma_rscp') || headers.includes('wcdma_ecno') || headers.includes('wcdma_psc');
+            const hasGSM = headers.includes('gsm_rxlev') || headers.includes('rxlev') || headers.includes('rxqual') || headers.includes('gsm_rxqual');
+            const hasTechColumn = headers.includes('technology');
+            
             return lines.slice(1).map(line => {
                 const values = line.split(',');
                 const obj = {};
                 headers.forEach((h, i) => {
                     const val = values[i]?.trim();
-                    if (h === 'rsrp' || h === 'rsrq' || h === 'sinr') {
+                    
+                    // Handle signal strength values
+                    if (h === 'rsrp' || h === 'rsrq' || h === 'sinr' || 
+                        h === 'wcdma_rscp' || h === 'wcdma_ecno' || 
+                        h === 'gsm_rxlev' || h === 'gsm_rxqual' || h === 'rxlev' || h === 'rxqual' ||
+                        h === 'nr_rsrp' || h === 'nr_rsrq' || h === 'nr_sinr') {
                         obj[h] = val && val !== '' ? val : '0';
                     } else {
                         obj[h] = val;
                     }
                 });
+                
+                // Auto-detect technology if not specified
+                if (!obj.technology || obj.technology === '') {
+                    if (hasNR && obj.nr_rsrp && obj.nr_rsrp !== '' && obj.nr_rsrp !== '0') {
+                        obj.technology = 'NR';
+                    } else if (hasLTE && obj.rsrp && obj.rsrp !== '' && obj.rsrp !== '0') {
+                        obj.technology = 'LTE';
+                    } else if (hasUMTS && obj.wcdma_rscp && obj.wcdma_rscp !== '' && obj.wcdma_rscp !== '0') {
+                        obj.technology = 'UMTS';
+                    } else if (hasGSM && (obj.gsm_rxlev || obj.rxlev) && (obj.gsm_rxlev !== '0' || obj.rxlev !== '0')) {
+                        obj.technology = 'GSM';
+                    } else if (hasLTE) {
+                        obj.technology = 'LTE'; // Default to LTE for backward compatibility
+                    }
+                }
+                
                 return obj;
             });
         }
 
-        function getColor(rsrp) {
+        function getColor(rsrp, row) {
+            // Use ECA's Quality column if available
+            if (row && row.quality) {
+                const quality = row.quality.toLowerCase();
+                if (quality === 'excellent') return '#22c55e'; // Green
+                if (quality === 'good') return '#3b82f6'; // Blue
+                if (quality === 'fair') return '#f59e0b'; // Yellow
+                if (quality === 'poor') return '#ef4444'; // Red
+            }
+            
+            // Fallback to RSRP-based coloring for LTE
             if (rsrp >= -80) return '#22c55e';
             if (rsrp >= -90) return '#3b82f6';
             if (rsrp >= -100) return '#f59e0b';
@@ -1554,15 +1628,41 @@ function renderScatterPlots() {
         function renderMap(csvText) {
             clearMap();
             const data = parseCSV(csvText);
-            parsedData = data; // Store for KPI visualization
+            rawParsedData = data; // Store unfiltered data
+            
+            // Apply technology filter
+            parsedData = currentTechFilter === 'all' ? data : data.filter(row => row.technology === currentTechFilter);
+            
+            // Detect dominant technology
+            const techCounts = {};
+            data.forEach(row => {
+                if (row.technology) {
+                    techCounts[row.technology] = (techCounts[row.technology] || 0) + 1;
+                }
+            });
+            detectedTechnology = Object.keys(techCounts).sort((a, b) => techCounts[b] - techCounts[a])[0] || 'LTE';
+            
             const coords = [];
 
-            data.forEach((row, idx) => {
-                const lat = parseFloat(row.latitude);
-                const lon = parseFloat(row.longitude);
+            parsedData.forEach((row, idx) => {
+                const lat = parseFloat(row.latitude || row.lat);
+                const lon = parseFloat(row.longitude || row.lon);
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    const rsrp = parseFloat(row.rsrp) || -100;
-                    coords.push({ lat, lon, rsrp, color: getColor(rsrp), row, idx });
+                    // Get signal strength based on technology
+                    let signalValue = -100;
+                    const tech = row.technology || 'LTE';
+                    
+                    if (tech === 'NR') {
+                        signalValue = parseFloat(row.nr_rsrp) || -100;
+                    } else if (tech === 'LTE') {
+                        signalValue = parseFloat(row.rsrp) || -100;
+                    } else if (tech === 'UMTS') {
+                        signalValue = parseFloat(row.wcdma_rscp) || -100;
+                    } else if (tech === 'GSM') {
+                        signalValue = parseFloat(row.gsm_rxlev || row.rxlev) || -100;
+                    }
+                    
+                    coords.push({ lat, lon, rsrp: signalValue, color: getColor(signalValue, row), row, idx });
                 }
             });
 
@@ -1595,14 +1695,44 @@ function renderScatterPlots() {
                 if (!hasEvent) {
                     const el = document.createElement('div');
                     el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
-                    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
-                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
-                            <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 Point #${row['#'] || i + 1}</div>
-                            <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                    
+                    // Build popup content based on technology
+                    const tech = row.technology || 'LTE';
+                    let kpiContent = '';
+                    
+                    if (tech === 'NR') {
+                        kpiContent = `
+                            <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
+                            <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
+                            <div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
+                    } else if (tech === 'LTE') {
+                        kpiContent = `
                             <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                             <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                             <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>`;
+                    } else if (tech === 'UMTS') {
+                        kpiContent = `
+                            <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
+                            <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
+                            <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
+                            <div style="margin:4px 0;"><b>UARFCN:</b> ${row.uarfcn || '-'}</div>`;
+                    } else if (tech === 'GSM') {
+                        kpiContent = `
+                            <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
+                            <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
+                            <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
+                            <div style="margin:4px 0;"><b>ARFCN:</b> ${row.gsm_bcch_arfcn || row['bcch-arfcn'] || '-'}</div>`;
+                    }
+                    
+                    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                            <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div>
+                            <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                            ${kpiContent}
+                            ${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}
                         </div>
                     `);
                     markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
@@ -1621,16 +1751,41 @@ function renderScatterPlots() {
                 } else {
                     el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
-
-                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
-                        <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label}</div>
-                        <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                
+                // Build KPI content based on technology
+                const tech = row.technology || 'LTE';
+                let kpiContent = '';
+                
+                if (tech === 'NR') {
+                    kpiContent = `
+                        <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
+                        <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>`;
+                } else if (tech === 'LTE') {
+                    kpiContent = `
                         <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
                         <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
-                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>
+                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>`;
+                } else if (tech === 'UMTS') {
+                    kpiContent = `
+                        <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
+                        <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
+                        <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>`;
+                } else if (tech === 'GSM') {
+                    kpiContent = `
+                        <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
+                        <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
+                        <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>`;
+                }
+
+                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                        <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label} (${tech})</div>
+                        <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                        ${kpiContent}
                     </div>
                 `);
                 markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
@@ -1670,6 +1825,14 @@ function renderScatterPlots() {
                 }
             };
             reader.readAsText(file);
+        });
+        
+        // Technology filter change handler
+        document.getElementById('techFilter').addEventListener('change', function(e) {
+            currentTechFilter = e.target.value;
+            if (csvData) {
+                renderMap(csvData);
+            }
         });
 
         // =====================================================

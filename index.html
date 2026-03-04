@@ -94,22 +94,27 @@
                         📁 UPLOAD CSV
                     </button>
                     
+                    <select id="techFilter" class="bg-black text-white px-3 py-2 text-xs font-bold border-2 border-white" style="cursor: pointer;">
+                        <option value="all">📡 All Technologies</option>
+                        <option value="LTE">4G LTE</option>
+                        <option value="UMTS">3G UMTS</option>
+                        <option value="GSM">2G GSM</option>
+                        <option value="NR">5G NR</option>
+                    </select>
+                    
                     <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
-                        <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1">RSRP SIGNAL QUALITY</div>
+                        <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="legendTitle">SIGNAL QUALITY</div>
                         <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-green-500 border border-white"></div> Excellent (≥-80 dBm)
+                            <div class="w-3 h-3 bg-green-500 border border-white"></div> Excellent
                         </div>
                         <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-blue-500 border border-white"></div> Good (-80 to -90)
+                            <div class="w-3 h-3 bg-blue-500 border border-white"></div> Good
                         </div>
                         <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-amber-500 border border-white"></div> Fair (-90 to -100)
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-orange-500 border border-white"></div> Poor (-100 to -110)
+                            <div class="w-3 h-3 bg-amber-500 border border-white"></div> Fair
                         </div>
                         <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 bg-red-500 border border-white"></div> Very Poor (&lt;-110)
+                            <div class="w-3 h-3 bg-red-500 border border-white"></div> Poor
                         </div>
 
                         <div class="font-bold text-white mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
