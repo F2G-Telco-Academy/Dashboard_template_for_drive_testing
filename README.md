@@ -4,6 +4,19 @@ A professional telecom network validation dashboard for creating **customizable 
 
 ## 🆕 KEY FEATURES
 
+### 📡 **Multi-RAT Support (2G/3G/4G/5G)**
+- Technology filter dropdown to view specific RAT data
+- Auto-detection of technology from CSV headers or Technology column
+- Technology-specific KPI labels and visualization:
+  - **5G NR**: NR-RSRP, NR-RSRQ, NR-SINR, NR-PCI, Beam ID
+  - **4G LTE**: RSRP, RSRQ, SINR, PCI, EARFCN
+  - **3G UMTS**: RSCP, Ec/No, PSC, UARFCN (no SINR/CQI/MCS/BLER)
+  - **2G GSM**: RxLev, RxQual, BSIC, ARFCN (no SINR/CQI/MCS/BLER)
+- Dynamic chart titles and labels based on detected technology
+- Technology-aware KPI tabs (hides unavailable metrics per RAT)
+- Smart scatter plot handling (hides redundant charts for 3G/2G)
+- Fully backward compatible with existing LTE CSV files
+
 ### ✏️ **Full Edit Mode**
 - Toggle edit mode to make ALL fields editable
 - Click on any text to modify: titles, routes, device info, analysis sections
@@ -24,26 +37,32 @@ A professional telecom network validation dashboard for creating **customizable 
 - No server required - works entirely client-side
 
 ### 📊 **KPI Visualization**
-- Real-time signal quality charts (RSRP, RSRQ, SINR, CQI, MCS, BLER, Throughput)
+- Real-time signal quality charts with technology-specific labels
 - Multiple chart types: Line, Area, Bar
+- **Technology-Adaptive KPI Tabs**
+  - Auto-hide unavailable KPIs (e.g., SINR for UMTS, CQI for GSM)
+  - Dynamic tab labels (RSRP→RSCP for UMTS, RSRP→RxLev for GSM)
 - **KPI Comparison Section** (7 separate time-series charts)
-  - RSRP (dBm) - Independent optimized scale
-  - RSRQ (dB) - Independent optimized scale
-  - SINR (dB) - Independent optimized scale
+  - Technology-specific chart titles and labels
+  - Section title shows detected technology (e.g., "UMTS KPI COMPARISON ANALYSIS")
+  - RSRP/RSCP/RxLev (dBm) - Independent optimized scale
+  - RSRQ/Ec/No/RxQual (dB) - Independent optimized scale
+  - SINR (dB) - Hidden for UMTS/GSM
   - Throughput DL (Mbps) - Independent optimized scale
-  - BLER (%) - Dynamic scale based on actual data range
-  - CQI - Independent optimized scale
-  - MCS - Independent optimized scale
-- **Correlation Analysis Section** (4 scatter plots)
-  - Throughput vs SINR with percentile trend lines
-  - Throughput vs RSRP with percentile trend lines
-  - MCS vs CQI with percentile trend lines
-  - Throughput vs BLER with percentile trend lines
-- Each chart optimized for temporal pattern analysis
-- Horizontal time labels with optimal spacing (5 ticks max)
-- Interactive hover effects showing all values at each point
-- Click-to-zoom functionality for detailed analysis
-- Distribution histograms for all KPIs
+  - BLER (%) - Hidden for UMTS/GSM
+  - CQI - Hidden for UMTS/GSM
+  - MCS - Hidden for UMTS/GSM
+- **Correlation Analysis Section** (scatter plots)
+  - Smart fallback: Uses RSRP when SINR unavailable (UMTS/GSM)
+  - Hides redundant scatter plots for 3G/2G
+  - Throughput vs SINR/RSCP/RxLev with percentile trend lines
+  - Throughput vs RSRP/RSCP/RxLev with percentile trend lines
+  - MCS vs CQI (LTE/NR only)
+  - Throughput vs BLER (LTE/NR only)
+- **Click-to-Zoom Modal**
+  - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
+  - All charts support fullscreen view with correct labels
+- Distribution histograms with technology-aware labels
 - Statistics and signal quality distribution
 - Grid/Table view modes
 
@@ -55,6 +74,8 @@ A professional telecom network validation dashboard for creating **customizable 
 
 ### 🗺️ **Interactive Map**
 - Drive test route visualization with color-coded signal quality
+- Technology filter dropdown (All/5G NR/4G LTE/3G UMTS/2G GSM)
+- Technology-specific map popups showing relevant KPIs
 - Event markers: Handover, Attach, Detach, RLF, Cell Reselection, CSFB
 - Legend positioned below upload button
 - Dark/Light mode toggle
@@ -113,22 +134,49 @@ Client sees dashboard with embedded data (no CSV upload needed)
 
 ## 📋 CSV Format Requirements
 
-### Required Columns:
+### Multi-RAT CSV Format (ECA kpi_export compatible):
+```csv
+#,time,latitude,longitude,Technology,rsrp,rsrq,sinr,pci,nr_rsrp,nr_rsrq,nr_sinr,wcdma_rscp,wcdma_ecno,gsm_rxlev,gsm_rxqual,...
+```
+
+### LTE-Only CSV Format (Legacy - Backward Compatible):
 ```csv
 #,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event,cqi,mcs,bler,throughput_dl_mbps,throughput_ul_mbps
 ```
 
-### Minimum Required (for basic functionality):
-```csv
-#,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event
-```
+### Technology-Specific Columns:
 
-### Optional Columns (for enhanced comparison charts):
-- `cqi` - Channel Quality Indicator (0-15)
-- `mcs` - Modulation and Coding Scheme (0-28)
-- `bler` - Block Error Rate (%)
-- `throughput_dl_mbps` - Downlink Throughput (Mbps)
-- `throughput_ul_mbps` - Uplink Throughput (Mbps)
+**5G NR:**
+- `nr_rsrp` - NR Reference Signal Received Power (dBm)
+- `nr_rsrq` - NR Reference Signal Received Quality (dB)
+- `nr_sinr` - NR Signal-to-Interference-plus-Noise Ratio (dB)
+- `nr_pci` - NR Physical Cell ID
+- `beam_id` - Beam identifier (optional)
+
+**4G LTE:**
+- `rsrp` - Reference Signal Received Power (dBm)
+- `rsrq` - Reference Signal Received Quality (dB)
+- `sinr` - Signal-to-Interference-plus-Noise Ratio (dB)
+- `pci` - Physical Cell ID
+- `earfcn` - E-UTRA Absolute Radio Frequency Channel Number
+- `cqi`, `mcs`, `bler` - Link quality indicators
+
+**3G UMTS:**
+- `wcdma_rscp` - Received Signal Code Power (dBm)
+- `wcdma_ecno` - Ec/No ratio (dB)
+- `wcdma_psc` - Primary Scrambling Code
+- `uarfcn` - UTRA Absolute Radio Frequency Channel Number
+
+**2G GSM:**
+- `gsm_rxlev` or `rxlev` - Received Signal Level (dBm)
+- `gsm_rxqual` or `rxqual` - Received Signal Quality (0-7)
+- `gsm_bsic` - Base Station Identity Code
+- `gsm_bcch_arfcn` or `bcch-arfcn` - BCCH ARFCN
+
+### Technology Detection:
+- Explicit: Use `Technology` column with values: NR, LTE, UMTS, GSM
+- Auto-detect: System infers from presence of technology-specific columns
+- Filter: Use dropdown to view specific technology data
 
 ### Example Rows:
 ```csv
@@ -304,7 +352,19 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.4 (Current - Rich Text Formatting)**
+**v3.5 (Current - Multi-RAT Support)**
+- ✅ Multi-RAT support for 2G/3G/4G/5G networks
+- ✅ Technology filter dropdown (All/NR/LTE/UMTS/GSM)
+- ✅ Auto-detection of technology from CSV headers
+- ✅ Technology-specific KPI labels (RSCP, Ec/No, RxLev, RxQual)
+- ✅ Dynamic KPI tab visibility (hides unavailable metrics per RAT)
+- ✅ Technology-aware chart titles and section headers
+- ✅ Smart scatter plot handling (hides redundant charts for 3G/2G)
+- ✅ Technology-specific modal titles in fullscreen view
+- ✅ Map popups show technology-appropriate KPIs
+- ✅ Fully backward compatible with existing LTE CSV files
+
+**v3.4 (Rich Text Formatting)**
 - ✅ Added rich text formatting toolbar (appears in edit mode)
 - ✅ Bold, Italic, Underline with keyboard shortcuts
 - ✅ Font size dropdown (7 sizes: Tiny to XXL)

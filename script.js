@@ -329,6 +329,48 @@
         // =====================================================
         // KPI VISUALIZATION
         // =====================================================
+        
+        function updateKPITabs() {
+            const tech = detectedTechnology || 'LTE';
+            console.log('updateKPITabs called with technology:', tech);
+            
+            // Define which tabs to show/hide per technology
+            const tabVisibility = {
+                'NR': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'LTE': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'UMTS': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps'], // No SINR, CQI, MCS, BLER
+                'GSM': ['rsrp', 'rsrq'] // Only RxLev and RxQual (mapped to rsrp/rsrq)
+            };
+            
+            // Define tab labels per technology
+            const tabLabels = {
+                'NR': { rsrp: 'NR-RSRP', rsrq: 'NR-RSRQ', sinr: 'NR-SINR', cqi: 'CQI', mcs: 'MCS', bler: 'BLER', throughput_dl_mbps: 'DL Mbps', throughput_ul_mbps: 'UL Mbps' },
+                'LTE': { rsrp: 'RSRP', rsrq: 'RSRQ', sinr: 'SINR', cqi: 'CQI', mcs: 'MCS', bler: 'BLER', throughput_dl_mbps: 'DL Mbps', throughput_ul_mbps: 'UL Mbps' },
+                'UMTS': { rsrp: 'RSCP', rsrq: 'Ec/No', throughput_dl_mbps: 'DL Mbps', throughput_ul_mbps: 'UL Mbps' },
+                'GSM': { rsrp: 'RxLev', rsrq: 'RxQual' }
+            };
+            
+            const visibleTabs = tabVisibility[tech] || tabVisibility['LTE'];
+            const labels = tabLabels[tech] || tabLabels['LTE'];
+            
+            const tabs = document.querySelectorAll('.kpi-tab');
+            tabs.forEach(tab => {
+                const kpiType = tab.dataset.kpi;
+                if (visibleTabs.includes(kpiType)) {
+                    tab.style.display = 'inline-block';
+                    tab.style.visibility = 'visible';
+                    // Update label - always apply the label for current technology
+                    const newLabel = labels[kpiType] || kpiType.toUpperCase();
+                    tab.textContent = newLabel;
+                    console.log(`Tab ${kpiType}: visible, label = ${newLabel}`);
+                } else {
+                    tab.style.display = 'none';
+                    tab.style.visibility = 'hidden';
+                    console.log(`Tab ${kpiType}: hidden`);
+                }
+            });
+        }
+        
         document.getElementById('kpisBtn').addEventListener('click', function() {
             showingKPIs = !showingKPIs;
             const dashboardPanel = document.getElementById('dashboardPanel');
@@ -343,10 +385,16 @@
                 this.innerHTML = '📋 <span class="hidden sm:inline">DASHBOARD</span>';
                 
                 if (parsedData.length > 0) {
-                    renderKPIChart('rsrp');
+                    updateKPITabs(); // Update tabs based on technology
+                    // Click the first visible tab to render its chart
+                    const firstVisibleTab = document.querySelector('.kpi-tab[style*="display: inline-block"], .kpi-tab:not([style*="display: none"])');
+                    if (firstVisibleTab) {
+                        firstVisibleTab.click();
+                    } else {
+                        renderKPIChart('rsrp');
+                    }
                     renderScatterPlots();
                     renderCorrelationScatters();
-                    renderKPIHistogram('rsrp', parsedData.map(d => parseFloat(d.rsrp) || -100));
                 }
             } else {
                 dashboardPanel.classList.remove('hidden');
@@ -361,6 +409,9 @@
         // KPI Tab switching
         document.querySelectorAll('.kpi-tab').forEach(tab => {
             tab.addEventListener('click', function() {
+                // Only process if tab is visible
+                if (this.style.display === 'none') return;
+                
                 document.querySelectorAll('.kpi-tab').forEach(t => {
                     t.classList.remove('active', 'bg-blue-600');
                     t.classList.add('bg-gray-700');
@@ -604,31 +655,43 @@
             let values = [];
             const dominantTech = detectedTechnology || 'LTE';
             
+            // Get technology-specific label
+            let kpiLabel = kpiType.toUpperCase();
             if (kpiType === 'rsrp') {
                 if (dominantTech === 'NR') {
                     values = parsedData.map(d => parseFloat(d.nr_rsrp) || 0);
+                    kpiLabel = 'NR-RSRP (dBm)';
                 } else if (dominantTech === 'UMTS') {
                     values = parsedData.map(d => parseFloat(d.wcdma_rscp) || 0);
+                    kpiLabel = 'RSCP (dBm)';
                 } else if (dominantTech === 'GSM') {
                     values = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
+                    kpiLabel = 'RxLev (dBm)';
                 } else {
                     values = parsedData.map(d => parseFloat(d.rsrp) || 0);
+                    kpiLabel = 'RSRP (dBm)';
                 }
             } else if (kpiType === 'rsrq') {
                 if (dominantTech === 'NR') {
                     values = parsedData.map(d => parseFloat(d.nr_rsrq) || 0);
+                    kpiLabel = 'NR-RSRQ (dB)';
                 } else if (dominantTech === 'UMTS') {
                     values = parsedData.map(d => parseFloat(d.wcdma_ecno) || 0);
+                    kpiLabel = 'Ec/No (dB)';
                 } else if (dominantTech === 'GSM') {
                     values = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || 0);
+                    kpiLabel = 'RxQual';
                 } else {
                     values = parsedData.map(d => parseFloat(d.rsrq) || 0);
+                    kpiLabel = 'RSRQ (dB)';
                 }
             } else if (kpiType === 'sinr') {
                 if (dominantTech === 'NR') {
                     values = parsedData.map(d => parseFloat(d.nr_sinr) || 0);
+                    kpiLabel = 'NR-SINR (dB)';
                 } else {
                     values = parsedData.map(d => parseFloat(d.sinr) || 0);
+                    kpiLabel = 'SINR (dB)';
                 }
             } else {
                 values = parsedData.map(d => parseFloat(d[kpiType]) || 0);
@@ -762,7 +825,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: kpiType.toUpperCase(),
+                        label: kpiLabel,
                         data: values,
                         borderColor: colors[kpiType].line,
                         backgroundColor: currentChartType === 'bar' ? colors[kpiType].line : 'transparent',
@@ -858,16 +921,58 @@ function renderScatterPlots() {
             if (parsedData.length === 0) return;
 
             const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `${i+1}`);
-            const rsrpVals = parsedData.map(d => parseFloat(d.rsrp) || -100);
-            const rsrqVals = parsedData.map(d => parseFloat(d.rsrq) || -10);
-            const sinrVals = parsedData.map(d => parseFloat(d.sinr) || 0);
+            const tech = detectedTechnology || 'LTE';
+            
+            // Update section title with technology name
+            const titleElement = document.getElementById('kpiComparisonTitle');
+            if (titleElement) {
+                titleElement.textContent = `📊 ${tech} KPI COMPARISON ANALYSIS (Time Series)`;
+            }
+            
+            // Extract technology-specific KPIs
+            let rsrpVals, rsrqVals, sinrVals;
+            
+            if (tech === 'NR') {
+                rsrpVals = parsedData.map(d => parseFloat(d.nr_rsrp) || -100);
+                rsrqVals = parsedData.map(d => parseFloat(d.nr_rsrq) || -10);
+                sinrVals = parsedData.map(d => parseFloat(d.nr_sinr) || 0);
+            } else if (tech === 'UMTS') {
+                rsrpVals = parsedData.map(d => parseFloat(d.wcdma_rscp) || -100);
+                rsrqVals = parsedData.map(d => parseFloat(d.wcdma_ecno) || -10);
+                sinrVals = parsedData.map(d => 0); // UMTS has no SINR
+            } else if (tech === 'GSM') {
+                rsrpVals = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || -100);
+                rsrqVals = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || 0);
+                sinrVals = parsedData.map(d => 0); // GSM has no SINR
+            } else {
+                rsrpVals = parsedData.map(d => parseFloat(d.rsrp) || -100);
+                rsrqVals = parsedData.map(d => parseFloat(d.rsrq) || -10);
+                sinrVals = parsedData.map(d => parseFloat(d.sinr) || 0);
+            }
+            
             const cqiVals = parsedData.map(d => parseFloat(d.cqi) || 0);
             const mcsVals = parsedData.map(d => parseFloat(d.mcs) || 0);
             const blerVals = parsedData.map(d => parseFloat(d.bler) || 0);
             const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
+            
+            // Chart labels based on technology
+            const rsrpLabel = tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)';
+            const rsrqLabel = tech === 'NR' ? 'NR-RSRQ (dB)' : tech === 'UMTS' ? 'Ec/No (dB)' : tech === 'GSM' ? 'RxQual' : 'RSRQ (dB)';
+            const sinrLabel = tech === 'NR' ? 'NR-SINR (dB)' : 'SINR (dB)';
+            
+            // Update chart headers
+            const rsrpHeader = document.getElementById('rsrpChartHeader');
+            const rsrqHeader = document.getElementById('rsrqChartHeader');
+            const sinrHeader = document.getElementById('sinrChartHeader');
+            if (rsrpHeader) rsrpHeader.textContent = rsrpLabel;
+            if (rsrqHeader) rsrqHeader.textContent = rsrqLabel;
+            if (sinrHeader) sinrHeader.textContent = sinrLabel;
 
-            // CQI (Separate Chart)
-            if (compCqiOnly) compCqiOnly.destroy();
+            // CQI (Separate Chart) - Hide for UMTS/GSM
+            const cqiContainer = document.getElementById('compCqiOnly')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (cqiContainer) cqiContainer.style.display = 'block';
+                if (compCqiOnly) compCqiOnly.destroy();
             const maxCqi = Math.max(...cqiVals);
             compCqiOnly = new Chart(document.getElementById('compCqiOnly'), {
                 type: 'line',
@@ -903,9 +1008,15 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                if (cqiContainer) cqiContainer.style.display = 'none';
+            }
 
-            // MCS (Separate Chart)
-            if (compMcsOnly) compMcsOnly.destroy();
+            // MCS (Separate Chart) - Hide for UMTS/GSM
+            const mcsContainer = document.getElementById('compMcsOnly')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (mcsContainer) mcsContainer.style.display = 'block';
+                if (compMcsOnly) compMcsOnly.destroy();
             const maxMcs = Math.max(...mcsVals);
             compMcsOnly = new Chart(document.getElementById('compMcsOnly'), {
                 type: 'line',
@@ -941,45 +1052,54 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                if (mcsContainer) mcsContainer.style.display = 'none';
+            }
 
-            // SINR (Separate Chart)
-            if (compSinrOnly) compSinrOnly.destroy();
-            const minSinr = Math.min(...sinrVals);
-            const maxSinr = Math.max(...sinrVals);
-            compSinrOnly = new Chart(document.getElementById('compSinrOnly'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'SINR (dB)', data: sinrVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(0,0,0,0.9)',
-                            titleFont: { family: 'JetBrains Mono', size: 11 },
-                            bodyFont: { family: 'JetBrains Mono', size: 10 },
-                            padding: 10,
-                            borderColor: '#fff',
-                            borderWidth: 1,
-                            callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
-                                label: function(context) {
-                                    return 'SINR: ' + context.parsed.y.toFixed(2) + ' dB';
+            // SINR (Separate Chart) - Only for LTE/NR
+            const sinrContainer = document.getElementById('compSinrOnly')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (sinrContainer) sinrContainer.style.display = 'block';
+                if (compSinrOnly) compSinrOnly.destroy();
+                const minSinr = Math.min(...sinrVals);
+                const maxSinr = Math.max(...sinrVals);
+                compSinrOnly = new Chart(document.getElementById('compSinrOnly'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: sinrLabel, data: sinrVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.9)',
+                                titleFont: { family: 'JetBrains Mono', size: 11 },
+                                bodyFont: { family: 'JetBrains Mono', size: 10 },
+                                padding: 10,
+                                borderColor: '#fff',
+                                borderWidth: 1,
+                                callbacks: {
+                                    title: function(context) { return 'Time: ' + context[0].label; },
+                                    label: function(context) {
+                                        return sinrLabel + ': ' + context.parsed.y.toFixed(2);
+                                    }
                                 }
                             }
+                        },
+                        scales: {
+                            x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                            y: { type: 'linear', title: { display: true, text: sinrLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
                         }
-                    },
-                    scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'SINR (dB)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
                     }
-                }
-            });
+                });
+            } else {
+                if (sinrContainer) sinrContainer.style.display = 'none';
+            }
 
             // RSRP (Separate Chart)
             if (compRsrpOnly) compRsrpOnly.destroy();
@@ -990,7 +1110,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'RSRP (dBm)', data: rsrpVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: rsrpLabel, data: rsrpVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -998,6 +1118,7 @@ function renderScatterPlots() {
                     interaction: { mode: 'index', intersect: false },
                     plugins: { 
                         legend: { display: false },
+                        title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12, weight: 'bold', family: 'JetBrains Mono' } },
                         tooltip: {
                             backgroundColor: 'rgba(0,0,0,0.9)',
                             titleFont: { family: 'JetBrains Mono', size: 11 },
@@ -1008,14 +1129,14 @@ function renderScatterPlots() {
                             callbacks: {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
-                                    return 'RSRP: ' + context.parsed.y.toFixed(2) + ' dBm';
+                                    return rsrpLabel + ': ' + context.parsed.y.toFixed(2);
                                 }
                             }
                         }
                     },
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'RSRP (dBm)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
+                        y: { type: 'linear', title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
                     }
                 }
             });
@@ -1029,7 +1150,7 @@ function renderScatterPlots() {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'RSRQ (dB)', data: rsrqVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: rsrqLabel, data: rsrqVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.4 }
                     ]
                 },
                 options: {
@@ -1037,6 +1158,7 @@ function renderScatterPlots() {
                     interaction: { mode: 'index', intersect: false },
                     plugins: { 
                         legend: { display: false },
+                        title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12, weight: 'bold', family: 'JetBrains Mono' } },
                         tooltip: {
                             backgroundColor: 'rgba(0,0,0,0.9)',
                             titleFont: { family: 'JetBrains Mono', size: 11 },
@@ -1047,14 +1169,14 @@ function renderScatterPlots() {
                             callbacks: {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
-                                    return 'RSRQ: ' + context.parsed.y.toFixed(2) + ' dB';
+                                    return rsrqLabel + ': ' + context.parsed.y.toFixed(2);
                                 }
                             }
                         }
                     },
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'RSRQ (dB)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
+                        y: { type: 'linear', title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
                     }
                 }
             });
@@ -1097,11 +1219,14 @@ function renderScatterPlots() {
                 }
             });
 
-            // BLER (Separate Chart)
-            if (compBlerOnly) compBlerOnly.destroy();
-            const maxBler = Math.max(...blerVals.filter(v => v > 0));
-            const blerYMax = maxBler > 0 ? Math.ceil(maxBler * 1.2) : 10;
-            compBlerOnly = new Chart(document.getElementById('compBlerOnly'), {
+            // BLER (Separate Chart) - Hide for UMTS/GSM
+            const blerContainer = document.getElementById('compBlerOnly')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (blerContainer) blerContainer.style.display = 'block';
+                if (compBlerOnly) compBlerOnly.destroy();
+                const maxBler = Math.max(...blerVals.filter(v => v > 0));
+                const blerYMax = maxBler > 0 ? Math.ceil(maxBler * 1.2) : 10;
+                compBlerOnly = new Chart(document.getElementById('compBlerOnly'), {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -1135,6 +1260,9 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                if (blerContainer) blerContainer.style.display = 'none';
+            }
         }
 
         function calculatePercentile(arr, p) {
@@ -1175,43 +1303,71 @@ function renderScatterPlots() {
         function renderCorrelationScatters() {
             if (parsedData.length === 0) return;
 
-            const sinrVals = parsedData.map(d => parseFloat(d.sinr) || 0);
-            const rsrpVals = parsedData.map(d => parseFloat(d.rsrp) || -100);
+            const tech = detectedTechnology || 'LTE';
+            
+            // Extract technology-specific KPIs
+            let rsrpVals, sinrVals;
+            
+            if (tech === 'NR') {
+                rsrpVals = parsedData.map(d => parseFloat(d.nr_rsrp) || -100);
+                sinrVals = parsedData.map(d => parseFloat(d.nr_sinr) || 0);
+            } else if (tech === 'UMTS') {
+                rsrpVals = parsedData.map(d => parseFloat(d.wcdma_rscp) || -100);
+                sinrVals = null; // UMTS has no SINR
+            } else if (tech === 'GSM') {
+                rsrpVals = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || -100);
+                sinrVals = null; // GSM has no SINR
+            } else {
+                rsrpVals = parsedData.map(d => parseFloat(d.rsrp) || -100);
+                sinrVals = parsedData.map(d => parseFloat(d.sinr) || 0);
+            }
+            
             const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
             const cqiVals = parsedData.map(d => parseFloat(d.cqi) || 0);
             const mcsVals = parsedData.map(d => parseFloat(d.mcs) || 0);
             const blerVals = parsedData.map(d => parseFloat(d.bler) || 0);
+            
+            const rsrpLabel = tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)';
+            const sinrLabel = tech === 'NR' ? 'NR-SINR (dB)' : 'SINR (dB)';
 
-            // Throughput vs SINR
-            const sinrTputData = sinrVals.map((sinr, i) => ({ x: sinr, y: tputDlVals[i] }));
-            const sinrTputP90 = calculateBinnedPercentiles(sinrVals, tputDlVals, 90);
-            const sinrTputP50 = calculateBinnedPercentiles(sinrVals, tputDlVals, 50);
-            const sinrTputAvg = calculateBinnedAverage(sinrVals, tputDlVals);
+            // Throughput vs SINR (or RSRP for UMTS/GSM) - Hide for UMTS/GSM since it's redundant
+            const scatterTputSinrContainer = document.getElementById('scatterTputSinr')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (scatterTputSinrContainer) scatterTputSinrContainer.style.display = 'block';
+                const xAxisVals = sinrVals || rsrpVals;
+                const xAxisLabel = sinrVals ? sinrLabel : rsrpLabel;
+                const tputXData = xAxisVals.map((x, i) => ({ x: x, y: tputDlVals[i] }));
+                const tputXP90 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 90);
+                const tputXP50 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 50);
+                const tputXAvg = calculateBinnedAverage(xAxisVals, tputDlVals);
 
-            if (scatterTputSinr) scatterTputSinr.destroy();
-            scatterTputSinr = new Chart(document.getElementById('scatterTputSinr'), {
-                type: 'scatter',
-                data: {
-                    datasets: [
-                        { label: 'Data Points', data: sinrTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
-                        { label: '90th Percentile', data: sinrTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Median (50th)', data: sinrTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: sinrTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs SINR', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
-                        tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
+                if (scatterTputSinr) scatterTputSinr.destroy();
+                scatterTputSinr = new Chart(document.getElementById('scatterTputSinr'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            { label: 'Data Points', data: tputXData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
+                            { label: '90th Percentile', data: tputXP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                            { label: 'Median (50th)', data: tputXP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                            { label: 'Average', data: tputXAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        ]
                     },
-                    scales: {
-                        x: { title: { display: true, text: 'SINR (dB)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                            title: { display: true, text: 'Throughput vs ' + xAxisLabel.split(' ')[0], color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                            tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: xAxisLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                            y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                if (scatterTputSinrContainer) scatterTputSinrContainer.style.display = 'none';
+            }
 
             // Throughput vs RSRP
             const rsrpTputData = rsrpVals.map((rsrp, i) => ({ x: rsrp, y: tputDlVals[i] }));
@@ -1234,23 +1390,26 @@ function renderScatterPlots() {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs RSRP', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                        title: { display: true, text: 'Throughput vs ' + rsrpLabel.split(' ')[0], color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'RSRP (dBm)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        x: { title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
                         y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
 
-            // MCS vs CQI
-            const cqiMcsData = cqiVals.map((cqi, i) => ({ x: cqi, y: mcsVals[i] }));
-            const cqiMcsP90 = calculateBinnedPercentiles(cqiVals, mcsVals, 90);
-            const cqiMcsP50 = calculateBinnedPercentiles(cqiVals, mcsVals, 50);
-            const cqiMcsAvg = calculateBinnedAverage(cqiVals, mcsVals);
+            // MCS vs CQI - Hide for UMTS/GSM
+            const scatterMcsCqiContainer = document.getElementById('scatterMcsCqi')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (scatterMcsCqiContainer) scatterMcsCqiContainer.style.display = 'block';
+                const cqiMcsData = cqiVals.map((cqi, i) => ({ x: cqi, y: mcsVals[i] }));
+                const cqiMcsP90 = calculateBinnedPercentiles(cqiVals, mcsVals, 90);
+                const cqiMcsP50 = calculateBinnedPercentiles(cqiVals, mcsVals, 50);
+                const cqiMcsAvg = calculateBinnedAverage(cqiVals, mcsVals);
 
-            if (scatterMcsCqi) scatterMcsCqi.destroy();
+                if (scatterMcsCqi) scatterMcsCqi.destroy();
             scatterMcsCqi = new Chart(document.getElementById('scatterMcsCqi'), {
                 type: 'scatter',
                 data: {
@@ -1274,14 +1433,20 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                if (scatterMcsCqiContainer) scatterMcsCqiContainer.style.display = 'none';
+            }
 
-            // Throughput vs BLER
-            const blerTputData = blerVals.map((bler, i) => ({ x: bler, y: tputDlVals[i] }));
-            const blerTputP90 = calculateBinnedPercentiles(blerVals, tputDlVals, 90);
-            const blerTputP50 = calculateBinnedPercentiles(blerVals, tputDlVals, 50);
-            const blerTputAvg = calculateBinnedAverage(blerVals, tputDlVals);
+            // Throughput vs BLER - Hide for UMTS/GSM
+            const scatterBlerTputContainer = document.getElementById('scatterBlerTput')?.parentElement;
+            if (tech !== 'UMTS' && tech !== 'GSM') {
+                if (scatterBlerTputContainer) scatterBlerTputContainer.style.display = 'block';
+                const blerTputData = blerVals.map((bler, i) => ({ x: bler, y: tputDlVals[i] }));
+                const blerTputP90 = calculateBinnedPercentiles(blerVals, tputDlVals, 90);
+                const blerTputP50 = calculateBinnedPercentiles(blerVals, tputDlVals, 50);
+                const blerTputAvg = calculateBinnedAverage(blerVals, tputDlVals);
 
-            if (scatterBlerTput) scatterBlerTput.destroy();
+                if (scatterBlerTput) scatterBlerTput.destroy();
             scatterBlerTput = new Chart(document.getElementById('scatterBlerTput'), {
                 type: 'scatter',
                 data: {
@@ -1305,12 +1470,25 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                if (scatterBlerTputContainer) scatterBlerTputContainer.style.display = 'none';
+            }
         }
 
         function renderKPIHistogram(kpiType, values) {
             if (values.length === 0) return;
 
-            const kpiLabels = { rsrp: 'RSRP (dBm)', rsrq: 'RSRQ (dB)', sinr: 'SINR (dB)', cqi: 'CQI', mcs: 'MCS', bler: 'BLER (%)', throughput_dl_mbps: 'DL Throughput (Mbps)', throughput_ul_mbps: 'UL Throughput (Mbps)' };
+            const tech = detectedTechnology || 'LTE';
+            const kpiLabels = { 
+                rsrp: tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)', 
+                rsrq: tech === 'NR' ? 'NR-RSRQ (dB)' : tech === 'UMTS' ? 'Ec/No (dB)' : tech === 'GSM' ? 'RxQual' : 'RSRQ (dB)', 
+                sinr: tech === 'NR' ? 'NR-SINR (dB)' : 'SINR (dB)', 
+                cqi: 'CQI', 
+                mcs: 'MCS', 
+                bler: 'BLER (%)', 
+                throughput_dl_mbps: 'DL Throughput (Mbps)', 
+                throughput_ul_mbps: 'UL Throughput (Mbps)' 
+            };
             const kpiColors = { rsrp: '#3b82f6', rsrq: '#10b981', sinr: '#f59e0b', cqi: '#ec4899', mcs: '#14b8a6', bler: '#f97316', throughput_dl_mbps: '#22c55e', throughput_ul_mbps: '#a855f7' };
             
             document.getElementById('histogramTitle').textContent = `${kpiLabels[kpiType] || kpiType.toUpperCase()} Distribution Histogram`;
@@ -1633,14 +1811,15 @@ function renderScatterPlots() {
             // Apply technology filter
             parsedData = currentTechFilter === 'all' ? data : data.filter(row => row.technology === currentTechFilter);
             
-            // Detect dominant technology
+            // Detect dominant technology from FILTERED data (not all data)
             const techCounts = {};
-            data.forEach(row => {
+            parsedData.forEach(row => {
                 if (row.technology) {
                     techCounts[row.technology] = (techCounts[row.technology] || 0) + 1;
                 }
             });
             detectedTechnology = Object.keys(techCounts).sort((a, b) => techCounts[b] - techCounts[a])[0] || 'LTE';
+            console.log('Detected technology from filtered data:', detectedTechnology, 'Filter:', currentTechFilter);
             
             const coords = [];
 
@@ -2143,9 +2322,12 @@ function renderScatterPlots() {
             const ctx = canvas.getContext('2d');
             const cfg = chartInstance.config;
             
+            // Clone data with updated labels from the original chart
+            const clonedData = JSON.parse(JSON.stringify(cfg.data));
+            
             zoomedChart = new Chart(ctx, {
                 type: cfg.type,
-                data: cfg.data,
+                data: clonedData,
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -2198,7 +2380,19 @@ function renderScatterPlots() {
                 mainChartContainer.style.cursor = 'pointer';
                 mainChartContainer.addEventListener('click', function() {
                     if (kpiChart) {
-                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Chart`, kpiChart);
+                        // Get technology-specific label for the modal title
+                        const tech = detectedTechnology || 'LTE';
+                        let chartTitle = currentKpiType.toUpperCase();
+                        
+                        if (currentKpiType === 'rsrp') {
+                            chartTitle = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                        } else if (currentKpiType === 'rsrq') {
+                            chartTitle = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                        } else if (currentKpiType === 'sinr') {
+                            chartTitle = tech === 'NR' ? 'NR-SINR' : 'SINR';
+                        }
+                        
+                        openChartZoom(`📊 ${chartTitle} Chart`, kpiChart);
                     }
                 });
             }
@@ -2209,7 +2403,19 @@ function renderScatterPlots() {
                 histogramContainer.classList.add('chart-zoomable');
                 histogramContainer.addEventListener('click', function() {
                     if (kpiHistogramChart) {
-                        openChartZoom(`📊 ${currentKpiType.toUpperCase()} Distribution Histogram`, kpiHistogramChart);
+                        // Get technology-specific label for the modal title
+                        const tech = detectedTechnology || 'LTE';
+                        let chartTitle = currentKpiType.toUpperCase();
+                        
+                        if (currentKpiType === 'rsrp') {
+                            chartTitle = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                        } else if (currentKpiType === 'rsrq') {
+                            chartTitle = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                        } else if (currentKpiType === 'sinr') {
+                            chartTitle = tech === 'NR' ? 'NR-SINR' : 'SINR';
+                        }
+                        
+                        openChartZoom(`📊 ${chartTitle} Distribution Histogram`, kpiHistogramChart);
                     }
                 });
             }
@@ -2223,18 +2429,31 @@ function renderScatterPlots() {
                         let chart = null;
                         let title = '';
                         
-                        // Time-series charts
-                        if (index === 0 && compRsrpOnly) { chart = compRsrpOnly; title = 'RSRP'; }
-                        else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = 'RSRQ'; }
-                        else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = 'SINR'; }
+                        // Time-series charts - use technology-aware labels
+                        const tech = detectedTechnology || 'LTE';
+                        const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                        const rsrqLabel = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                        const sinrLabel = tech === 'NR' ? 'NR-SINR' : 'SINR';
+                        
+                        if (index === 0 && compRsrpOnly) { chart = compRsrpOnly; title = rsrpLabel; }
+                        else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; }
+                        else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; }
                         else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; }
                         else if (index === 4 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
                         else if (index === 5 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
                         else if (index === 6 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
                         
                         // Scatter plots
-                        else if (index === 7 && scatterTputSinr) { chart = scatterTputSinr; title = 'Throughput vs SINR'; }
-                        else if (index === 8 && scatterTputRsrp) { chart = scatterTputRsrp; title = 'Throughput vs RSRP'; }
+                        else if (index === 7 && scatterTputSinr) { 
+                            chart = scatterTputSinr; 
+                            const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
+                            title = `Throughput vs ${xLabel}`; 
+                        }
+                        else if (index === 8 && scatterTputRsrp) { 
+                            chart = scatterTputRsrp; 
+                            const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                            title = `Throughput vs ${rsrpLabel}`; 
+                        }
                         else if (index === 9 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
                         else if (index === 10 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
