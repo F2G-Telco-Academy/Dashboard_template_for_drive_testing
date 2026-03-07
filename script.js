@@ -2325,27 +2325,130 @@ function renderScatterPlots() {
             const modal = document.getElementById('chartZoomModal');
             const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
-            const modalContent = modal.querySelector('div');
-            const chartContainer = document.getElementById('chartZoomContainer');
             
             title.textContent = chartTitle;
             modal.style.display = 'flex';
             
-            const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
-            const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
-            const tickColor = kpiTheme === 'dark' ? '#9ca3af' : '#4b5563';
+            // Apply theme
+            const isDark = kpiTheme === 'dark';
+            const modalBg = isDark ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.95)';
+            const contentBg = isDark ? '#1f2937' : '#f3f4f6';
+            const headerBorder = isDark ? '#374151' : '#d1d5db';
+            const textColor = isDark ? '#ffffff' : '#1f2937';
+            const cardBg = isDark ? '#374151' : '#e5e7eb';
+            const labelColor = isDark ? '#9ca3af' : '#6b7280';
+            const valueColor = isDark ? '#ffffff' : '#1f2937';
+            const qualityTextColor = isDark ? '#d1d5db' : '#4b5563';
+            const chartBg = isDark ? '#1f2937' : '#ffffff';
             
-            if (kpiTheme === 'light') {
-                modal.style.background = 'rgba(255,255,255,0.95)';
-                modalContent.style.background = '#f3f4f6';
-                chartContainer.style.background = '#ffffff';
-                title.style.color = '#1f2937';
-            } else {
-                modal.style.background = 'rgba(0,0,0,0.95)';
-                modalContent.style.background = '#1f2937';
-                chartContainer.style.background = '#374151';
-                title.style.color = '#fff';
+            modal.style.background = modalBg;
+            document.getElementById('chartZoomModalContent').style.background = contentBg;
+            document.getElementById('chartZoomHeader').style.borderBottom = `2px solid ${headerBorder}`;
+            title.style.color = textColor;
+            const sidebar = document.getElementById('chartZoomSidebar');
+            sidebar.style.scrollbarWidth = 'thin';
+            sidebar.style.overflowX = 'hidden';
+            document.getElementById('modalPercentilesCard').style.background = cardBg;
+            document.getElementById('modalQualityCard').style.background = cardBg;
+            document.getElementById('modalPercentilesTitle').style.color = labelColor;
+            document.getElementById('modalQualityTitle').style.color = labelColor;
+            document.getElementById('modalP10Label').style.color = labelColor;
+            document.getElementById('modalP50Label').style.color = labelColor;
+            document.getElementById('modalP90Label').style.color = labelColor;
+            document.getElementById('modalP10').style.color = valueColor;
+            document.getElementById('modalP50').style.color = valueColor;
+            document.getElementById('modalP90').style.color = valueColor;
+            document.getElementById('qualityText').style.color = qualityTextColor;
+            
+            // Apply chart background
+            const chartContainer = canvas.parentElement;
+            chartContainer.style.background = chartBg;
+            
+            const data = chartInstance.data.datasets[0].data;
+            const values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
+            if (values.length > 0) {
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const current = values[values.length - 1];
+                const prev = values.length > 1 ? values[values.length - 2] : current;
+                const change = current - prev;
+                const changePercent = prev !== 0 ? (change / Math.abs(prev) * 100) : 0;
+                const trendIcon = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+                const trendColor = change > 0 ? '#10b981' : change < 0 ? '#ef4444' : '#6b7280';
+                
+                // Percentiles
+                const sorted = [...values].sort((a, b) => a - b);
+                const p10 = sorted[Math.floor(sorted.length * 0.1)];
+                const p50 = sorted[Math.floor(sorted.length * 0.5)];
+                const p90 = sorted[Math.floor(sorted.length * 0.9)];
+                
+                // Status badge
+                let status = 'UNKNOWN';
+                let statusColor = '#fff';
+                let statusBg = '#6b7280';
+                if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
+                    if (current >= -80) { status = '🟢 EXCELLENT'; statusBg = '#22c55e'; }
+                    else if (current >= -90) { status = '🔵 GOOD'; statusBg = '#3b82f6'; }
+                    else if (current >= -100) { status = '🟡 FAIR'; statusBg = '#f59e0b'; statusColor = '#000'; }
+                    else { status = '🔴 POOR'; statusBg = '#ef4444'; }
+                } else if (chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual')) {
+                    if (current >= -10) { status = '🟢 EXCELLENT'; statusBg = '#22c55e'; }
+                    else if (current >= -15) { status = '🔵 GOOD'; statusBg = '#3b82f6'; }
+                    else if (current >= -20) { status = '🟡 FAIR'; statusBg = '#f59e0b'; statusColor = '#000'; }
+                    else { status = '🔴 POOR'; statusBg = '#ef4444'; }
+                } else if (chartTitle.includes('SINR')) {
+                    if (current >= 20) { status = '🟢 EXCELLENT'; statusBg = '#22c55e'; }
+                    else if (current >= 13) { status = '🔵 GOOD'; statusBg = '#3b82f6'; }
+                    else if (current >= 0) { status = '🟡 FAIR'; statusBg = '#f59e0b'; statusColor = '#000'; }
+                    else { status = '🔴 POOR'; statusBg = '#ef4444'; }
+                }
+                
+                // Quality distribution
+                let excellent = 0, good = 0, fair = 0, poor = 0;
+                if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
+                    values.forEach(v => {
+                        if (v >= -80) excellent++;
+                        else if (v >= -90) good++;
+                        else if (v >= -100) fair++;
+                        else poor++;
+                    });
+                }
+                const total = values.length;
+                const exPct = (excellent / total * 100).toFixed(0);
+                const gdPct = (good / total * 100).toFixed(0);
+                const frPct = (fair / total * 100).toFixed(0);
+                const prPct = (poor / total * 100).toFixed(0);
+                const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
+                
+                // Update UI
+                document.getElementById('modalCurrent').textContent = current.toFixed(2);
+                document.getElementById('modalTrend').innerHTML = `<span style="color:${trendColor}">${trendIcon} ${Math.abs(changePercent).toFixed(1)}% from previous</span>`;
+                document.getElementById('modalMin').textContent = min.toFixed(2);
+                document.getElementById('modalAvg').textContent = avg.toFixed(2);
+                document.getElementById('modalMax').textContent = max.toFixed(2);
+                document.getElementById('modalP10').textContent = p10.toFixed(1);
+                document.getElementById('modalP50').textContent = p50.toFixed(1);
+                document.getElementById('modalP90').textContent = p90.toFixed(1);
+                
+                const statusBadge = document.getElementById('modalStatus');
+                statusBadge.textContent = status;
+                statusBadge.style.background = statusBg;
+                statusBadge.style.color = statusColor;
+                statusBadge.style.borderColor = statusBg;
+                
+                // Quality bar
+                document.getElementById('qualityExcellent').style.width = exPct + '%';
+                document.getElementById('qualityExcellent').textContent = exPct > 5 ? exPct + '%' : '';
+                document.getElementById('qualityGood').style.width = gdPct + '%';
+                document.getElementById('qualityGood').textContent = gdPct > 5 ? gdPct + '%' : '';
+                document.getElementById('qualityFair').style.width = frPct + '%';
+                document.getElementById('qualityFair').textContent = frPct > 5 ? frPct + '%' : '';
+                document.getElementById('qualityPoor').style.width = prPct + '%';
+                document.getElementById('qualityPoor').textContent = prPct > 5 ? prPct + '%' : '';
+                document.getElementById('qualityText').textContent = `${goodOrBetter}% Good or Better`;
             }
+            
             
             if (zoomedChart) zoomedChart.destroy();
             
@@ -2354,6 +2457,8 @@ function renderScatterPlots() {
             
             // Clone data with updated labels from the original chart
             const clonedData = JSON.parse(JSON.stringify(cfg.data));
+            const tickColor = isDark ? '#9ca3af' : '#4b5563';
+            const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
             
             zoomedChart = new Chart(ctx, {
                 type: cfg.type,
@@ -2363,13 +2468,13 @@ function renderScatterPlots() {
                     maintainAspectRatio: false,
                     interaction: cfg.options.interaction,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: textColor, font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: textColor, font: { size: 14 } } : undefined,
+                        legend: { display: true, position: 'top', labels: { color: isDark ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: isDark ? '#fff' : '#1f2937', font: { size: 14 } } : undefined,
                         tooltip: cfg.options.plugins?.tooltip
                     },
                     scales: {
-                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: textColor, font: { size: 12 } } : undefined } : undefined,
-                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: textColor, font: { size: 12 } } : undefined } : undefined
+                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: isDark ? '#fff' : '#1f2937', font: { size: 12 } } : undefined } : undefined,
+                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: isDark ? '#fff' : '#1f2937', font: { size: 12 } } : undefined } : undefined
                     }
                 }
             });
