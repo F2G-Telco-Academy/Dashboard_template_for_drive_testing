@@ -385,6 +385,14 @@
                 this.innerHTML = '📋 <span class="hidden sm:inline">DASHBOARD</span>';
                 
                 if (parsedData.length > 0) {
+                    // Update KPI panel title based on technology
+                    const tech = detectedTechnology || 'LTE';
+                    const techNames = { 'NR': '5G NR', 'LTE': '4G LTE', 'UMTS': '3G UMTS', 'GSM': '2G GSM' };
+                    const kpiTitle = document.getElementById('kpiPanelTitle');
+                    if (kpiTitle) {
+                        kpiTitle.textContent = `📊 ${techNames[tech] || tech} KPI VISUALIZATION`;
+                    }
+                    
                     updateKPITabs(); // Update tabs based on technology
                     // Click the first visible tab to render its chart
                     const firstVisibleTab = document.querySelector('.kpi-tab[style*="display: inline-block"], .kpi-tab:not([style*="display: none"])');
@@ -1779,6 +1787,21 @@ function renderScatterPlots() {
                     } else if (hasLTE) {
                         obj.technology = 'LTE'; // Default to LTE for backward compatibility
                     }
+                } else {
+                    // Normalize technology values from CSV
+                    const techValue = obj.technology.toUpperCase();
+                    if (techValue.includes('HSPA') || techValue.includes('WCDMA') || techValue.includes('UMTS')) {
+                        obj.technology = 'UMTS';
+                    } else if (techValue.includes('GSM') || techValue.includes('EDGE') || techValue.includes('GPRS')) {
+                        obj.technology = 'GSM';
+                    } else if (techValue.includes('LTE')) {
+                        obj.technology = 'LTE';
+                    } else if (techValue.includes('NR') || techValue === '5G') {
+                        obj.technology = 'NR';
+                    } else {
+                        // Mark as Unknown if technology doesn't match any known type
+                        obj.technology = 'Unknown';
+                    }
                 }
                 
                 return obj;
@@ -1805,11 +1828,15 @@ function renderScatterPlots() {
 
         function renderMap(csvText) {
             clearMap();
-            const data = parseCSV(csvText);
-            rawParsedData = data; // Store unfiltered data
             
-            // Apply technology filter
-            parsedData = currentTechFilter === 'all' ? data : data.filter(row => row.technology === currentTechFilter);
+            // Only parse CSV if csvText is provided (initial load)
+            if (csvText) {
+                const data = parseCSV(csvText);
+                rawParsedData = data; // Store unfiltered data
+            }
+            
+            // Apply technology filter from stored raw data
+            parsedData = currentTechFilter === 'all' ? rawParsedData : rawParsedData.filter(row => row.technology === currentTechFilter);
             
             // Detect dominant technology from FILTERED data (not all data)
             const techCounts = {};
@@ -1826,7 +1853,10 @@ function renderScatterPlots() {
             parsedData.forEach((row, idx) => {
                 const lat = parseFloat(row.latitude || row.lat);
                 const lon = parseFloat(row.longitude || row.lon);
-                if (!isNaN(lat) && !isNaN(lon)) {
+                const tech = row.technology || 'Unknown';
+                
+                // Skip points with Unknown technology
+                if (!isNaN(lat) && !isNaN(lon) && tech !== 'Unknown') {
                     // Get signal strength based on technology
                     let signalValue = -100;
                     const tech = row.technology || 'LTE';
@@ -2009,8 +2039,8 @@ function renderScatterPlots() {
         // Technology filter change handler
         document.getElementById('techFilter').addEventListener('change', function(e) {
             currentTechFilter = e.target.value;
-            if (csvData) {
-                renderMap(csvData);
+            if (csvData && rawParsedData.length > 0) {
+                renderMap(); // Call without csvText to re-filter existing data
             }
         });
 
