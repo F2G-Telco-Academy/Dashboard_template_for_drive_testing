@@ -90,8 +90,18 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
   - Throughput vs RSRP/RSCP/RxLev with percentile trend lines
   - MCS vs CQI (LTE/NR only)
   - Throughput vs BLER (LTE/NR only)
-- **Click-to-Zoom Modal**
+- **Click-to-Zoom Modal** (NEW)
+  - Click any chart to open fullscreen analytics view
+  - 60/40 split layout: chart (58%) + analytics sidebar (42%)
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
+  - **Dashboard-Style Analytics Cards**:
+    - 4 gradient summary cards: Current (with trend %), Min, Avg, Max
+    - Status badge: EXCELLENT/GOOD/FAIR/POOR based on signal strength
+    - Percentiles section: P10, P50, P90 values
+    - Signal quality distribution bar with visual % breakdown
+    - "X% Good or Better" summary text
+  - Full light/dark theme support matching KPI panel
+  - ESC key or background click to close
   - All charts support fullscreen view with correct labels
 - Distribution histograms with technology-aware labels
 - Statistics and signal quality distribution
@@ -140,6 +150,7 @@ All editable fields will show orange dashed outlines
 ```
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
+Click any chart to open fullscreen analytics modal
 ```
 
 ### 5. **Save Configuration**
@@ -403,7 +414,22 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.5 (Current - Multi-RAT Support)**
+**v3.6 (Current - Chart Zoom Analytics Modal)**
+- ✅ Professional fullscreen chart zoom modal with dashboard-style analytics
+- ✅ Click any chart to open detailed analytics view
+- ✅ 60/40 split layout: chart (58%) + analytics sidebar (42%)
+- ✅ 4 gradient summary cards: Current (with trend %), Min, Avg, Max
+- ✅ Status badge: EXCELLENT/GOOD/FAIR/POOR based on signal strength
+- ✅ Percentiles display: P10, P50, P90 values
+- ✅ Signal quality distribution bar with visual % breakdown
+- ✅ "X% Good or Better" summary text
+- ✅ Full light/dark theme support matching KPI panel
+- ✅ Technology-aware chart titles (RSRP/RSCP/RxLev, etc.)
+- ✅ ESC key and background click to close
+- ✅ Fixed chart visibility in both light and dark modes
+- ✅ Fixed text overflow in analytics cards
+
+**v3.5 (Multi-RAT Support)**
 - ✅ Multi-RAT support for 2G/3G/4G/5G networks
 - ✅ Technology filter dropdown (All/NR/LTE/UMTS/GSM)
 - ✅ Auto-detection of technology from CSV headers
