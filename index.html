@@ -505,73 +505,144 @@
     </div>
 
     <!-- Chart Zoom Modal -->
-    <div id="chartZoomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; justify-content:center; align-items:center;">
-        <div id="chartZoomModalContent" style="padding:20px; width:98%; height:98%; max-width:1600px; max-height:1000px; font-family:'JetBrains Mono',monospace; display:flex; flex-direction:column; border-radius:12px;">
+    <div id="chartZoomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; justify-content:center; align-items:center; background:rgba(0,0,0,0.95);">
+        <div id="chartZoomModalContent" style="padding:0; width:98%; height:98%; max-width:1600px; max-height:1000px; font-family:'JetBrains Mono',monospace; display:flex; flex-direction:column; border-radius:12px; background:#f8fafc; overflow:hidden;">
             
             <!-- Header -->
-            <div id="chartZoomHeader" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:15px;">
+            <div id="chartZoomHeader" style="display:flex; justify-content:space-between; align-items:center; padding:20px 24px; background:#1e293b; color:#fff; border-bottom:1px solid #334155;">
                 <div style="display:flex; align-items:center; gap:15px;">
-                    <h2 id="chartZoomTitle" style="margin:0; font-size:24px; font-weight:800;">📊 Chart View</h2>
-                    <div id="modalStatus" style="padding:8px 16px; border-radius:6px; font-size:13px; font-weight:800; border:2px solid;">LOADING...</div>
+                    <div style="width:8px; height:8px; background:#10b981; border-radius:50%; animation:pulse 2s infinite;"></div>
+                    <h2 id="chartZoomTitle" style="margin:0; font-size:18px; font-weight:600;">📊 Network Performance Dashboard</h2>
+                    <div id="modalStatus" style="padding:4px 12px; border-radius:4px; font-size:11px; font-weight:600; background:#10b981; color:#fff;">LIVE</div>
                 </div>
-                <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:12px 24px; border:none; font-weight:800; cursor:pointer; font-size:14px; border-radius:6px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">✕ CLOSE</button>
+                <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:8px 16px; border:none; font-weight:600; cursor:pointer; font-size:12px; border-radius:4px;">✕ CLOSE</button>
             </div>
             
-            <!-- Main Content: Chart (60%) + Info Sidebar (40%) -->
-            <div style="flex:1; display:grid; grid-template-columns:58% 42%; gap:20px; overflow:hidden;">
+            <!-- Top Metrics Row -->
+            <div id="topMetricsRow" style="padding:20px 24px; background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
+                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #3b82f6;">
+                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">CURRENT VALUE</div>
+                        <div id="modalCurrent" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
+                        <div id="modalTrend" style="font-size:10px; margin-top:4px; color:#64748b;">-</div>
+                    </div>
+                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #ef4444;">
+                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">MINIMUM</div>
+                        <div id="modalMin" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
+                        <div style="font-size:10px; margin-top:4px; color:#64748b;">Worst</div>
+                    </div>
+                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #10b981;">
+                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">AVERAGE</div>
+                        <div id="modalAvg" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
+                        <div style="font-size:10px; margin-top:4px; color:#64748b;">Mean</div>
+                    </div>
+                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #059669;">
+                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">MAXIMUM</div>
+                        <div id="modalMax" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
+                        <div style="font-size:10px; margin-top:4px; color:#64748b;">Best</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content: Chart + Sidebar -->
+            <div style="flex:1; display:grid; grid-template-columns:65% 35%; overflow:hidden; min-height:0;">
                 
                 <!-- LEFT: Chart -->
-                <div style="background:#ffffff; border:2px solid #e5e7eb; border-radius:8px; padding:20px; display:flex; flex-direction:column;">
-                    <canvas id="chartZoomCanvas" style="flex:1;"></canvas>
+                <div style="background:#fff; padding:24px; display:flex; flex-direction:column; border-right:1px solid #e2e8f0; min-height:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                        <h3 style="margin:0; font-size:14px; font-weight:600; color:#1e293b;">Signal Quality Analysis</h3>
+                        <div style="display:flex; gap:8px;">
+                            <button style="padding:4px 8px; font-size:10px; background:#e2e8f0; color:#64748b; border:none; border-radius:4px; cursor:pointer;">1H</button>
+                            <button style="padding:4px 8px; font-size:10px; background:#3b82f6; color:#fff; border:none; border-radius:4px; cursor:pointer;">24H</button>
+                            <button style="padding:4px 8px; font-size:10px; background:#e2e8f0; color:#64748b; border:none; border-radius:4px; cursor:pointer;">7D</button>
+                        </div>
+                    </div>
+                    <div style="height:480px; width:100%; position:relative;">
+                        <canvas id="chartZoomCanvas" style="width:100%; height:100%;"></canvas>
+                    </div>
                 </div>
                 
-                <!-- RIGHT: Info Cards -->
-                <div id="chartZoomSidebar" style="display:flex; flex-direction:column; gap:15px; overflow-y:auto; padding-right:8px;">
+                <!-- RIGHT: Sidebar -->
+                <div id="chartZoomSidebar" style="background:#f8fafc; padding:24px; display:flex; flex-direction:column; gap:20px; overflow-y:auto;">
                     
-                    <!-- Summary Cards Grid -->
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                        <div style="background:linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-                            <div style="font-size:10px; color:#dbeafe; font-weight:bold; margin-bottom:4px;">📊 CURRENT</div>
-                            <div id="modalCurrent" style="font-size:24px; font-weight:800; color:#fff;">-</div>
-                            <div id="modalTrend" style="font-size:10px; margin-top:4px; color:#dbeafe;">-</div>
-                        </div>
-                        <div style="background:linear-gradient(135deg, #ef4444 0%, #991b1b 100%); padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-                            <div style="font-size:10px; color:#fee2e2; font-weight:bold; margin-bottom:4px;">📉 MIN</div>
-                            <div id="modalMin" style="font-size:24px; font-weight:800; color:#fff;">-</div>
-                            <div style="font-size:10px; margin-top:4px; color:#fee2e2;">Worst</div>
-                        </div>
-                        <div style="background:linear-gradient(135deg, #10b981 0%, #065f46 100%); padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-                            <div style="font-size:10px; color:#d1fae5; font-weight:bold; margin-bottom:4px;">📊 AVG</div>
-                            <div id="modalAvg" style="font-size:24px; font-weight:800; color:#fff;">-</div>
-                            <div style="font-size:10px; margin-top:4px; color:#d1fae5;">Mean</div>
-                        </div>
-                        <div style="background:linear-gradient(135deg, #059669 0%, #064e3b 100%); padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-                            <div style="font-size:10px; color:#d1fae5; font-weight:bold; margin-bottom:4px;">📈 MAX</div>
-                            <div id="modalMax" style="font-size:24px; font-weight:800; color:#fff;">-</div>
-                            <div style="font-size:10px; margin-top:4px; color:#d1fae5;">Best</div>
-                        </div>
+                    <!-- Status Badge -->
+                    <div style="text-align:center;">
+                        <div id="modalStatusBadge" style="display:inline-block; padding:8px 16px; border-radius:20px; font-size:11px; font-weight:700; background:#10b981; color:#fff;">EXCELLENT</div>
                     </div>
                     
                     <!-- Percentiles -->
-                    <div id="modalPercentilesCard" style="padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-                        <div id="modalPercentilesTitle" style="font-size:11px; font-weight:bold; margin-bottom:10px;">📊 PERCENTILES</div>
-                        <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700;">
-                            <div><span id="modalP10Label">P10:</span> <span id="modalP10">-</span></div>
-                            <div><span id="modalP50Label">P50:</span> <span id="modalP50">-</span></div>
-                            <div><span id="modalP90Label">P90:</span> <span id="modalP90">-</span></div>
+                    <div id="modalPercentilesCard" style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <div id="modalPercentilesTitle" style="font-size:11px; font-weight:600; margin-bottom:12px; color:#64748b; text-transform:uppercase;">📊 PERCENTILES</div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; text-align:center;">
+                            <div>
+                                <div style="font-size:10px; color:#64748b; margin-bottom:4px;">P10</div>
+                                <div id="modalP10" style="font-size:14px; font-weight:600; color:#1e293b;">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size:10px; color:#64748b; margin-bottom:4px;">P50</div>
+                                <div id="modalP50" style="font-size:14px; font-weight:600; color:#1e293b;">-</div>
+                            </div>
+                            <div>
+                                <div style="font-size:10px; color:#64748b; margin-bottom:4px;">P90</div>
+                                <div id="modalP90" style="font-size:14px; font-weight:600; color:#1e293b;">-</div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Quality Distribution -->
-                    <div id="modalQualityCard" style="padding:15px; border-radius:8px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
-                        <div id="modalQualityTitle" style="font-size:11px; font-weight:bold; margin-bottom:10px;">📊 SIGNAL QUALITY</div>
-                        <div style="display:flex; height:32px; border-radius:6px; overflow:hidden; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-                            <div id="qualityExcellent" style="background:#22c55e; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:white; transition:all 0.3s;"></div>
-                            <div id="qualityGood" style="background:#3b82f6; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:white; transition:all 0.3s;"></div>
-                            <div id="qualityFair" style="background:#f59e0b; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:white; transition:all 0.3s;"></div>
-                            <div id="qualityPoor" style="background:#ef4444; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:bold; color:white; transition:all 0.3s;"></div>
+                    <div id="modalQualityCard" style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <div id="modalQualityTitle" style="font-size:11px; font-weight:600; margin-bottom:12px; color:#64748b; text-transform:uppercase;">📊 SIGNAL QUALITY</div>
+                        <div style="display:flex; height:24px; border-radius:12px; overflow:hidden; margin-bottom:8px;">
+                            <div id="qualityExcellent" style="background:#22c55e; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:white;"></div>
+                            <div id="qualityGood" style="background:#3b82f6; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:white;"></div>
+                            <div id="qualityFair" style="background:#f59e0b; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:white;"></div>
+                            <div id="qualityPoor" style="background:#ef4444; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:white;"></div>
                         </div>
-                        <div id="qualityText" style="font-size:11px; margin-top:8px; text-align:center; font-weight:600;">-</div>
+                        <div id="qualityText" style="font-size:11px; text-align:center; font-weight:600; color:#1e293b;">-</div>
+                    </div>
+                    
+                    <!-- Network Status -->
+                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size:11px; font-weight:600; margin-bottom:12px; color:#64748b; text-transform:uppercase;">🌐 NETWORK STATUS</div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; color:#64748b;">Status</span>
+                                <span id="networkStatus" style="font-size:10px; font-weight:600; color:#10b981;">4G LTE Network Active</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; color:#64748b;">Coverage</span>
+                                <span style="font-size:10px; font-weight:600; color:#10b981;">98.2% ✓</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; color:#64748b;">Handovers</span>
+                                <span style="font-size:10px; font-weight:600; color:#10b981;">99.7% ✓</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; color:#64748b;">Errors</span>
+                                <span style="font-size:10px; font-weight:600; color:#ef4444;">0.02% ✗</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Alerts -->
+                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="font-size:11px; font-weight:600; margin-bottom:12px; color:#64748b; text-transform:uppercase;">⚠️ ALERTS</div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px; padding:8px; background:#fef2f2; border-radius:4px; border-left:3px solid #ef4444;">
+                                <div style="width:6px; height:6px; background:#ef4444; border-radius:50%;"></div>
+                                <div>
+                                    <div style="font-size:9px; font-weight:600; color:#991b1b;">Signal Degradation</div>
+                                    <div id="signalAlert" style="font-size:8px; color:#7f1d1d;">RSRP below -100 dBm</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px; padding:8px; background:#fffbeb; border-radius:4px; border-left:3px solid #f59e0b;">
+                                <div style="width:6px; height:6px; background:#f59e0b; border-radius:50%;"></div>
+                                <div>
+                                    <div style="font-size:9px; font-weight:600; color:#92400e;">High Latency</div>
+                                    <div style="font-size:8px; color:#78350f;">Avg 45ms detected</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                 </div>

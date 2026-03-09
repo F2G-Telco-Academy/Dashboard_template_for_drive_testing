@@ -31,7 +31,7 @@
         let currentKpiType = 'rsrp';
         let currentViewMode = 'grid';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
-        let kpiTheme = 'light'; // Track KPI panel theme (light/dark)
+        let kpiTheme = 'light'; // Track KPI panel theme (light/dark) - INITIALIZE TO LIGHT
         let map = null; // Map instance
         let markers = []; // Store markers for cleanup
         let layerIds = []; // Track added layer ids for cleanup
@@ -2425,43 +2425,172 @@ function renderScatterPlots() {
             const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
             
+            // Apply theme to modal - get modal content element
+            const modalContent = document.getElementById('chartZoomModalContent');
+            const chartContainer = canvas.parentElement;
+            
+            // Force apply theme to main modal container
+            if (kpiTheme === 'dark') {
+                modal.style.background = 'rgba(0, 0, 0, 0.8)';
+                modalContent.style.background = '#1f2937 !important';
+                modalContent.style.color = '#ffffff';
+            } else {
+                modal.style.background = 'rgba(0, 0, 0, 0.5)';
+                modalContent.style.background = '#f8fafc !important';
+                modalContent.style.color = '#1f2937';
+            }
+            
+            const topMetricsRow = document.getElementById('topMetricsRow');
+            if (topMetricsRow) {
+                if (kpiTheme === 'dark') {
+                    topMetricsRow.style.background = '#1f2937';
+                    topMetricsRow.style.borderBottom = '1px solid #374151';
+                } else {
+                    topMetricsRow.style.background = '#f1f5f9';
+                    topMetricsRow.style.borderBottom = '1px solid #e2e8f0';
+                }
+            }
+            
+            // Apply theme to other elements
+            if (kpiTheme === 'dark') {
+                chartContainer.style.background = '#374151';
+                
+                // Apply dark theme to chart area background
+                const chartArea = document.querySelector('#chartZoomModal [style*="background:#fff"][style*="padding:24px"]');
+                if (chartArea) {
+                    chartArea.style.background = '#374151';
+                    chartArea.style.color = '#ffffff';
+                    // Make title white in dark mode
+                    const chartTitle = chartArea.querySelector('h3');
+                    if (chartTitle) chartTitle.style.color = '#ffffff';
+                }
+                
+                // Apply dark theme to header
+                const header = document.getElementById('chartZoomHeader');
+                if (header) {
+                    header.style.background = '#0f172a';
+                    header.style.color = '#ffffff';
+                }
+                
+                // Apply dark theme to top metrics row and cards
+                const topMetricsRow = document.getElementById('topMetricsRow');
+                if (topMetricsRow) {
+                    topMetricsRow.style.background = '#1f2937';
+                    topMetricsRow.style.borderBottom = '1px solid #374151';
+                    
+                    // Apply dark theme to all metric cards
+                    const metricCards = topMetricsRow.querySelectorAll('[style*="background:#fff"]');
+                    metricCards.forEach(card => {
+                        card.style.background = '#374151';
+                        card.style.color = '#ffffff';
+                        const labels = card.querySelectorAll('[style*="color:#64748b"]');
+                        labels.forEach(label => label.style.color = '#9ca3af');
+                        const values = card.querySelectorAll('[style*="color:#1e293b"]');
+                        values.forEach(value => value.style.color = '#ffffff');
+                    });
+                }
+                
+                // Apply dark theme to sidebar
+                const sidebar = document.getElementById('chartZoomSidebar');
+                if (sidebar) {
+                    sidebar.style.background = '#1f2937';
+                    const sidebarCards = sidebar.querySelectorAll('[style*="background:#fff"]');
+                    sidebarCards.forEach(card => {
+                        card.style.background = '#374151';
+                        card.style.color = '#ffffff';
+                        const labels = card.querySelectorAll('[style*="color:#64748b"]');
+                        labels.forEach(label => label.style.color = '#9ca3af');
+                        const values = card.querySelectorAll('[style*="color:#1e293b"]');
+                        values.forEach(value => value.style.color = '#ffffff');
+                    });
+                    
+                    // Fix alert cards with colored backgrounds
+                    const alertCards = sidebar.querySelectorAll('[style*="background:#fef2f2"], [style*="background:#fffbeb"]');
+                    alertCards.forEach(alertCard => {
+                        alertCard.style.background = '#374151';
+                    });
+                }
+            } else {
+                chartContainer.style.background = '#ffffff';
+                
+                // Reset to light theme
+                const header = document.getElementById('chartZoomHeader');
+                if (header) {
+                    header.style.background = '#1e293b';
+                    header.style.color = '#ffffff';
+                }
+                
+                // Reset chart area to light theme
+                const chartArea = document.querySelector('#chartZoomModal [style*="background:#374151"][style*="padding:24px"]');
+                if (chartArea) {
+                    chartArea.style.background = '#ffffff';
+                    chartArea.style.color = '#1f2937';
+                    const chartTitle = chartArea.querySelector('h3');
+                    if (chartTitle) chartTitle.style.color = '#1f2937';
+                }
+                
+                // Reset metrics cards to light theme
+                const topMetricsRow = document.getElementById('topMetricsRow');
+                if (topMetricsRow) {
+                    topMetricsRow.style.background = '#f1f5f9';
+                    topMetricsRow.style.borderBottom = '1px solid #e2e8f0';
+                    const metricCards = topMetricsRow.querySelectorAll('div[style*="background:"]');
+                    metricCards.forEach(card => {
+                        if (card.style.background.includes('#374151')) {
+                            card.style.background = '#ffffff';
+                            card.style.color = '#1f2937';
+                            const labels = card.querySelectorAll('[style*="color:#9ca3af"]');
+                            labels.forEach(label => label.style.color = '#64748b');
+                            const values = card.querySelectorAll('[style*="color:#ffffff"]');
+                            values.forEach(value => value.style.color = '#1e293b');
+                        }
+                    });
+                }
+                
+                // Reset sidebar to light theme
+                const sidebar = document.getElementById('chartZoomSidebar');
+                if (sidebar) {
+                    sidebar.style.background = '#f8fafc';
+                    const sidebarCards = sidebar.querySelectorAll('[style*="background:#374151"]');
+                    sidebarCards.forEach(card => {
+                        card.style.background = '#ffffff';
+                        card.style.color = '#1f2937';
+                        const labels = card.querySelectorAll('[style*="color:#9ca3af"]');
+                        labels.forEach(label => label.style.color = '#64748b');
+                        const values = card.querySelectorAll('[style*="color:#ffffff"]');
+                        values.forEach(value => value.style.color = '#1e293b');
+                    });
+                    
+                    // Reset alert cards to light theme
+                    const alertCards = sidebar.querySelectorAll('[style*="background:#374151"]');
+                    alertCards.forEach(alertCard => {
+                        // Reset to original light backgrounds
+                        if (alertCard.querySelector('[style*="color:#ef4444"]')) {
+                            alertCard.style.background = '#fef2f2';
+                        } else {
+                            alertCard.style.background = '#fffbeb';
+                        }
+                        // Reset text colors to original dark colors
+                        const allTexts = alertCard.querySelectorAll('div');
+                        allTexts.forEach(text => {
+                            text.style.color = '';
+                        });
+                    });
+                }
+            }
+            
+            // Destroy previous chart if exists
+            if (zoomedChart) {
+                zoomedChart.destroy();
+                zoomedChart = null;
+            }
+            
             title.textContent = chartTitle;
             modal.style.display = 'flex';
             
-            // Apply theme
-            const isDark = kpiTheme === 'dark';
-            const modalBg = isDark ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.95)';
-            const contentBg = isDark ? '#1f2937' : '#f3f4f6';
-            const headerBorder = isDark ? '#374151' : '#d1d5db';
-            const textColor = isDark ? '#ffffff' : '#1f2937';
-            const cardBg = isDark ? '#374151' : '#e5e7eb';
-            const labelColor = isDark ? '#9ca3af' : '#6b7280';
-            const valueColor = isDark ? '#ffffff' : '#1f2937';
-            const qualityTextColor = isDark ? '#d1d5db' : '#4b5563';
-            const chartBg = isDark ? '#1f2937' : '#ffffff';
-            
-            modal.style.background = modalBg;
-            document.getElementById('chartZoomModalContent').style.background = contentBg;
-            document.getElementById('chartZoomHeader').style.borderBottom = `2px solid ${headerBorder}`;
-            title.style.color = textColor;
-            const sidebar = document.getElementById('chartZoomSidebar');
-            sidebar.style.scrollbarWidth = 'thin';
-            sidebar.style.overflowX = 'hidden';
-            document.getElementById('modalPercentilesCard').style.background = cardBg;
-            document.getElementById('modalQualityCard').style.background = cardBg;
-            document.getElementById('modalPercentilesTitle').style.color = labelColor;
-            document.getElementById('modalQualityTitle').style.color = labelColor;
-            document.getElementById('modalP10Label').style.color = labelColor;
-            document.getElementById('modalP50Label').style.color = labelColor;
-            document.getElementById('modalP90Label').style.color = labelColor;
-            document.getElementById('modalP10').style.color = valueColor;
-            document.getElementById('modalP50').style.color = valueColor;
-            document.getElementById('modalP90').style.color = valueColor;
-            document.getElementById('qualityText').style.color = qualityTextColor;
-            
-            // Apply chart background
-            const chartContainer = canvas.parentElement;
-            chartContainer.style.background = chartBg;
+            // Force canvas reset
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
             
             const data = chartInstance.data.datasets[0].data;
             const values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
@@ -2484,35 +2613,53 @@ function renderScatterPlots() {
                 
                 // Status badge
                 let status = 'UNKNOWN';
-                let statusColor = '#fff';
                 let statusBg = '#6b7280';
                 if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
-                    if (current >= -80) { status = '🟢 EXCELLENT'; statusBg = '#22c55e'; }
-                    else if (current >= -90) { status = '🔵 GOOD'; statusBg = '#3b82f6'; }
-                    else if (current >= -100) { status = '🟡 FAIR'; statusBg = '#f59e0b'; statusColor = '#000'; }
-                    else { status = '🔴 POOR'; statusBg = '#ef4444'; }
+                    if (current >= -80) { status = 'EXCELLENT'; statusBg = '#10b981'; }
+                    else if (current >= -90) { status = 'GOOD'; statusBg = '#3b82f6'; }
+                    else if (current >= -100) { status = 'FAIR'; statusBg = '#f59e0b'; }
+                    else { status = 'CRITICAL'; statusBg = '#ef4444'; }
                 } else if (chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual')) {
-                    if (current >= -10) { status = '🟢 EXCELLENT'; statusBg = '#22c55e'; }
-                    else if (current >= -15) { status = '🔵 GOOD'; statusBg = '#3b82f6'; }
-                    else if (current >= -20) { status = '🟡 FAIR'; statusBg = '#f59e0b'; statusColor = '#000'; }
-                    else { status = '🔴 POOR'; statusBg = '#ef4444'; }
+                    if (current >= -10) { status = 'EXCELLENT'; statusBg = '#10b981'; }
+                    else if (current >= -15) { status = 'GOOD'; statusBg = '#3b82f6'; }
+                    else if (current >= -20) { status = 'FAIR'; statusBg = '#f59e0b'; }
+                    else { status = 'CRITICAL'; statusBg = '#ef4444'; }
                 } else if (chartTitle.includes('SINR')) {
-                    if (current >= 20) { status = '🟢 EXCELLENT'; statusBg = '#22c55e'; }
-                    else if (current >= 13) { status = '🔵 GOOD'; statusBg = '#3b82f6'; }
-                    else if (current >= 0) { status = '🟡 FAIR'; statusBg = '#f59e0b'; statusColor = '#000'; }
-                    else { status = '🔴 POOR'; statusBg = '#ef4444'; }
+                    if (current >= 20) { status = 'EXCELLENT'; statusBg = '#10b981'; }
+                    else if (current >= 13) { status = 'GOOD'; statusBg = '#3b82f6'; }
+                    else if (current >= 0) { status = 'FAIR'; statusBg = '#f59e0b'; }
+                    else { status = 'CRITICAL'; statusBg = '#ef4444'; }
                 }
                 
                 // Quality distribution
                 let excellent = 0, good = 0, fair = 0, poor = 0;
-                if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
-                    values.forEach(v => {
-                        if (v >= -80) excellent++;
-                        else if (v >= -90) good++;
-                        else if (v >= -100) fair++;
-                        else poor++;
-                    });
+                const isSignalChart = chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev') || chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual') || chartTitle.includes('SINR');
+                
+                if (isSignalChart) {
+                    if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
+                        values.forEach(v => {
+                            if (v >= -80) excellent++;
+                            else if (v >= -90) good++;
+                            else if (v >= -100) fair++;
+                            else poor++;
+                        });
+                    } else if (chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual')) {
+                        values.forEach(v => {
+                            if (v >= -10) excellent++;
+                            else if (v >= -15) good++;
+                            else if (v >= -20) fair++;
+                            else poor++;
+                        });
+                    } else if (chartTitle.includes('SINR')) {
+                        values.forEach(v => {
+                            if (v >= 20) excellent++;
+                            else if (v >= 13) good++;
+                            else if (v >= 0) fair++;
+                            else poor++;
+                        });
+                    }
                 }
+                
                 const total = values.length;
                 const exPct = (excellent / total * 100).toFixed(0);
                 const gdPct = (good / total * 100).toFixed(0);
@@ -2520,9 +2667,51 @@ function renderScatterPlots() {
                 const prPct = (poor / total * 100).toFixed(0);
                 const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
                 
-                // Update UI
-                document.getElementById('modalCurrent').textContent = current.toFixed(2);
+                // Update alerts based on technology
+                const tech = detectedTechnology || 'LTE';
+                let signalAlert = 'Signal Degradation';
+                let signalThreshold = '';
+                let networkStatus = 'OPERATIONAL';
+                let networkStatusColor = '#10b981';
+                
+                if (tech === 'GSM') {
+                    signalThreshold = 'RxLev below -100 dBm';
+                    networkStatus = '2G GSM Network Active';
+                } else if (tech === 'UMTS') {
+                    signalThreshold = 'RSCP below -100 dBm';
+                    networkStatus = '3G UMTS Network Active';
+                } else if (tech === 'NR') {
+                    signalThreshold = 'NR-RSRP below -100 dBm';
+                    networkStatus = '5G NR Network Active';
+                } else {
+                    signalThreshold = 'RSRP below -100 dBm';
+                    networkStatus = '4G LTE Network Active';
+                }
+                
+                // Check signal quality for network status
+                if (current < -110) {
+                    networkStatus = 'DEGRADED - Poor Coverage';
+                    networkStatusColor = '#ef4444';
+                } else if (current < -100) {
+                    networkStatus = 'WARNING - Weak Signal';
+                    networkStatusColor = '#f59e0b';
+                }
+                
+                // Update alert text in the modal
+                const signalAlertElement = document.getElementById('signalAlert');
+                if (signalAlertElement) {
+                    signalAlertElement.textContent = signalThreshold;
+                }
+                
+                // Update network status in the modal
+                const networkStatusElement = document.getElementById('networkStatus');
+                if (networkStatusElement) {
+                    networkStatusElement.textContent = networkStatus;
+                    networkStatusElement.style.color = networkStatusColor;
+                }
+                
                 document.getElementById('modalTrend').innerHTML = `<span style="color:${trendColor}">${trendIcon} ${Math.abs(changePercent).toFixed(1)}% from previous</span>`;
+                document.getElementById('modalCurrent').textContent = current.toFixed(2);
                 document.getElementById('modalMin').textContent = min.toFixed(2);
                 document.getElementById('modalAvg').textContent = avg.toFixed(2);
                 document.getElementById('modalMax').textContent = max.toFixed(2);
@@ -2530,24 +2719,39 @@ function renderScatterPlots() {
                 document.getElementById('modalP50').textContent = p50.toFixed(1);
                 document.getElementById('modalP90').textContent = p90.toFixed(1);
                 
-                const statusBadge = document.getElementById('modalStatus');
+                const statusBadge = document.getElementById('modalStatusBadge');
                 statusBadge.textContent = status;
                 statusBadge.style.background = statusBg;
-                statusBadge.style.color = statusColor;
-                statusBadge.style.borderColor = statusBg;
                 
-                // Quality bar
-                document.getElementById('qualityExcellent').style.width = exPct + '%';
-                document.getElementById('qualityExcellent').textContent = exPct > 5 ? exPct + '%' : '';
-                document.getElementById('qualityGood').style.width = gdPct + '%';
-                document.getElementById('qualityGood').textContent = gdPct > 5 ? gdPct + '%' : '';
-                document.getElementById('qualityFair').style.width = frPct + '%';
-                document.getElementById('qualityFair').textContent = frPct > 5 ? frPct + '%' : '';
-                document.getElementById('qualityPoor').style.width = prPct + '%';
-                document.getElementById('qualityPoor').textContent = prPct > 5 ? prPct + '%' : '';
-                document.getElementById('qualityText').textContent = `${goodOrBetter}% Good or Better`;
+                // Quality bar - only show for signal charts
+                const qualityCard = document.getElementById('modalQualityCard');
+                if (isSignalChart) {
+                    qualityCard.style.display = 'block';
+                    // Apply theme to quality card
+                    if (kpiTheme === 'dark') {
+                        qualityCard.style.background = '#374151';
+                        qualityCard.style.color = '#ffffff';
+                        const qualityTitle = document.getElementById('modalQualityTitle');
+                        if (qualityTitle) qualityTitle.style.color = '#9ca3af';
+                        const qualityText = document.getElementById('qualityText');
+                        if (qualityText) qualityText.style.color = '#ffffff';
+                    } else {
+                        qualityCard.style.background = '#ffffff';
+                        qualityCard.style.color = '#1f2937';
+                    }
+                    document.getElementById('qualityExcellent').style.width = exPct + '%';
+                    document.getElementById('qualityExcellent').textContent = exPct > 8 ? exPct + '%' : '';
+                    document.getElementById('qualityGood').style.width = gdPct + '%';
+                    document.getElementById('qualityGood').textContent = gdPct > 8 ? gdPct + '%' : '';
+                    document.getElementById('qualityFair').style.width = frPct + '%';
+                    document.getElementById('qualityFair').textContent = frPct > 8 ? frPct + '%' : '';
+                    document.getElementById('qualityPoor').style.width = prPct + '%';
+                    document.getElementById('qualityPoor').textContent = prPct > 8 ? prPct + '%' : '';
+                    document.getElementById('qualityText').textContent = `${goodOrBetter}% Good or Better`;
+                } else {
+                    qualityCard.style.display = 'none';
+                }
             }
-            
             
             if (zoomedChart) zoomedChart.destroy();
             
@@ -2556,8 +2760,6 @@ function renderScatterPlots() {
             
             // Clone data with updated labels from the original chart
             const clonedData = JSON.parse(JSON.stringify(cfg.data));
-            const tickColor = isDark ? '#9ca3af' : '#4b5563';
-            const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
             
             zoomedChart = new Chart(ctx, {
                 type: cfg.type,
@@ -2567,16 +2769,24 @@ function renderScatterPlots() {
                     maintainAspectRatio: false,
                     interaction: cfg.options.interaction,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: isDark ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: isDark ? '#fff' : '#1f2937', font: { size: 14 } } : undefined,
+                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { size: 14 } } : undefined,
                         tooltip: cfg.options.plugins?.tooltip
                     },
                     scales: {
-                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: isDark ? '#fff' : '#1f2937', font: { size: 12 } } : undefined } : undefined,
-                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: isDark ? '#fff' : '#1f2937', font: { size: 12 } } : undefined } : undefined
+                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: kpiTheme === 'dark' ? '#9ca3af' : '#64748b' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(100, 116, 139, 0.2)' }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { size: 12 } } : undefined } : undefined,
+                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: kpiTheme === 'dark' ? '#9ca3af' : '#64748b' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(100, 116, 139, 0.2)' }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { size: 12 } } : undefined } : undefined
                     }
                 }
             });
+            
+            // Force chart resize after creation
+            setTimeout(() => {
+                if (zoomedChart) {
+                    zoomedChart.resize();
+                    zoomedChart.update('none');
+                }
+            }, 150);
         }
 
         function closeChartZoom() {
