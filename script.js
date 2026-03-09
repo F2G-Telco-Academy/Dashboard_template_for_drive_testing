@@ -2355,6 +2355,9 @@ function renderScatterPlots() {
                 document.getElementById('chartZoomSidebar').style.background = '#1f2937';
                 document.getElementById('topMetricsRow').style.background = '#1f2937';
                 
+                // Fix modal header title color in dark mode
+                document.getElementById('chartZoomTitle').style.color = '#ffffff';
+                
                 // Fix chart title color in dark mode
                 const chartTitle = modal.querySelector('h3');
                 if (chartTitle) chartTitle.style.color = '#ffffff';
@@ -2383,12 +2386,13 @@ function renderScatterPlots() {
                     }
                 });
                 
-                document.getElementById('chartZoomHeader').style.background = '#1e293b';
+                document.getElementById('chartZoomHeader').style.background = '#f8fafc';
+                document.getElementById('chartZoomHeader').style.color = '#1f2937';
                 document.getElementById('chartZoomSidebar').style.background = '#f8fafc';
                 document.getElementById('topMetricsRow').style.background = '#f1f5f9';
                 
                 // Fix modal header title color
-                document.getElementById('chartZoomTitle').style.color = '#ffffff';
+                document.getElementById('chartZoomTitle').style.color = '#1f2937';
                 
                 // Fix chart title color in light mode
                 const chartTitle = modal.querySelector('h3');
