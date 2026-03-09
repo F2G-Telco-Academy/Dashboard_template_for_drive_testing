@@ -30,7 +30,7 @@
         let currentKpiType = 'rsrp';
         let currentViewMode = 'grid';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
-        let kpiTheme = 'light'; // Track KPI panel theme (light/dark) - INITIALIZE TO LIGHT
+        let kpiTheme = 'light'; // Track KPI panel theme (light/dark)
         let map = null; // Map instance
         let markers = []; // Store markers for cleanup
         let layerIds = []; // Track added layer ids for cleanup
@@ -2326,158 +2326,73 @@ function renderScatterPlots() {
             const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
             
-            // Apply theme to modal - get modal content element
+            // Apply theme to modal - comprehensive reset approach
             const modalContent = document.getElementById('chartZoomModalContent');
             const chartContainer = canvas.parentElement;
             
-            // Force apply theme to main modal container
+            // Force reset ALL modal elements first
+            const allModalCards = modal.querySelectorAll('div');
+            allModalCards.forEach(card => {
+                card.style.removeProperty('background');
+                card.style.removeProperty('background-color');
+                card.style.removeProperty('color');
+            });
+            
             if (kpiTheme === 'dark') {
                 modal.style.background = 'rgba(0, 0, 0, 0.8)';
-                modalContent.style.background = '#1f2937 !important';
+                modalContent.style.background = '#1f2937';
                 modalContent.style.color = '#ffffff';
-            } else {
-                modal.style.background = 'rgba(0, 0, 0, 0.5)';
-                modalContent.style.background = '#f8fafc !important';
-                modalContent.style.color = '#1f2937';
-            }
-            
-            const topMetricsRow = document.getElementById('topMetricsRow');
-            if (topMetricsRow) {
-                if (kpiTheme === 'dark') {
-                    topMetricsRow.style.background = '#1f2937';
-                    topMetricsRow.style.borderBottom = '1px solid #374151';
-                } else {
-                    topMetricsRow.style.background = '#f1f5f9';
-                    topMetricsRow.style.borderBottom = '1px solid #e2e8f0';
-                }
-            }
-            
-            // Apply theme to other elements
-            if (kpiTheme === 'dark') {
                 chartContainer.style.background = '#374151';
                 
-                // Apply dark theme to chart area background
-                const chartArea = document.querySelector('#chartZoomModal [style*="background:#fff"][style*="padding:24px"]');
-                if (chartArea) {
-                    chartArea.style.background = '#374151';
-                    chartArea.style.color = '#ffffff';
-                    // Make title white in dark mode
-                    const chartTitle = chartArea.querySelector('h3');
-                    if (chartTitle) chartTitle.style.color = '#ffffff';
-                }
+                // Apply dark theme to ALL cards
+                const allCards = modal.querySelectorAll('#topMetricsRow > div > div, #chartZoomSidebar > div');
+                allCards.forEach(card => {
+                    card.style.background = '#374151';
+                    card.style.color = '#ffffff';
+                });
                 
-                // Apply dark theme to header
-                const header = document.getElementById('chartZoomHeader');
-                if (header) {
-                    header.style.background = '#0f172a';
-                    header.style.color = '#ffffff';
-                }
+                document.getElementById('chartZoomHeader').style.background = '#0f172a';
+                document.getElementById('chartZoomSidebar').style.background = '#1f2937';
+                document.getElementById('topMetricsRow').style.background = '#1f2937';
                 
-                // Apply dark theme to top metrics row and cards
-                const topMetricsRow = document.getElementById('topMetricsRow');
-                if (topMetricsRow) {
-                    topMetricsRow.style.background = '#1f2937';
-                    topMetricsRow.style.borderBottom = '1px solid #374151';
-                    
-                    // Apply dark theme to all metric cards
-                    const metricCards = topMetricsRow.querySelectorAll('[style*="background:#fff"]');
-                    metricCards.forEach(card => {
-                        card.style.background = '#374151';
-                        card.style.color = '#ffffff';
-                        const labels = card.querySelectorAll('[style*="color:#64748b"]');
-                        labels.forEach(label => label.style.color = '#9ca3af');
-                        const values = card.querySelectorAll('[style*="color:#1e293b"]');
-                        values.forEach(value => value.style.color = '#ffffff');
-                    });
-                }
-                
-                // Apply dark theme to sidebar
-                const sidebar = document.getElementById('chartZoomSidebar');
-                if (sidebar) {
-                    sidebar.style.background = '#1f2937';
-                    const sidebarCards = sidebar.querySelectorAll('[style*="background:#fff"]');
-                    sidebarCards.forEach(card => {
-                        card.style.background = '#374151';
-                        card.style.color = '#ffffff';
-                        const labels = card.querySelectorAll('[style*="color:#64748b"]');
-                        labels.forEach(label => label.style.color = '#9ca3af');
-                        const values = card.querySelectorAll('[style*="color:#1e293b"]');
-                        values.forEach(value => value.style.color = '#ffffff');
-                    });
-                    
-                    // Fix alert cards with colored backgrounds
-                    const alertCards = sidebar.querySelectorAll('[style*="background:#fef2f2"], [style*="background:#fffbeb"]');
-                    alertCards.forEach(alertCard => {
-                        alertCard.style.background = '#374151';
-                    });
-                }
+                // Fix chart title color in dark mode
+                const chartTitle = modal.querySelector('h3');
+                if (chartTitle) chartTitle.style.color = '#ffffff';
             } else {
+                modal.style.background = 'rgba(0, 0, 0, 0.5)';
+                modalContent.style.background = '#f8fafc';
+                modalContent.style.color = '#1f2937';
                 chartContainer.style.background = '#ffffff';
                 
-                // Reset to light theme
-                const header = document.getElementById('chartZoomHeader');
-                if (header) {
-                    header.style.background = '#1e293b';
-                    header.style.color = '#ffffff';
-                }
+                // Apply light theme to ALL cards
+                const allCards = modal.querySelectorAll('#topMetricsRow > div > div, #chartZoomSidebar > div');
+                allCards.forEach(card => {
+                    card.style.background = '#ffffff';
+                    card.style.color = '#1f2937';
+                });
                 
-                // Reset chart area to light theme
-                const chartArea = document.querySelector('#chartZoomModal [style*="background:#374151"][style*="padding:24px"]');
-                if (chartArea) {
-                    chartArea.style.background = '#ffffff';
-                    chartArea.style.color = '#1f2937';
-                    const chartTitle = chartArea.querySelector('h3');
-                    if (chartTitle) chartTitle.style.color = '#1f2937';
-                }
-                
-                // Reset metrics cards to light theme
-                const topMetricsRow = document.getElementById('topMetricsRow');
-                if (topMetricsRow) {
-                    topMetricsRow.style.background = '#f1f5f9';
-                    topMetricsRow.style.borderBottom = '1px solid #e2e8f0';
-                    const metricCards = topMetricsRow.querySelectorAll('div[style*="background:"]');
-                    metricCards.forEach(card => {
-                        if (card.style.background.includes('#374151')) {
-                            card.style.background = '#ffffff';
-                            card.style.color = '#1f2937';
-                            const labels = card.querySelectorAll('[style*="color:#9ca3af"]');
-                            labels.forEach(label => label.style.color = '#64748b');
-                            const values = card.querySelectorAll('[style*="color:#ffffff"]');
-                            values.forEach(value => value.style.color = '#1e293b');
-                        }
-                    });
-                }
-                
-                // Reset sidebar to light theme
-                const sidebar = document.getElementById('chartZoomSidebar');
-                if (sidebar) {
-                    sidebar.style.background = '#f8fafc';
-                    const sidebarCards = sidebar.querySelectorAll('[style*="background:#374151"]');
-                    sidebarCards.forEach(card => {
-                        card.style.background = '#ffffff';
-                        card.style.color = '#1f2937';
-                        const labels = card.querySelectorAll('[style*="color:#9ca3af"]');
-                        labels.forEach(label => label.style.color = '#64748b');
-                        const values = card.querySelectorAll('[style*="color:#ffffff"]');
-                        values.forEach(value => value.style.color = '#1e293b');
-                    });
-                    
-                    // Reset alert cards to light theme
-                    const alertCards = sidebar.querySelectorAll('[style*="background:#374151"]');
-                    alertCards.forEach(alertCard => {
-                        // Reset to original light backgrounds
-                        if (alertCard.querySelector('[style*="color:#ef4444"]')) {
-                            alertCard.style.background = '#fef2f2';
+                // Reset alert cards
+                const alertCards = modal.querySelectorAll('#chartZoomSidebar > div');
+                alertCards.forEach((card, index) => {
+                    if (index >= 2) { // Alert cards are typically the last ones
+                        if (card.textContent.includes('Signal')) {
+                            card.style.background = '#fef2f2';
                         } else {
-                            alertCard.style.background = '#fffbeb';
+                            card.style.background = '#fffbeb';
                         }
-                        // Reset text colors to original dark colors
-                        const allTexts = alertCard.querySelectorAll('div');
-                        allTexts.forEach(text => {
-                            text.style.color = '';
-                        });
-                    });
-                }
+                    }
+                });
+                
+                document.getElementById('chartZoomHeader').style.background = '#1e293b';
+                document.getElementById('chartZoomSidebar').style.background = '#f8fafc';
+                document.getElementById('topMetricsRow').style.background = '#f1f5f9';
+                
+                // Fix modal header title color
+                document.getElementById('chartZoomTitle').style.color = '#ffffff';
+                
+                // Fix chart title color in light mode
+                const chartTitle = modal.querySelector('h3');
+                if (chartTitle) chartTitle.style.color = '#ffffff';
             }
             
             // Destroy previous chart if exists
