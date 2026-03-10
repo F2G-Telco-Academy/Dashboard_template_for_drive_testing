@@ -511,35 +511,66 @@
             <!-- Header -->
             <div id="chartZoomHeader" style="display:flex; justify-content:space-between; align-items:center; padding:20px 24px; background:#1e293b; color:#fff; border-bottom:1px solid #334155;">
                 <div style="display:flex; align-items:center; gap:15px;">
-                    <div style="width:8px; height:8px; background:#10b981; border-radius:50%; animation:pulse 2s infinite;"></div>
+                    <div class="live-indicator" style="width:8px; height:8px; background:#10b981; border-radius:50%;"></div>
                     <h2 id="chartZoomTitle" style="margin:0; font-size:18px; font-weight:600;">📊 Network Performance Dashboard</h2>
-                    <div id="modalStatus" style="padding:4px 12px; border-radius:4px; font-size:11px; font-weight:600; background:#10b981; color:#fff;">LIVE</div>
+                    <div class="live-indicator" style="padding:4px 12px; border-radius:4px; font-size:11px; font-weight:600; background:#10b981; color:#fff;">● LIVE</div>
                 </div>
                 <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:8px 16px; border:none; font-weight:600; cursor:pointer; font-size:12px; border-radius:4px;">✕ CLOSE</button>
             </div>
             
-            <!-- Top Metrics Row -->
-            <div id="topMetricsRow" style="padding:20px 24px; background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
-                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
-                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #3b82f6;">
-                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">CURRENT VALUE</div>
-                        <div id="modalCurrent" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
-                        <div id="modalTrend" style="font-size:10px; margin-top:4px; color:#64748b;">-</div>
+            <!-- Top Metrics Row - Professional NOC Style -->
+            <div id="topMetricsRow" style="padding:12px 24px; background:#f1f5f9; border-bottom:1px solid #e2e8f0;">
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;">
+                    <!-- Current Value Card -->
+                    <div class="noc-kpi-card" style="background:#fff; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); height:100px; display:flex; flex-direction:column; position:relative; border:1px solid #e2e8f0;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                            <span style="font-size:14px;">🎯</span>
+                            <div id="statusDotCurrent" class="status-dot-animated" style="width:6px; height:6px; background:#3b82f6; border-radius:50%; color:#3b82f6;"></div>
+                        </div>
+                        <div style="font-size:9px; color:#64748b; font-weight:600; text-transform:uppercase; font-family:'Courier New',monospace;">CURRENT</div>
+                        <div id="modalCurrent" style="font-size:20px; font-weight:700; color:#1e293b; font-family:'Courier New',monospace; margin:2px 0;">-</div>
+                        <div style="flex:1;"></div>
+                        <canvas id="sparklineCurrent" width="180" height="30" style="width:100%; height:30px; margin-top:4px;"></canvas>
+                        <div id="modalTrend" style="font-size:9px; margin-top:4px; color:#64748b; font-family:'Courier New',monospace; display:flex; align-items:center; gap:4px;">
+                            <span id="trendArrow">▬</span>
+                            <span id="trendPct">0.0%</span>
+                        </div>
                     </div>
-                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #ef4444;">
-                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">MINIMUM</div>
-                        <div id="modalMin" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
-                        <div style="font-size:10px; margin-top:4px; color:#64748b;">Worst</div>
+                    <!-- Minimum Card -->
+                    <div class="noc-kpi-card" style="background:#fff; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); height:100px; display:flex; flex-direction:column; position:relative; border:1px solid #e2e8f0;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                            <span style="font-size:14px;">⬇️</span>
+                            <div id="statusDotMin" class="status-dot-animated" style="width:6px; height:6px; background:#ef4444; border-radius:50%; color:#ef4444;"></div>
+                        </div>
+                        <div style="font-size:9px; color:#64748b; font-weight:600; text-transform:uppercase; font-family:'Courier New',monospace;">MINIMUM</div>
+                        <div id="modalMin" style="font-size:20px; font-weight:700; color:#1e293b; font-family:'Courier New',monospace; margin:2px 0;">-</div>
+                        <div style="flex:1;"></div>
+                        <canvas id="sparklineMin" width="180" height="30" style="width:100%; height:30px; margin-top:4px;"></canvas>
+                        <div style="font-size:9px; margin-top:4px; color:#64748b; font-family:'Courier New',monospace;">Worst</div>
                     </div>
-                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #10b981;">
-                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">AVERAGE</div>
-                        <div id="modalAvg" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
-                        <div style="font-size:10px; margin-top:4px; color:#64748b;">Mean</div>
+                    <!-- Average Card -->
+                    <div class="noc-kpi-card" style="background:#fff; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); height:100px; display:flex; flex-direction:column; position:relative; border:1px solid #e2e8f0;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                            <span style="font-size:14px;">📊</span>
+                            <div id="statusDotAvg" class="status-dot-animated" style="width:6px; height:6px; background:#6b7280; border-radius:50%; color:#6b7280;"></div>
+                        </div>
+                        <div style="font-size:9px; color:#64748b; font-weight:600; text-transform:uppercase; font-family:'Courier New',monospace;">AVERAGE</div>
+                        <div id="modalAvg" style="font-size:20px; font-weight:700; color:#1e293b; font-family:'Courier New',monospace; margin:2px 0;">-</div>
+                        <div style="flex:1;"></div>
+                        <canvas id="sparklineAvg" width="180" height="30" style="width:100%; height:30px; margin-top:4px;"></canvas>
+                        <div style="font-size:9px; margin-top:4px; color:#64748b; font-family:'Courier New',monospace;">Mean</div>
                     </div>
-                    <div style="background:#fff; padding:16px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); border-left:4px solid #059669;">
-                        <div style="font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; margin-bottom:4px;">MAXIMUM</div>
-                        <div id="modalMax" style="font-size:20px; font-weight:700; color:#1e293b;">-</div>
-                        <div style="font-size:10px; margin-top:4px; color:#64748b;">Best</div>
+                    <!-- Maximum Card -->
+                    <div class="noc-kpi-card" style="background:#fff; padding:12px; border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1); height:100px; display:flex; flex-direction:column; position:relative; border:1px solid #e2e8f0;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                            <span style="font-size:14px;">⬆️</span>
+                            <div id="statusDotMax" class="status-dot-animated" style="width:6px; height:6px; background:#10b981; border-radius:50%; color:#10b981;"></div>
+                        </div>
+                        <div style="font-size:9px; color:#64748b; font-weight:600; text-transform:uppercase; font-family:'Courier New',monospace;">MAXIMUM</div>
+                        <div id="modalMax" style="font-size:20px; font-weight:700; color:#1e293b; font-family:'Courier New',monospace; margin:2px 0;">-</div>
+                        <div style="flex:1;"></div>
+                        <canvas id="sparklineMax" width="180" height="30" style="width:100%; height:30px; margin-top:4px;"></canvas>
+                        <div style="font-size:9px; margin-top:4px; color:#64748b; font-family:'Courier New',monospace;">Best</div>
                     </div>
                 </div>
             </div>
@@ -550,7 +581,7 @@
                 <!-- LEFT: Chart -->
                 <div style="background:#fff; padding:24px; display:flex; flex-direction:column; border-right:1px solid #e2e8f0; min-height:0;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                        <h3 style="margin:0; font-size:14px; font-weight:600; color:#1e293b;">Signal Quality Analysis</h3>
+                        <h3 id="chartModalTitle" style="margin:0; font-size:14px; font-weight:600; color:#1e293b;">Signal Quality Analysis</h3>
                         <div style="display:flex; gap:8px;">
                             <button style="padding:4px 8px; font-size:10px; background:#e2e8f0; color:#64748b; border:none; border-radius:4px; cursor:pointer;">1H</button>
                             <button style="padding:4px 8px; font-size:10px; background:#3b82f6; color:#fff; border:none; border-radius:4px; cursor:pointer;">24H</button>

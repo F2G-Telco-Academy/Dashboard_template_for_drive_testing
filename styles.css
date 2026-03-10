@@ -93,3 +93,81 @@ body {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* Professional NOC-style KPI Card Hover Effects */
+.noc-kpi-card {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.noc-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #3b82f6 !important;
+}
+
+/* LIVE indicator pulse animation */
+@keyframes livePulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.live-indicator {
+    animation: livePulse 2s ease-in-out infinite;
+}
+
+/* Status dot glow animation */
+@keyframes statusGlow {
+    0%, 100% {
+        box-shadow: 0 0 4px currentColor;
+    }
+    50% {
+        box-shadow: 0 0 8px currentColor, 0 0 12px currentColor;
+    }
+}
+
+.status-dot-animated {
+    animation: statusGlow 2s ease-in-out infinite;
+}
+
+/* Sparkline container smooth transition */
+.sparkline-container {
+    transition: opacity 0.3s ease;
+}
+
+/* KPI value number animation */
+@keyframes valueUpdate {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.kpi-value-updated {
+    animation: valueUpdate 0.3s ease;
+}
+
+/* Trend arrow bounce */
+@keyframes trendBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+.trend-arrow-animated {
+    animation: trendBounce 0.5s ease;
+}
