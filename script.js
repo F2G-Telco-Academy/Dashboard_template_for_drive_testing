@@ -2395,8 +2395,8 @@ function renderScatterPlots() {
                 document.getElementById('chartZoomTitle').style.color = '#1f2937';
                 
                 // Fix chart title color in light mode
-                const chartTitle = modal.querySelector('h3');
-                if (chartTitle) chartTitle.style.color = '#ffffff';
+                const chartTitle = document.getElementById('chartModalTitle');
+                if (chartTitle) chartTitle.style.color = '#1e293b';
             }
             
             // Destroy previous chart if exists
@@ -2415,6 +2415,9 @@ function renderScatterPlots() {
             const data = chartInstance.data.datasets[0].data;
             const values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
             if (values.length > 0) {
+                // Update modal statistics with sparklines
+                updateModalStatistics(values, currentKpiType);
+                
                 const min = Math.min(...values);
                 const max = Math.max(...values);
                 const avg = values.reduce((a, b) => a + b, 0) / values.length;
@@ -2530,11 +2533,7 @@ function renderScatterPlots() {
                     networkStatusElement.style.color = networkStatusColor;
                 }
                 
-                document.getElementById('modalTrend').innerHTML = `<span style="color:${trendColor}">${trendIcon} ${Math.abs(changePercent).toFixed(1)}% from previous</span>`;
-                document.getElementById('modalCurrent').textContent = current.toFixed(2);
-                document.getElementById('modalMin').textContent = min.toFixed(2);
-                document.getElementById('modalAvg').textContent = avg.toFixed(2);
-                document.getElementById('modalMax').textContent = max.toFixed(2);
+                // Note: modalCurrent, modalMin, modalAvg, modalMax already updated by updateModalStatistics()
                 document.getElementById('modalP10').textContent = p10.toFixed(1);
                 document.getElementById('modalP50').textContent = p50.toFixed(1);
                 document.getElementById('modalP90').textContent = p90.toFixed(1);
@@ -2803,3 +2802,166 @@ function renderScatterPlots() {
             }
         });
     
+
+// =====================================================
+// SPARKLINE RENDERING FOR STAT CARDS
+// =====================================================
+function renderSparkline(canvasId, data, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Get last 20 data points
+    const sparkData = data.slice(-20);
+    if (sparkData.length < 2) return;
+    
+    // Calculate min/max for scaling
+    const min = Math.min(...sparkData);
+    const max = Math.max(...sparkData);
+    const range = max - min || 1;
+    
+    // Calculate points
+    const points = sparkData.map((value, index) => ({
+        x: (index / (sparkData.length - 1)) * width,
+        y: height - ((value - min) / range) * height
+    }));
+    
+    // Draw filled area
+    ctx.beginPath();
+    ctx.moveTo(0, height);
+    points.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(width, height);
+    ctx.closePath();
+    ctx.fillStyle = color + '30'; // 30 = ~20% opacity
+    ctx.fill();
+    
+    // Draw line
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    points.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+// Update modal statistics with sparklines and trends
+function updateModalStatistics(values, kpiType) {
+    if (!values || values.length === 0) return;
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const current = values[values.length - 1];
+    
+    // Calculate trend (compare last 10% vs previous 10%)
+    const segmentSize = Math.max(1, Math.floor(values.length * 0.1));
+    const recentSegment = values.slice(-segmentSize);
+    const previousSegment = values.slice(-segmentSize * 2, -segmentSize);
+    
+    const recentAvg = recentSegment.reduce((a, b) => a + b, 0) / recentSegment.length;
+    const previousAvg = previousSegment.length > 0 
+        ? previousSegment.reduce((a, b) => a + b, 0) / previousSegment.length 
+        : recentAvg;
+    
+    const trendDiff = recentAvg - previousAvg;
+    const trendPercent = previousAvg !== 0 ? (trendDiff / Math.abs(previousAvg) * 100) : 0;
+    
+    // Determine trend arrow and color
+    let trendArrow = '▬';
+    let trendColor = '#6b7280';
+    if (Math.abs(trendPercent) > 0.5) {
+        if (trendDiff > 0) {
+            trendArrow = '🔺';
+            trendColor = '#10b981';
+        } else {
+            trendArrow = '🔻';
+            trendColor = '#ef4444';
+        }
+    }
+    
+    // Update DOM elements
+    document.getElementById('modalCurrent').textContent = current.toFixed(2);
+    document.getElementById('modalMin').textContent = min.toFixed(2);
+    document.getElementById('modalAvg').textContent = avg.toFixed(2);
+    document.getElementById('modalMax').textContent = max.toFixed(2);
+    
+    // Update trend display
+    const trendArrowEl = document.getElementById('trendArrow');
+    const trendPctEl = document.getElementById('trendPct');
+    if (trendArrowEl) {
+        trendArrowEl.textContent = trendArrow;
+        trendArrowEl.style.color = trendColor;
+    }
+    if (trendPctEl) {
+        trendPctEl.textContent = Math.abs(trendPercent).toFixed(1) + '%';
+        trendPctEl.style.color = trendColor;
+    }
+    
+    // Render sparklines
+    renderSparkline('sparklineCurrent', values, '#3b82f6');
+    renderSparkline('sparklineMin', values, '#ef4444');
+    renderSparkline('sparklineAvg', values, '#6b7280');
+    renderSparkline('sparklineMax', values, '#10b981');
+}
+
+// Update status dot color based on signal quality thresholds
+function updateStatusDot(dotId, value) {
+    const dot = document.getElementById(dotId);
+    if (!dot) return;
+    
+    let color = '#6b7280'; // Default gray
+    
+    // RSRP thresholds (telecom standard)
+    if (value >= -80) {
+        color = '#22c55e'; // Excellent - Green
+    } else if (value >= -90) {
+        color = '#3b82f6'; // Good - Blue
+    } else if (value >= -100) {
+        color = '#f59e0b'; // Fair - Yellow
+    } else {
+        color = '#ef4444'; // Poor - Red
+    }
+    
+    dot.style.background = color;
+    dot.style.color = color;
+}
+
+// Enhanced updateModalStatistics to include status dots
+const originalUpdateModalStatistics = updateModalStatistics;
+updateModalStatistics = function(values, kpiType) {
+    originalUpdateModalStatistics(values, kpiType);
+    
+    if (!values || values.length === 0) return;
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const current = values[values.length - 1];
+    
+    // Update dynamic status dots for RSRP-like metrics
+    if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
+        updateStatusDot('statusDotCurrent', current);
+        updateStatusDot('statusDotMin', min);
+        updateStatusDot('statusDotAvg', avg);
+        updateStatusDot('statusDotMax', max);
+    }
+    
+    // Add animation classes
+    const modalCurrent = document.getElementById('modalCurrent');
+    if (modalCurrent) {
+        modalCurrent.classList.add('kpi-value-updated');
+        setTimeout(() => modalCurrent.classList.remove('kpi-value-updated'), 300);
+    }
+    
+    const trendArrowEl = document.getElementById('trendArrow');
+    if (trendArrowEl) {
+        trendArrowEl.classList.add('trend-arrow-animated');
+        setTimeout(() => trendArrowEl.classList.remove('trend-arrow-animated'), 500);
+    }
+};
