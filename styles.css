@@ -242,62 +242,94 @@ body {
     animation: livePulse 2s ease-in-out infinite;
 }
 
-/* Top Metrics Row Styling */
+/* Top Metrics Row Styling - Exact Mentor Template Background */
 .enterprise-modal #topMetricsRow {
-    background: #ffffff !important;
+    background: #f5f6fa !important;
+    border-bottom: 1px solid #e1e5e9 !important;
 }
 
 .enterprise-modal.dark #topMetricsRow {
     background: #1f2937 !important;
+    border-bottom: 1px solid #374151 !important;
 }
 
-/* Enterprise KPI Cards */
+/* Mentor-Style KPI Cards - Fixed Height and Layout */
 .enterprise-kpi-card {
-    background: #f8f9fa;
-    border: 1px solid var(--border-light);
+    background: #ffffff;
+    background-image: 
+        radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+    background-size: 8px 8px;
+    border: 1px solid #e1e5e9;
     border-radius: 6px;
-    padding: 16px;
-    height: 100px;
+    padding: 18px;
+    height: 140px;
     display: flex;
     flex-direction: column;
     position: relative;
-    box-shadow: var(--shadow-light);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
 }
 
 .enterprise-kpi-card:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
-    border-color: var(--accent-blue);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
 }
 
 .enterprise-modal.dark .enterprise-kpi-card {
-    background: #2d3748;
-    border-color: var(--border-dark);
-    box-shadow: var(--shadow-dark);
+    background: #1f2937;
+    background-image: 
+        radial-gradient(circle, #374151 1px, transparent 1px);
+    background-size: 8px 8px;
+    border-color: #374151;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
 .enterprise-modal.dark .enterprise-kpi-card:hover {
-    border-color: var(--accent-blue);
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.3);
+    border-color: #4b5563;
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
+/* Card Header with Icon and Status Dot */
 .enterprise-kpi-card .card-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.enterprise-kpi-card .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .enterprise-kpi-card .card-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--text-secondary-light);
+    width: 18px;
+    height: 18px;
+    color: #6b7280;
     flex-shrink: 0;
 }
 
 .enterprise-modal.dark .enterprise-kpi-card .card-icon {
-    color: var(--text-secondary-dark);
+    color: #9ca3af;
+}
+
+.enterprise-kpi-card .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+.enterprise-modal.dark .enterprise-kpi-card .card-title {
+    color: #9ca3af;
 }
 
 .enterprise-kpi-card .status-dot {
@@ -305,58 +337,164 @@ body {
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    transition: all 0.2s ease;
 }
 
-.enterprise-modal.dark .enterprise-kpi-card .status-dot {
-    box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.8);
-}
-
-.enterprise-kpi-card .card-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-secondary-light);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
-
-.enterprise-modal.dark .enterprise-kpi-card .card-label {
-    color: var(--text-secondary-dark);
-}
-
+/* Main Value Display */
 .enterprise-kpi-card .card-value {
-    font-size: 24px;
+    font-size: 32px;
     font-weight: 700;
-    color: var(--text-primary-light);
+    color: #111827;
     line-height: 1;
     margin-bottom: 8px;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.025em;
+    flex-shrink: 0;
 }
 
 .enterprise-modal.dark .enterprise-kpi-card .card-value {
-    color: var(--text-primary-dark);
+    color: #f9fafb;
 }
 
-.enterprise-kpi-card .card-sparkline {
-    flex: 1;
-    min-height: 30px;
-    margin-bottom: 4px;
+/* Bottom Section with Trend and Sparkline - Fixed Layout */
+.enterprise-kpi-card .card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+    flex-shrink: 0;
+    min-height: 40px;
 }
 
 .enterprise-kpi-card .card-trend {
-    font-size: 10px;
-    color: var(--text-secondary-light);
     display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.enterprise-kpi-card .trend-badge {
+    display: inline-flex;
     align-items: center;
     gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    font-family: 'Inter', system-ui, sans-serif;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
-.enterprise-modal.dark .enterprise-kpi-card .card-trend {
-    color: var(--text-secondary-dark);
+.enterprise-kpi-card .trend-badge.positive {
+    background: #dcfce7;
+    color: #166534;
 }
 
-.enterprise-kpi-card .trend-icon {
+.enterprise-kpi-card .trend-badge.negative {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.enterprise-kpi-card .trend-badge.neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.enterprise-modal.dark .enterprise-kpi-card .trend-badge.positive {
+    background: #166534;
+    color: #dcfce7;
+}
+
+.enterprise-modal.dark .enterprise-kpi-card .trend-badge.negative {
+    background: #991b1b;
+    color: #fee2e2;
+}
+
+.enterprise-modal.dark .enterprise-kpi-card .trend-badge.neutral {
+    background: #4b5563;
+    color: #d1d5db;
+}
+
+.enterprise-kpi-card .trend-secondary {
     font-size: 10px;
+    color: #9ca3af;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Inter', system-ui, sans-serif;
+    white-space: nowrap;
+}
+
+.enterprise-modal.dark .enterprise-kpi-card .trend-secondary {
+    color: #6b7280;
+}
+
+/* Sparkline Container - Fixed Size */
+.enterprise-kpi-card .card-sparkline {
+    width: 60px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 2px;
+}
+
+
+/* Status Dot Colors - Mentor Template Style */
+.enterprise-kpi-card .status-dot.excellent {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.enterprise-kpi-card .status-dot.good {
+    background: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.enterprise-kpi-card .status-dot.fair {
+    background: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.enterprise-kpi-card .status-dot.poor {
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.enterprise-kpi-card .status-dot.critical {
+    background: #dc2626;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+.enterprise-kpi-card .status-dot.neutral {
+    background: #6b7280;
+    box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+}
+
+/* Hover animations for status dots */
+.enterprise-kpi-card:hover .status-dot {
+    transform: scale(1.1);
+}
+
+/* Value update animation */
+@keyframes mentorValueUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.enterprise-kpi-card .card-value.updated {
+    animation: mentorValueUpdate 0.3s ease;
+}
+
+/* Trend badge pulse animation */
+@keyframes trendPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.enterprise-kpi-card .trend-badge.animated {
+    animation: trendPulse 0.4s ease;
 }
 
 /* Enterprise Chart Container */
