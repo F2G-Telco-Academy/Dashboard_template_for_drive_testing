@@ -516,63 +516,100 @@
                 <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:8px 16px; border:none; font-weight:600; cursor:pointer; font-size:12px; border-radius:4px; transition:all 0.2s;">✕ CLOSE</button>
             </div>
             
-            <!-- Top Metrics Row - Enterprise Style -->
-            <div id="topMetricsRow" style="padding:16px 24px; background:#ffffff; border-bottom:1px solid var(--border-light);">
+            <!-- Top Metrics Row - Exact Mentor Style Background -->
+            <div id="topMetricsRow" style="padding:20px 24px; background:#f5f6fa; border-bottom:1px solid #e1e5e9;">
                 <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
                     <!-- Current Value Card -->
                     <div class="enterprise-kpi-card">
                         <div class="card-header">
-                            <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            <div id="statusDotCurrent" class="status-dot" style="background:#3b82f6;"></div>
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <h3 class="card-title">CURRENT</h3>
+                            </div>
+                            <div id="statusDotCurrent" class="status-dot good"></div>
                         </div>
-                        <div class="card-label">CURRENT</div>
                         <div id="modalCurrent" class="card-value">-</div>
-                        <canvas id="sparklineCurrent" class="card-sparkline" width="180" height="30"></canvas>
-                        <div id="modalTrend" class="card-trend">
-                            <span id="trendArrow" class="trend-icon">▬</span>
-                            <span id="trendPct">0.0%</span>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalTrendBadge" class="trend-badge positive">
+                                    <span id="trendArrow">↗</span>
+                                    <span id="trendPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">LIVE DATA</div>
+                            </div>
+                            <canvas id="sparklineCurrent" class="card-sparkline" width="60" height="24"></canvas>
                         </div>
                     </div>
                     <!-- Minimum Card -->
                     <div class="enterprise-kpi-card">
                         <div class="card-header">
-                            <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                            </svg>
-                            <div id="statusDotMin" class="status-dot" style="background:#ef4444;"></div>
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                </svg>
+                                <h3 class="card-title">MINIMUM</h3>
+                            </div>
+                            <div id="statusDotMin" class="status-dot poor"></div>
                         </div>
-                        <div class="card-label">MINIMUM</div>
                         <div id="modalMin" class="card-value">-</div>
-                        <canvas id="sparklineMin" class="card-sparkline" width="180" height="30"></canvas>
-                        <div class="card-trend">Worst</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalMinBadge" class="trend-badge negative">
+                                    <span id="minArrow">↘</span>
+                                    <span id="minPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">LOWEST VALUE</div>
+                            </div>
+                            <canvas id="sparklineMin" class="card-sparkline" width="60" height="24"></canvas>
+                        </div>
                     </div>
                     <!-- Average Card -->
                     <div class="enterprise-kpi-card">
                         <div class="card-header">
-                            <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            <div id="statusDotAvg" class="status-dot" style="background:#6b7280;"></div>
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <h3 class="card-title">AVERAGE</h3>
+                            </div>
+                            <div id="statusDotAvg" class="status-dot fair"></div>
                         </div>
-                        <div class="card-label">AVERAGE</div>
                         <div id="modalAvg" class="card-value">-</div>
-                        <canvas id="sparklineAvg" class="card-sparkline" width="180" height="30"></canvas>
-                        <div class="card-trend">Mean</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalAvgBadge" class="trend-badge neutral">
+                                    <span id="avgArrow">▬</span>
+                                    <span id="avgPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">AVERAGE VALUE</div>
+                            </div>
+                            <canvas id="sparklineAvg" class="card-sparkline" width="60" height="24"></canvas>
+                        </div>
                     </div>
                     <!-- Maximum Card -->
                     <div class="enterprise-kpi-card">
                         <div class="card-header">
-                            <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                            </svg>
-                            <div id="statusDotMax" class="status-dot" style="background:#10b981;"></div>
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                </svg>
+                                <h3 class="card-title">MAXIMUM</h3>
+                            </div>
+                            <div id="statusDotMax" class="status-dot excellent"></div>
                         </div>
-                        <div class="card-label">MAXIMUM</div>
                         <div id="modalMax" class="card-value">-</div>
-                        <canvas id="sparklineMax" class="card-sparkline" width="180" height="30"></canvas>
-                        <div class="card-trend">Peak</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalMaxBadge" class="trend-badge positive">
+                                    <span id="maxArrow">↗</span>
+                                    <span id="maxPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">BEST VALUE</div>
+                            </div>
+                            <canvas id="sparklineMax" class="card-sparkline" width="60" height="24"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>

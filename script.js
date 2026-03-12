@@ -906,7 +906,7 @@
                     scales: {
                         x: {
                             ticks: { 
-                                color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563',
+                                color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563',
                                 maxRotation: 45,
                                 minRotation: 45,
                                 font: { size: 9, family: 'JetBrains Mono' }
@@ -915,7 +915,7 @@
                         },
                         y: {
                             ticks: { 
-                                color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563',
+                                color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563',
                                 font: { family: 'JetBrains Mono' }
                             },
                             grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
@@ -1011,8 +1011,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'CQI', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxCqi * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'CQI', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxCqi * 1.1) }
                     }
                 }
             });
@@ -1055,8 +1055,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'MCS', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxMcs * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'MCS', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxMcs * 1.1) }
                     }
                 }
             });
@@ -1100,8 +1100,8 @@ function renderScatterPlots() {
                             }
                         },
                         scales: {
-                            x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                            y: { type: 'linear', title: { display: true, text: sinrLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
+                            x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                            y: { type: 'linear', title: { display: true, text: sinrLabel, color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
                         }
                     }
                 });
@@ -1143,8 +1143,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
                     }
                 }
             });
@@ -1183,8 +1183,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
                     }
                 }
             });
@@ -1221,8 +1221,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
                     }
                 }
             });
@@ -1263,8 +1263,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: blerYMax }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: blerYMax }
                     }
                 }
             });
@@ -2357,8 +2357,8 @@ function renderScatterPlots() {
             const values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
             
             if (values.length > 0) {
-                // Update modal statistics with enterprise styling
-                updateEnterpriseModalStatistics(values, currentKpiType);
+                // Update modal statistics with mentor-style design
+                updateMentorModalStatistics(values, currentKpiType);
                 
                 const min = Math.min(...values);
                 const max = Math.max(...values);
@@ -2752,11 +2752,16 @@ function renderScatterPlots() {
     
 
 // =====================================================
-// ENTERPRISE SPARKLINE RENDERING FOR STAT CARDS
+// MENTOR-STYLE SPARKLINE RENDERING FOR KPI CARDS
 // =====================================================
-function renderEnterpriseSparkline(canvasId, data, color) {
+function renderMentorSparkline(canvasId, data, color) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
+    
+    // Set proper canvas dimensions
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = 60;
+    canvas.height = 24;
     
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
@@ -2765,7 +2770,7 @@ function renderEnterpriseSparkline(canvasId, data, color) {
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
-    // Get last 20 data points
+    // Get last 20 data points for sparkline
     const sparkData = data.slice(-20);
     if (sparkData.length < 2) return;
     
@@ -2774,7 +2779,7 @@ function renderEnterpriseSparkline(canvasId, data, color) {
     const max = Math.max(...sparkData);
     const range = max - min || 1;
     
-    // Calculate points with padding
+    // Calculate points with minimal padding
     const padding = 2;
     const chartHeight = height - (padding * 2);
     const chartWidth = width - (padding * 2);
@@ -2784,16 +2789,7 @@ function renderEnterpriseSparkline(canvasId, data, color) {
         y: padding + chartHeight - ((value - min) / range) * chartHeight
     }));
     
-    // Draw subtle filled area (enterprise style)
-    ctx.beginPath();
-    ctx.moveTo(padding, height - padding);
-    points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(width - padding, height - padding);
-    ctx.closePath();
-    ctx.fillStyle = color + '15'; // Very subtle fill
-    ctx.fill();
-    
-    // Draw clean line
+    // Draw mentor-style line (clean, thin, colored)
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     points.forEach(p => ctx.lineTo(p.x, p.y));
@@ -2803,16 +2799,16 @@ function renderEnterpriseSparkline(canvasId, data, color) {
     ctx.lineJoin = 'round';
     ctx.stroke();
     
-    // Add subtle end point
+    // Add small end point
     const lastPoint = points[points.length - 1];
     ctx.beginPath();
-    ctx.arc(lastPoint.x, lastPoint.y, 2, 0, 2 * Math.PI);
+    ctx.arc(lastPoint.x, lastPoint.y, 1.5, 0, 2 * Math.PI);
     ctx.fillStyle = color;
     ctx.fill();
 }
 
-// Update modal statistics with enterprise sparklines and trends
-function updateEnterpriseModalStatistics(values, kpiType) {
+// Update modal statistics with mentor-style individual trend percentages
+function updateMentorModalStatistics(values, kpiType) {
     if (!values || values.length === 0) return;
     
     const min = Math.min(...values);
@@ -2820,7 +2816,13 @@ function updateEnterpriseModalStatistics(values, kpiType) {
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
     const current = values[values.length - 1];
     
-    // Calculate trend (compare last 10% vs previous 10%)
+    // Update DOM elements with proper formatting
+    document.getElementById('modalCurrent').textContent = current.toFixed(1);
+    document.getElementById('modalMin').textContent = min.toFixed(1);
+    document.getElementById('modalAvg').textContent = avg.toFixed(1);
+    document.getElementById('modalMax').textContent = max.toFixed(1);
+    
+    // Calculate CURRENT trend (recent vs previous data movement)
     const segmentSize = Math.max(1, Math.floor(values.length * 0.1));
     const recentSegment = values.slice(-segmentSize);
     const previousSegment = values.slice(-segmentSize * 2, -segmentSize);
@@ -2831,96 +2833,102 @@ function updateEnterpriseModalStatistics(values, kpiType) {
         : recentAvg;
     
     const trendDiff = recentAvg - previousAvg;
-    const trendPercent = previousAvg !== 0 ? (trendDiff / Math.abs(previousAvg) * 100) : 0;
+    const currentTrendPercent = previousAvg !== 0 ? (trendDiff / Math.abs(previousAvg) * 100) : 0;
     
-    // Determine trend arrow and color (enterprise style)
-    let trendArrow = '▬';
-    let trendColor = '#6b7280';
-    if (Math.abs(trendPercent) > 0.5) {
-        if (trendDiff > 0) {
-            trendArrow = '↗';
-            trendColor = '#10b981';
-        } else {
-            trendArrow = '↘';
-            trendColor = '#ef4444';
-        }
-    }
+    // Calculate meaningful percentages relative to average
+    const minPercent = avg !== 0 ? ((min - avg) / Math.abs(avg) * 100) : 0;
+    const avgPercent = 0; // Average is always baseline (0%)
+    const maxPercent = avg !== 0 ? ((max - avg) / Math.abs(avg) * 100) : 0;
     
-    // Update DOM elements
-    document.getElementById('modalCurrent').textContent = current.toFixed(2);
-    document.getElementById('modalMin').textContent = min.toFixed(2);
-    document.getElementById('modalAvg').textContent = avg.toFixed(2);
-    document.getElementById('modalMax').textContent = max.toFixed(2);
+    // Update CURRENT card with trend percentage
+    updateTrendBadge('modalTrendBadge', 'trendArrow', 'trendPct', currentTrendPercent);
     
-    // Update trend display
-    const trendArrowEl = document.getElementById('trendArrow');
-    const trendPctEl = document.getElementById('trendPct');
-    if (trendArrowEl) {
-        trendArrowEl.textContent = trendArrow;
-        trendArrowEl.style.color = trendColor;
-    }
-    if (trendPctEl) {
-        trendPctEl.textContent = Math.abs(trendPercent).toFixed(1) + '%';
-        trendPctEl.style.color = trendColor;
-    }
+    // Update OTHER cards with relative-to-average percentages
+    updateTrendBadge('modalMinBadge', 'minArrow', 'minPct', minPercent);
+    updateTrendBadge('modalAvgBadge', 'avgArrow', 'avgPct', avgPercent);
+    updateTrendBadge('modalMaxBadge', 'maxArrow', 'maxPct', maxPercent);
     
-    // Render enterprise sparklines
-    renderEnterpriseSparkline('sparklineCurrent', values, '#3b82f6');
-    renderEnterpriseSparkline('sparklineMin', values, '#ef4444');
-    renderEnterpriseSparkline('sparklineAvg', values, '#6b7280');
-    renderEnterpriseSparkline('sparklineMax', values, '#10b981');
+    // Define sparkline colors based on card type
+    const sparklineColors = {
+        current: '#3b82f6',
+        min: '#ef4444', 
+        avg: '#6b7280',
+        max: '#10b981'
+    };
+    
+    // Render mentor-style sparklines
+    renderMentorSparkline('sparklineCurrent', values, sparklineColors.current);
+    renderMentorSparkline('sparklineMin', values, sparklineColors.min);
+    renderMentorSparkline('sparklineAvg', values, sparklineColors.avg);
+    renderMentorSparkline('sparklineMax', values, sparklineColors.max);
     
     // Update status dots for RSRP-like metrics
     if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
-        updateEnterpriseStatusDot('statusDotCurrent', current);
-        updateEnterpriseStatusDot('statusDotMin', min);
-        updateEnterpriseStatusDot('statusDotAvg', avg);
-        updateEnterpriseStatusDot('statusDotMax', max);
+        updateMentorStatusDot('statusDotCurrent', current);
+        updateMentorStatusDot('statusDotMin', min);
+        updateMentorStatusDot('statusDotAvg', avg);
+        updateMentorStatusDot('statusDotMax', max);
     }
 }
 
-// Update enterprise status dot color based on signal quality thresholds
-function updateEnterpriseStatusDot(dotId, value) {
+// Universal function to update trend badges with proper arrows and colors
+function updateTrendBadge(badgeId, arrowId, pctId, percentage) {
+    const badge = document.getElementById(badgeId);
+    const arrow = document.getElementById(arrowId);
+    const pct = document.getElementById(pctId);
+    
+    if (!badge || !arrow || !pct) return;
+    
+    // Remove existing classes
+    badge.classList.remove('positive', 'negative', 'neutral');
+    
+    // Set arrow and class based on percentage value
+    if (Math.abs(percentage) > 0.5) {
+        if (percentage > 0) {
+            badge.classList.add('positive');
+            arrow.textContent = '↗'; // ↗
+        } else {
+            badge.classList.add('negative');
+            arrow.textContent = '↘'; // ↘
+        }
+    } else {
+        badge.classList.add('neutral');
+        arrow.textContent = '▬'; // ▬
+    }
+    
+    pct.textContent = Math.abs(percentage).toFixed(1) + '%';
+}
+
+// Update mentor-style status dot with proper classes
+function updateMentorStatusDot(dotId, value) {
     const dot = document.getElementById(dotId);
     if (!dot) return;
     
-    let color = '#6b7280'; // Default gray
+    // Remove existing status classes
+    dot.classList.remove('excellent', 'good', 'fair', 'poor', 'critical', 'neutral');
     
-    // RSRP thresholds (telecom standard)
+    // Apply new status class based on RSRP thresholds
     if (value >= -80) {
-        color = '#10b981'; // Excellent - Green
+        dot.classList.add('excellent');
     } else if (value >= -90) {
-        color = '#3b82f6'; // Good - Blue
+        dot.classList.add('good');
     } else if (value >= -100) {
-        color = '#f59e0b'; // Fair - Yellow
+        dot.classList.add('fair');
+    } else if (value >= -110) {
+        dot.classList.add('poor');
     } else {
-        color = '#ef4444'; // Poor - Red
+        dot.classList.add('critical');
     }
-    
-    dot.style.background = color;
 }
 
-// Enhanced updateModalStatistics to include status dots
-const originalUpdateModalStatistics = updateEnterpriseModalStatistics;
+// Enhanced updateModalStatistics to use mentor-style design
+const originalUpdateModalStatistics = updateMentorModalStatistics;
 updateModalStatistics = function(values, kpiType) {
     originalUpdateModalStatistics(values, kpiType);
     
     if (!values || values.length === 0) return;
     
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const avg = values.reduce((a, b) => a + b, 0) / values.length;
-    const current = values[values.length - 1];
-    
-    // Update dynamic status dots for RSRP-like metrics
-    if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
-        updateEnterpriseStatusDot('statusDotCurrent', current);
-        updateEnterpriseStatusDot('statusDotMin', min);
-        updateEnterpriseStatusDot('statusDotAvg', avg);
-        updateEnterpriseStatusDot('statusDotMax', max);
-    }
-    
-    // Add animation classes
+    // Add animation classes for smooth updates
     const modalCurrent = document.getElementById('modalCurrent');
     if (modalCurrent) {
         modalCurrent.classList.add('kpi-value-updated');
