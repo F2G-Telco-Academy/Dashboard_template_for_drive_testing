@@ -2425,77 +2425,18 @@ function renderScatterPlots() {
             const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
             
-            // Apply theme to modal - comprehensive reset approach
+            // Apply enterprise theme to modal
             const modalContent = document.getElementById('chartZoomModalContent');
-            const chartContainer = canvas.parentElement;
             
-            // Force reset ALL modal elements first
-            const allModalCards = modal.querySelectorAll('div');
-            allModalCards.forEach(card => {
-                card.style.removeProperty('background');
-                card.style.removeProperty('background-color');
-                card.style.removeProperty('color');
-            });
+            // Add enterprise modal class
+            modal.classList.add('enterprise-modal');
             
             if (kpiTheme === 'dark') {
-                modal.style.background = 'rgba(0, 0, 0, 0.8)';
-                modalContent.style.background = '#1f2937';
-                modalContent.style.color = '#ffffff';
-                chartContainer.style.background = '#374151';
-                
-                // Apply dark theme to ALL cards
-                const allCards = modal.querySelectorAll('#topMetricsRow > div > div, #chartZoomSidebar > div');
-                allCards.forEach(card => {
-                    card.style.background = '#374151';
-                    card.style.color = '#ffffff';
-                });
-                
-                document.getElementById('chartZoomHeader').style.background = '#0f172a';
-                document.getElementById('chartZoomSidebar').style.background = '#1f2937';
-                document.getElementById('topMetricsRow').style.background = '#1f2937';
-                
-                // Fix modal header title color in dark mode
-                document.getElementById('chartZoomTitle').style.color = '#ffffff';
-                
-                // Fix chart title color in dark mode
-                const chartTitle = modal.querySelector('h3');
-                if (chartTitle) chartTitle.style.color = '#ffffff';
+                modal.classList.add('dark');
+                modalContent.style.background = 'var(--card-bg-dark)';
             } else {
-                modal.style.background = 'rgba(0, 0, 0, 0.5)';
-                modalContent.style.background = '#f8fafc';
-                modalContent.style.color = '#1f2937';
-                chartContainer.style.background = '#ffffff';
-                
-                // Apply light theme to ALL cards
-                const allCards = modal.querySelectorAll('#topMetricsRow > div > div, #chartZoomSidebar > div');
-                allCards.forEach(card => {
-                    card.style.background = '#ffffff';
-                    card.style.color = '#1f2937';
-                });
-                
-                // Reset alert cards
-                const alertCards = modal.querySelectorAll('#chartZoomSidebar > div');
-                alertCards.forEach((card, index) => {
-                    if (index >= 2) { // Alert cards are typically the last ones
-                        if (card.textContent.includes('Signal')) {
-                            card.style.background = '#fef2f2';
-                        } else {
-                            card.style.background = '#fffbeb';
-                        }
-                    }
-                });
-                
-                document.getElementById('chartZoomHeader').style.background = '#f8fafc';
-                document.getElementById('chartZoomHeader').style.color = '#1f2937';
-                document.getElementById('chartZoomSidebar').style.background = '#f8fafc';
-                document.getElementById('topMetricsRow').style.background = '#f1f5f9';
-                
-                // Fix modal header title color
-                document.getElementById('chartZoomTitle').style.color = '#1f2937';
-                
-                // Fix chart title color in light mode
-                const chartTitle = document.getElementById('chartModalTitle');
-                if (chartTitle) chartTitle.style.color = '#1e293b';
+                modal.classList.remove('dark');
+                modalContent.style.background = 'var(--card-bg-light)';
             }
             
             // Destroy previous chart if exists
@@ -2513,19 +2454,15 @@ function renderScatterPlots() {
             
             const data = chartInstance.data.datasets[0].data;
             const values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
+            
             if (values.length > 0) {
-                // Update modal statistics with sparklines
-                updateModalStatistics(values, currentKpiType);
+                // Update modal statistics with enterprise styling
+                updateEnterpriseModalStatistics(values, currentKpiType);
                 
                 const min = Math.min(...values);
                 const max = Math.max(...values);
                 const avg = values.reduce((a, b) => a + b, 0) / values.length;
                 const current = values[values.length - 1];
-                const prev = values.length > 1 ? values[values.length - 2] : current;
-                const change = current - prev;
-                const changePercent = prev !== 0 ? (change / Math.abs(prev) * 100) : 0;
-                const trendIcon = change > 0 ? '↑' : change < 0 ? '↓' : '→';
-                const trendColor = change > 0 ? '#10b981' : change < 0 ? '#ef4444' : '#6b7280';
                 
                 // Percentiles
                 const sorted = [...values].sort((a, b) => a - b);
@@ -2533,31 +2470,44 @@ function renderScatterPlots() {
                 const p50 = sorted[Math.floor(sorted.length * 0.5)];
                 const p90 = sorted[Math.floor(sorted.length * 0.9)];
                 
+                // Update percentiles
+                document.getElementById('modalP10').textContent = p10.toFixed(1);
+                document.getElementById('modalP50').textContent = p50.toFixed(1);
+                document.getElementById('modalP90').textContent = p90.toFixed(1);
+                
                 // Status badge
                 let status = 'UNKNOWN';
-                let statusBg = '#6b7280';
+                let statusClass = 'poor';
                 if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
-                    if (current >= -80) { status = 'EXCELLENT'; statusBg = '#10b981'; }
-                    else if (current >= -90) { status = 'GOOD'; statusBg = '#3b82f6'; }
-                    else if (current >= -100) { status = 'FAIR'; statusBg = '#f59e0b'; }
-                    else { status = 'CRITICAL'; statusBg = '#ef4444'; }
+                    if (current >= -80) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= -90) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= -100) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
                 } else if (chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual')) {
-                    if (current >= -10) { status = 'EXCELLENT'; statusBg = '#10b981'; }
-                    else if (current >= -15) { status = 'GOOD'; statusBg = '#3b82f6'; }
-                    else if (current >= -20) { status = 'FAIR'; statusBg = '#f59e0b'; }
-                    else { status = 'CRITICAL'; statusBg = '#ef4444'; }
+                    if (current >= -10) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= -15) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= -20) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
                 } else if (chartTitle.includes('SINR')) {
-                    if (current >= 20) { status = 'EXCELLENT'; statusBg = '#10b981'; }
-                    else if (current >= 13) { status = 'GOOD'; statusBg = '#3b82f6'; }
-                    else if (current >= 0) { status = 'FAIR'; statusBg = '#f59e0b'; }
-                    else { status = 'CRITICAL'; statusBg = '#ef4444'; }
+                    if (current >= 20) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 13) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 0) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
                 }
                 
-                // Quality distribution
-                let excellent = 0, good = 0, fair = 0, poor = 0;
+                const statusBadge = document.getElementById('modalStatusBadge');
+                statusBadge.textContent = status;
+                statusBadge.className = `status-badge ${statusClass}`;
+                
+                // Quality distribution for signal charts
                 const isSignalChart = chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev') || chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual') || chartTitle.includes('SINR');
                 
+                const qualityCard = document.getElementById('modalQualityCard');
                 if (isSignalChart) {
+                    qualityCard.style.display = 'block';
+                    
+                    let excellent = 0, good = 0, fair = 0, poor = 0;
+                    
                     if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
                         values.forEach(v => {
                             if (v >= -80) excellent++;
@@ -2580,83 +2530,14 @@ function renderScatterPlots() {
                             else poor++;
                         });
                     }
-                }
-                
-                const total = values.length;
-                const exPct = (excellent / total * 100).toFixed(0);
-                const gdPct = (good / total * 100).toFixed(0);
-                const frPct = (fair / total * 100).toFixed(0);
-                const prPct = (poor / total * 100).toFixed(0);
-                const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
-                
-                // Update alerts based on technology
-                const tech = detectedTechnology || 'LTE';
-                let signalAlert = 'Signal Degradation';
-                let signalThreshold = '';
-                let networkStatus = 'OPERATIONAL';
-                let networkStatusColor = '#10b981';
-                
-                if (tech === 'GSM') {
-                    signalThreshold = 'RxLev below -100 dBm';
-                    networkStatus = '2G GSM Network Active';
-                } else if (tech === 'UMTS') {
-                    signalThreshold = 'RSCP below -100 dBm';
-                    networkStatus = '3G UMTS Network Active';
-                } else if (tech === 'NR') {
-                    signalThreshold = 'NR-RSRP below -100 dBm';
-                    networkStatus = '5G NR Network Active';
-                } else {
-                    signalThreshold = 'RSRP below -100 dBm';
-                    networkStatus = '4G LTE Network Active';
-                }
-                
-                // Check signal quality for network status
-                if (current < -110) {
-                    networkStatus = 'DEGRADED - Poor Coverage';
-                    networkStatusColor = '#ef4444';
-                } else if (current < -100) {
-                    networkStatus = 'WARNING - Weak Signal';
-                    networkStatusColor = '#f59e0b';
-                }
-                
-                // Update alert text in the modal
-                const signalAlertElement = document.getElementById('signalAlert');
-                if (signalAlertElement) {
-                    signalAlertElement.textContent = signalThreshold;
-                }
-                
-                // Update network status in the modal
-                const networkStatusElement = document.getElementById('networkStatus');
-                if (networkStatusElement) {
-                    networkStatusElement.textContent = networkStatus;
-                    networkStatusElement.style.color = networkStatusColor;
-                }
-                
-                // Note: modalCurrent, modalMin, modalAvg, modalMax already updated by updateModalStatistics()
-                document.getElementById('modalP10').textContent = p10.toFixed(1);
-                document.getElementById('modalP50').textContent = p50.toFixed(1);
-                document.getElementById('modalP90').textContent = p90.toFixed(1);
-                
-                const statusBadge = document.getElementById('modalStatusBadge');
-                statusBadge.textContent = status;
-                statusBadge.style.background = statusBg;
-                
-                // Quality bar - only show for signal charts
-                const qualityCard = document.getElementById('modalQualityCard');
-                if (isSignalChart) {
-                    qualityCard.style.display = 'block';
-                    // Apply theme to quality card
-                    if (kpiTheme === 'dark') {
-                        qualityCard.style.background = '#374151';
-                        qualityCard.style.color = '#ffffff';
-                        const qualityTitle = document.getElementById('modalQualityTitle');
-                        if (qualityTitle) qualityTitle.style.color = '#9ca3af';
-                        const qualityText = document.getElementById('qualityText');
-                        if (qualityText) qualityText.style.color = '#ffffff';
-                    } else {
-                        qualityCard.style.background = '#ffffff';
-                        qualityCard.style.color = '#1f2937';
-                    }
+                    
+                    const total = values.length;
+                    const exPct = (excellent / total * 100).toFixed(0);
+                    const gdPct = (good / total * 100).toFixed(0);
+                    const frPct = (fair / total * 100).toFixed(0);
+                    const prPct = (poor / total * 100).toFixed(0);
+                    const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
+                    
                     document.getElementById('qualityExcellent').style.width = exPct + '%';
                     document.getElementById('qualityExcellent').textContent = exPct > 8 ? exPct + '%' : '';
                     document.getElementById('qualityGood').style.width = gdPct + '%';
@@ -2669,14 +2550,41 @@ function renderScatterPlots() {
                 } else {
                     qualityCard.style.display = 'none';
                 }
+                
+                // Update network status based on technology
+                const tech = detectedTechnology || 'LTE';
+                let networkStatus = 'OPERATIONAL';
+                let networkStatusColor = '#10b981';
+                
+                if (tech === 'GSM') {
+                    networkStatus = '2G GSM Network Active';
+                    document.getElementById('signalAlert').textContent = 'RxLev below -100 dBm';
+                } else if (tech === 'UMTS') {
+                    networkStatus = '3G UMTS Network Active';
+                    document.getElementById('signalAlert').textContent = 'RSCP below -100 dBm';
+                } else if (tech === 'NR') {
+                    networkStatus = '5G NR Network Active';
+                    document.getElementById('signalAlert').textContent = 'NR-RSRP below -100 dBm';
+                } else {
+                    networkStatus = '4G LTE Network Active';
+                    document.getElementById('signalAlert').textContent = 'RSRP below -100 dBm';
+                }
+                
+                if (current < -110) {
+                    networkStatus = 'DEGRADED - Poor Coverage';
+                    networkStatusColor = '#ef4444';
+                } else if (current < -100) {
+                    networkStatus = 'WARNING - Weak Signal';
+                    networkStatusColor = '#f59e0b';
+                }
+                
+                document.getElementById('networkStatus').textContent = networkStatus;
+                document.getElementById('networkStatus').style.color = networkStatusColor;
             }
             
-            if (zoomedChart) zoomedChart.destroy();
-            
+            // Create enterprise-styled chart
             const ctx = canvas.getContext('2d');
             const cfg = chartInstance.config;
-            
-            // Clone data with updated labels from the original chart
             const clonedData = JSON.parse(JSON.stringify(cfg.data));
             
             zoomedChart = new Chart(ctx, {
@@ -2687,13 +2595,53 @@ function renderScatterPlots() {
                     maintainAspectRatio: false,
                     interaction: cfg.options.interaction,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { size: 14 } } : undefined,
+                        legend: { 
+                            display: true, 
+                            position: 'top', 
+                            labels: { 
+                                color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                                font: { family: 'Inter, system-ui, sans-serif', size: 11 } 
+                            } 
+                        },
+                        title: cfg.options.plugins?.title ? { 
+                            display: true, 
+                            text: cfg.options.plugins.title.text, 
+                            color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                            font: { family: 'Inter, system-ui, sans-serif', size: 14, weight: '600' } 
+                        } : undefined,
                         tooltip: cfg.options.plugins?.tooltip
                     },
                     scales: {
-                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: kpiTheme === 'dark' ? '#9ca3af' : '#64748b' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(100, 116, 139, 0.2)' }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { size: 12 } } : undefined } : undefined,
-                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: kpiTheme === 'dark' ? '#9ca3af' : '#64748b' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(100, 116, 139, 0.2)' }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: kpiTheme === 'dark' ? '#fff' : '#1e293b', font: { size: 12 } } : undefined } : undefined
+                        x: cfg.options.scales?.x ? { 
+                            ...cfg.options.scales.x, 
+                            ticks: { 
+                                ...cfg.options.scales.x.ticks, 
+                                color: kpiTheme === 'dark' ? 'var(--text-secondary-dark)' : 'var(--text-secondary-light)',
+                                font: { family: 'Inter, system-ui, sans-serif', size: 10 }
+                            }, 
+                            grid: { color: kpiTheme === 'dark' ? 'var(--border-dark)' : 'var(--border-light)' },
+                            title: cfg.options.scales.x.title ? { 
+                                display: true, 
+                                text: cfg.options.scales.x.title.text, 
+                                color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                                font: { family: 'Inter, system-ui, sans-serif', size: 12, weight: '500' } 
+                            } : undefined 
+                        } : undefined,
+                        y: cfg.options.scales?.y ? { 
+                            ...cfg.options.scales.y, 
+                            ticks: { 
+                                ...cfg.options.scales.y.ticks, 
+                                color: kpiTheme === 'dark' ? 'var(--text-secondary-dark)' : 'var(--text-secondary-light)',
+                                font: { family: 'Inter, system-ui, sans-serif', size: 10 }
+                            }, 
+                            grid: { color: kpiTheme === 'dark' ? 'var(--border-dark)' : 'var(--border-light)' },
+                            title: cfg.options.scales.y.title ? { 
+                                display: true, 
+                                text: cfg.options.scales.y.title.text, 
+                                color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                                font: { family: 'Inter, system-ui, sans-serif', size: 12, weight: '500' } 
+                            } : undefined 
+                        } : undefined
                     }
                 }
             });
@@ -2904,9 +2852,9 @@ function renderScatterPlots() {
     
 
 // =====================================================
-// SPARKLINE RENDERING FOR STAT CARDS
+// ENTERPRISE SPARKLINE RENDERING FOR STAT CARDS
 // =====================================================
-function renderSparkline(canvasId, data, color) {
+function renderEnterpriseSparkline(canvasId, data, color) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     
@@ -2926,32 +2874,45 @@ function renderSparkline(canvasId, data, color) {
     const max = Math.max(...sparkData);
     const range = max - min || 1;
     
-    // Calculate points
+    // Calculate points with padding
+    const padding = 2;
+    const chartHeight = height - (padding * 2);
+    const chartWidth = width - (padding * 2);
+    
     const points = sparkData.map((value, index) => ({
-        x: (index / (sparkData.length - 1)) * width,
-        y: height - ((value - min) / range) * height
+        x: padding + (index / (sparkData.length - 1)) * chartWidth,
+        y: padding + chartHeight - ((value - min) / range) * chartHeight
     }));
     
-    // Draw filled area
+    // Draw subtle filled area (enterprise style)
     ctx.beginPath();
-    ctx.moveTo(0, height);
+    ctx.moveTo(padding, height - padding);
     points.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(width, height);
+    ctx.lineTo(width - padding, height - padding);
     ctx.closePath();
-    ctx.fillStyle = color + '30'; // 30 = ~20% opacity
+    ctx.fillStyle = color + '15'; // Very subtle fill
     ctx.fill();
     
-    // Draw line
+    // Draw clean line
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     points.forEach(p => ctx.lineTo(p.x, p.y));
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.stroke();
+    
+    // Add subtle end point
+    const lastPoint = points[points.length - 1];
+    ctx.beginPath();
+    ctx.arc(lastPoint.x, lastPoint.y, 2, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
 }
 
-// Update modal statistics with sparklines and trends
-function updateModalStatistics(values, kpiType) {
+// Update modal statistics with enterprise sparklines and trends
+function updateEnterpriseModalStatistics(values, kpiType) {
     if (!values || values.length === 0) return;
     
     const min = Math.min(...values);
@@ -2972,15 +2933,15 @@ function updateModalStatistics(values, kpiType) {
     const trendDiff = recentAvg - previousAvg;
     const trendPercent = previousAvg !== 0 ? (trendDiff / Math.abs(previousAvg) * 100) : 0;
     
-    // Determine trend arrow and color
+    // Determine trend arrow and color (enterprise style)
     let trendArrow = '▬';
     let trendColor = '#6b7280';
     if (Math.abs(trendPercent) > 0.5) {
         if (trendDiff > 0) {
-            trendArrow = '🔺';
+            trendArrow = '↗';
             trendColor = '#10b981';
         } else {
-            trendArrow = '🔻';
+            trendArrow = '↘';
             trendColor = '#ef4444';
         }
     }
@@ -3003,15 +2964,23 @@ function updateModalStatistics(values, kpiType) {
         trendPctEl.style.color = trendColor;
     }
     
-    // Render sparklines
-    renderSparkline('sparklineCurrent', values, '#3b82f6');
-    renderSparkline('sparklineMin', values, '#ef4444');
-    renderSparkline('sparklineAvg', values, '#6b7280');
-    renderSparkline('sparklineMax', values, '#10b981');
+    // Render enterprise sparklines
+    renderEnterpriseSparkline('sparklineCurrent', values, '#3b82f6');
+    renderEnterpriseSparkline('sparklineMin', values, '#ef4444');
+    renderEnterpriseSparkline('sparklineAvg', values, '#6b7280');
+    renderEnterpriseSparkline('sparklineMax', values, '#10b981');
+    
+    // Update status dots for RSRP-like metrics
+    if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
+        updateEnterpriseStatusDot('statusDotCurrent', current);
+        updateEnterpriseStatusDot('statusDotMin', min);
+        updateEnterpriseStatusDot('statusDotAvg', avg);
+        updateEnterpriseStatusDot('statusDotMax', max);
+    }
 }
 
-// Update status dot color based on signal quality thresholds
-function updateStatusDot(dotId, value) {
+// Update enterprise status dot color based on signal quality thresholds
+function updateEnterpriseStatusDot(dotId, value) {
     const dot = document.getElementById(dotId);
     if (!dot) return;
     
@@ -3019,7 +2988,7 @@ function updateStatusDot(dotId, value) {
     
     // RSRP thresholds (telecom standard)
     if (value >= -80) {
-        color = '#22c55e'; // Excellent - Green
+        color = '#10b981'; // Excellent - Green
     } else if (value >= -90) {
         color = '#3b82f6'; // Good - Blue
     } else if (value >= -100) {
@@ -3029,11 +2998,10 @@ function updateStatusDot(dotId, value) {
     }
     
     dot.style.background = color;
-    dot.style.color = color;
 }
 
 // Enhanced updateModalStatistics to include status dots
-const originalUpdateModalStatistics = updateModalStatistics;
+const originalUpdateModalStatistics = updateEnterpriseModalStatistics;
 updateModalStatistics = function(values, kpiType) {
     originalUpdateModalStatistics(values, kpiType);
     
@@ -3046,10 +3014,10 @@ updateModalStatistics = function(values, kpiType) {
     
     // Update dynamic status dots for RSRP-like metrics
     if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
-        updateStatusDot('statusDotCurrent', current);
-        updateStatusDot('statusDotMin', min);
-        updateStatusDot('statusDotAvg', avg);
-        updateStatusDot('statusDotMax', max);
+        updateEnterpriseStatusDot('statusDotCurrent', current);
+        updateEnterpriseStatusDot('statusDotMin', min);
+        updateEnterpriseStatusDot('statusDotAvg', avg);
+        updateEnterpriseStatusDot('statusDotMax', max);
     }
     
     // Add animation classes
