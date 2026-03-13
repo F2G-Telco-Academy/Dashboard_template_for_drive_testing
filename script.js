@@ -2001,8 +2001,9 @@ function renderScatterPlots() {
                     el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
                 
-                // Build KPI content based on technology
+                // Build KPI content based on technology (excluding band for handovers to avoid duplicates)
                 const tech = row.technology || 'LTE';
+                const isHandover = row.event && row.event.toLowerCase().includes('handover');
                 let kpiContent = '';
                 
                 if (tech === 'NR') {
@@ -2010,14 +2011,13 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>`;
+                        ${!isHandover ? `<div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>` : ''}`;
                 } else if (tech === 'LTE') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
-                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>`;
+                        ${!isHandover ? `<div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>` : ''}`;
                 } else if (tech === 'UMTS') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
@@ -2030,13 +2030,72 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>`;
                 }
 
-                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+                // Build popup content with handover frequency transition details
+                let popupContent = `
                     <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                         <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label} (${tech})</div>
                         <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
-                        ${kpiContent}
-                    </div>
-                `);
+                        ${kpiContent}`;
+                
+                // Add handover frequency transition details
+                if (row.event && row.event.toLowerCase().includes('handover')) {
+                    // PCI transition - check for source/target first, fallback to current PCI
+                    if (row.source_pci && row.target_pci) {
+                        popupContent += `<div style="margin:4px 0;"><b>PCI:</b> ${row.source_pci} → ${row.target_pci}</div>`;
+                    } else if (row.pci || row.nr_pci) {
+                        // Fallback to current PCI if no transition data
+                        const currentPci = row.pci || row.nr_pci || '-';
+                        popupContent += `<div style="margin:4px 0;"><b>PCI:</b> ${currentPci}</div>`;
+                    }
+                    
+                    if (row.band || row.target_band) {
+                        const sourceBand = row.source_band || row.band || 'N/A';
+                        const targetBand = row.target_band || row.band || 'N/A';
+                        popupContent += `<div style="margin:4px 0;"><b>Band:</b> ${sourceBand} → ${targetBand}</div>`;
+                    }
+                    
+                    // Technology-aware frequency channel display
+                    const tech = row.technology || 'LTE';
+                    let freqLabel = 'EARFCN'; // Default to LTE
+                    let sourceFreq = null, targetFreq = null, currentFreq = null;
+                    
+                    if (tech === 'NR') {
+                        freqLabel = 'NR-ARFCN';
+                        sourceFreq = row.source_nr_arfcn || row.source_arfcn;
+                        targetFreq = row.target_nr_arfcn || row.target_arfcn;
+                        currentFreq = row.nr_arfcn || row.arfcn;
+                    } else if (tech === 'LTE') {
+                        freqLabel = 'EARFCN';
+                        sourceFreq = row.source_earfcn;
+                        targetFreq = row.target_earfcn;
+                        currentFreq = row.earfcn;
+                    } else if (tech === 'UMTS') {
+                        freqLabel = 'UARFCN';
+                        sourceFreq = row.source_uarfcn;
+                        targetFreq = row.target_uarfcn;
+                        currentFreq = row.uarfcn;
+                    } else if (tech === 'GSM') {
+                        freqLabel = 'ARFCN';
+                        sourceFreq = row.source_bcch_arfcn || row['source_bcch-arfcn'];
+                        targetFreq = row.target_bcch_arfcn || row['target_bcch-arfcn'];
+                        currentFreq = row.gsm_bcch_arfcn || row['bcch-arfcn'] || row.bcch_arfcn;
+                    }
+                    
+                    // Show frequency transition or current frequency
+                    if (sourceFreq && targetFreq && sourceFreq !== targetFreq) {
+                        popupContent += `<div style="margin:4px 0;"><b>${freqLabel}:</b> ${sourceFreq} → ${targetFreq}</div>`;
+                    } else if (currentFreq) {
+                        popupContent += `<div style="margin:4px 0;"><b>${freqLabel}:</b> ${currentFreq}</div>`;
+                    }
+                    
+                    if (row.source_technology && row.target_technology) {
+                        popupContent += `<div style="margin:4px 0;"><b>Technology:</b> ${row.source_technology} → ${row.target_technology}</div>`;
+                    }
+                }
+                
+                popupContent += `</div>`;
+                
+                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(popupContent);
                 markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
             });
 
