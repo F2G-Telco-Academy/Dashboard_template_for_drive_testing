@@ -2,6 +2,36 @@
 
 A professional telecom network validation dashboard for creating **customizable test case presentations** with editable fields, KPI visualization, and client-ready exports.
 
+## 🏗️ SYSTEM ARCHITECTURE
+
+### **Application Overview**
+- **Client-Side Only**: No server dependencies, all processing in browser
+- **Single Page Application**: HTML + JavaScript + CSS with external libraries
+- **Real-Time Processing**: Instant CSV parsing and visualization
+- **Universal Compatibility**: Works with any telecom drive test data
+
+### **Data Flow Pipeline**
+```
+CSV Upload → Multi-RAT Parser → Technology Detection → Data Storage → 
+Map Visualization + KPI Charts + Statistics → Configuration Management → Client Sharing
+```
+
+### **Core Technologies**
+- **Frontend**: Vanilla JavaScript, HTML5, TailwindCSS
+- **Mapping**: MapLibre GL with OpenStreetMap/CartoDB tiles
+- **Charts**: Chart.js with custom telecom-specific configurations
+- **Compression**: Pako (gzip) for URL sharing
+- **Storage**: Browser localStorage + File System Access API
+
+### **Technology Detection Logic**
+1. **Explicit Detection**: Uses `Technology` column values (NR, LTE, UMTS, GSM)
+2. **Auto-Detection**: Infers from technology-specific column presence:
+   - 5G NR: `nr_rsrp`, `nr_rsrq`, `nr_sinr` columns
+   - 4G LTE: `rsrp`, `rsrq`, `sinr` columns (default fallback)
+   - 3G UMTS: `wcdma_rscp`, `wcdma_ecno` columns
+   - 2G GSM: `gsm_rxlev`, `rxlev`, `gsm_rxqual` columns
+3. **Filtering**: Technology dropdown filters data in real-time
+
 ## 🆕 KEY FEATURES
 
 ### 📡 **Multi-RAT Support (2G/3G/4G/5G)**
@@ -49,6 +79,7 @@ A professional telecom network validation dashboard for creating **customizable 
   - RSRQ/Ec/No/RxQual (dB) - Independent optimized scale
   - SINR (dB) - Hidden for UMTS/GSM
   - Throughput DL (Mbps) - Independent optimized scale
+  - Throughput UL (Mbps) - Independent optimized scale
   - BLER (%) - Hidden for UMTS/GSM
   - CQI - Hidden for UMTS/GSM
   - MCS - Hidden for UMTS/GSM
@@ -302,6 +333,26 @@ Client: Open URL → View dashboard (read-only)
 
 ---
 
+## 📊 Performance & Limitations
+
+### **Recommended CSV File Sizes**
+- **Optimal**: < 5,000 data points for smooth performance
+- **Maximum**: < 50,000 data points (may cause slower rendering)
+- **File Size**: < 10MB for sharing URLs to work reliably
+
+### **Browser Storage Usage**
+- **localStorage**: Auto-saves dashboard configuration (< 1MB)
+- **Memory**: CSV data held in browser memory during session
+- **No Server Storage**: All data remains on your device
+
+### **Chart Interaction Features**
+- **Click-to-Zoom**: Click any chart for fullscreen modal view
+- **Technology-Aware Titles**: Modal titles adapt to detected technology
+- **Keyboard Shortcuts**: ESC to close, standard zoom controls
+- **Theme Support**: Charts adapt to light/dark KPI panel theme
+
+---
+
 ## 🔐 Data Privacy & Security
 
 - **All processing is client-side** (no data sent to servers)
@@ -363,6 +414,7 @@ Client: Open URL → View dashboard (read-only)
 - ✅ Technology-specific modal titles in fullscreen view
 - ✅ Map popups show technology-appropriate KPIs
 - ✅ Fully backward compatible with existing LTE CSV files
+- ✅ Added UL Throughput chart in KPI Comparison Analysis section
 
 **v3.4 (Rich Text Formatting)**
 - ✅ Added rich text formatting toolbar (appears in edit mode)

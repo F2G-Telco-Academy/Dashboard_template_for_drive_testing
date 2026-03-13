@@ -123,7 +123,11 @@ Click **"✏️ EDIT MODE: OFF"** button (top-right)
 - Toggle individual KPI visibility with checkboxes
 - PCI changes tracking with handover detection
 - Statistics and signal quality distribution
-- Multi-KPI comparison charts
+- Multi-KPI comparison charts including DL and UL throughput
+- **Click-to-Zoom**: Click any chart for fullscreen modal view
+  - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
+  - ESC key or close button to exit
+  - All charts support fullscreen view with correct labels
 
 ### 💾 Save Configuration
 
@@ -355,6 +359,18 @@ interference-study-20240202.json
 2. Check file is UTF-8 encoded
 3. Ensure comma-separated (not semicolon)
 4. Try sample CSV file first
+5. **File Size**: Keep CSV under 10MB for optimal performance
+6. **Data Points**: Recommended < 5,000 points for smooth rendering
+
+---
+
+### Problem: Charts Not Loading or Slow Performance
+
+**Solutions:**
+1. Reduce CSV file size (< 5,000 data points recommended)
+2. Close other browser tabs to free memory
+3. Try in Chrome/Edge for best performance
+4. Clear browser cache and reload
 
 ---
 

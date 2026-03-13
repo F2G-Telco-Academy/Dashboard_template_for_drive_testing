@@ -19,6 +19,7 @@
         let compRsrqOnly = null;
         let compBlerTput = null;
         let compTputOnly = null;
+        let compTputUlOnly = null;
         let compBlerOnly = null;
         let scatterTputSinr = null;
         let scatterTputRsrp = null;
@@ -962,6 +963,7 @@ function renderScatterPlots() {
             const mcsVals = parsedData.map(d => parseFloat(d.mcs) || 0);
             const blerVals = parsedData.map(d => parseFloat(d.bler) || 0);
             const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
+            const tputUlVals = parsedData.map(d => parseFloat(d.throughput_ul_mbps) || 0);
             
             // Chart labels based on technology
             const rsrpLabel = tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)';
@@ -1223,6 +1225,44 @@ function renderScatterPlots() {
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
                         y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                    }
+                }
+            });
+
+            // Throughput UL (Separate Chart)
+            if (compTputUlOnly) compTputUlOnly.destroy();
+            const maxTputUl = Math.max(...tputUlVals);
+            compTputUlOnly = new Chart(document.getElementById('compTputUlOnly'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'UL Throughput (Mbps)', data: tputUlVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'JetBrains Mono', size: 11 },
+                            bodyFont: { family: 'JetBrains Mono', size: 10 },
+                            padding: 10,
+                            borderColor: '#fff',
+                            borderWidth: 1,
+                            callbacks: {
+                                title: function(context) { return 'Time: ' + context[0].label; },
+                                label: function(context) {
+                                    return 'UL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTputUl * 1.1) }
                     }
                 }
             });
@@ -2469,23 +2509,24 @@ function renderScatterPlots() {
                         else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; }
                         else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; }
                         else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; }
-                        else if (index === 4 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
-                        else if (index === 5 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
-                        else if (index === 6 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
+                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; }
+                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
+                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
+                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
                         
                         // Scatter plots
-                        else if (index === 7 && scatterTputSinr) { 
+                        else if (index === 8 && scatterTputSinr) { 
                             chart = scatterTputSinr; 
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
                             title = `Throughput vs ${xLabel}`; 
                         }
-                        else if (index === 8 && scatterTputRsrp) { 
+                        else if (index === 9 && scatterTputRsrp) { 
                             chart = scatterTputRsrp; 
                             const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
                         }
-                        else if (index === 9 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 10 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
+                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
