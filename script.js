@@ -19,6 +19,7 @@
         let compRsrqOnly = null;
         let compBlerTput = null;
         let compTputOnly = null;
+        let compTputUlOnly = null;
         let compBlerOnly = null;
         let scatterTputSinr = null;
         let scatterTputRsrp = null;
@@ -962,6 +963,7 @@ function renderScatterPlots() {
             const mcsVals = parsedData.map(d => parseFloat(d.mcs) || 0);
             const blerVals = parsedData.map(d => parseFloat(d.bler) || 0);
             const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
+            const tputUlVals = parsedData.map(d => parseFloat(d.throughput_ul_mbps) || 0);
             
             // Chart labels based on technology
             const rsrpLabel = tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)';
@@ -1223,6 +1225,44 @@ function renderScatterPlots() {
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
                         y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                    }
+                }
+            });
+
+            // Throughput UL (Separate Chart)
+            if (compTputUlOnly) compTputUlOnly.destroy();
+            const maxTputUl = Math.max(...tputUlVals);
+            compTputUlOnly = new Chart(document.getElementById('compTputUlOnly'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'UL Throughput (Mbps)', data: tputUlVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'JetBrains Mono', size: 11 },
+                            bodyFont: { family: 'JetBrains Mono', size: 10 },
+                            padding: 10,
+                            borderColor: '#fff',
+                            borderWidth: 1,
+                            callbacks: {
+                                title: function(context) { return 'Time: ' + context[0].label; },
+                                label: function(context) {
+                                    return 'UL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTputUl * 1.1) }
                     }
                 }
             });
@@ -1961,8 +2001,9 @@ function renderScatterPlots() {
                     el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
                 
-                // Build KPI content based on technology
+                // Build KPI content based on technology (excluding band for handovers to avoid duplicates)
                 const tech = row.technology || 'LTE';
+                const isHandover = row.event && row.event.toLowerCase().includes('handover');
                 let kpiContent = '';
                 
                 if (tech === 'NR') {
@@ -1970,14 +2011,13 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>`;
+                        ${!isHandover ? `<div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>` : ''}`;
                 } else if (tech === 'LTE') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
-                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>`;
+                        ${!isHandover ? `<div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>` : ''}`;
                 } else if (tech === 'UMTS') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
@@ -1990,13 +2030,72 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>`;
                 }
 
-                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+                // Build popup content with handover frequency transition details
+                let popupContent = `
                     <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                         <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label} (${tech})</div>
                         <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
-                        ${kpiContent}
-                    </div>
-                `);
+                        ${kpiContent}`;
+                
+                // Add handover frequency transition details
+                if (row.event && row.event.toLowerCase().includes('handover')) {
+                    // PCI transition - check for source/target first, fallback to current PCI
+                    if (row.source_pci && row.target_pci) {
+                        popupContent += `<div style="margin:4px 0;"><b>PCI:</b> ${row.source_pci} → ${row.target_pci}</div>`;
+                    } else if (row.pci || row.nr_pci) {
+                        // Fallback to current PCI if no transition data
+                        const currentPci = row.pci || row.nr_pci || '-';
+                        popupContent += `<div style="margin:4px 0;"><b>PCI:</b> ${currentPci}</div>`;
+                    }
+                    
+                    if (row.band || row.target_band) {
+                        const sourceBand = row.source_band || row.band || 'N/A';
+                        const targetBand = row.target_band || row.band || 'N/A';
+                        popupContent += `<div style="margin:4px 0;"><b>Band:</b> ${sourceBand} → ${targetBand}</div>`;
+                    }
+                    
+                    // Technology-aware frequency channel display
+                    const tech = row.technology || 'LTE';
+                    let freqLabel = 'EARFCN'; // Default to LTE
+                    let sourceFreq = null, targetFreq = null, currentFreq = null;
+                    
+                    if (tech === 'NR') {
+                        freqLabel = 'NR-ARFCN';
+                        sourceFreq = row.source_nr_arfcn || row.source_arfcn;
+                        targetFreq = row.target_nr_arfcn || row.target_arfcn;
+                        currentFreq = row.nr_arfcn || row.arfcn;
+                    } else if (tech === 'LTE') {
+                        freqLabel = 'EARFCN';
+                        sourceFreq = row.source_earfcn;
+                        targetFreq = row.target_earfcn;
+                        currentFreq = row.earfcn;
+                    } else if (tech === 'UMTS') {
+                        freqLabel = 'UARFCN';
+                        sourceFreq = row.source_uarfcn;
+                        targetFreq = row.target_uarfcn;
+                        currentFreq = row.uarfcn;
+                    } else if (tech === 'GSM') {
+                        freqLabel = 'ARFCN';
+                        sourceFreq = row.source_bcch_arfcn || row['source_bcch-arfcn'];
+                        targetFreq = row.target_bcch_arfcn || row['target_bcch-arfcn'];
+                        currentFreq = row.gsm_bcch_arfcn || row['bcch-arfcn'] || row.bcch_arfcn;
+                    }
+                    
+                    // Show frequency transition or current frequency
+                    if (sourceFreq && targetFreq && sourceFreq !== targetFreq) {
+                        popupContent += `<div style="margin:4px 0;"><b>${freqLabel}:</b> ${sourceFreq} → ${targetFreq}</div>`;
+                    } else if (currentFreq) {
+                        popupContent += `<div style="margin:4px 0;"><b>${freqLabel}:</b> ${currentFreq}</div>`;
+                    }
+                    
+                    if (row.source_technology && row.target_technology) {
+                        popupContent += `<div style="margin:4px 0;"><b>Technology:</b> ${row.source_technology} → ${row.target_technology}</div>`;
+                    }
+                }
+                
+                popupContent += `</div>`;
+                
+                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(popupContent);
                 markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
             });
 
@@ -2469,23 +2568,24 @@ function renderScatterPlots() {
                         else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; }
                         else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; }
                         else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; }
-                        else if (index === 4 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
-                        else if (index === 5 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
-                        else if (index === 6 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
+                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; }
+                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
+                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
+                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
                         
                         // Scatter plots
-                        else if (index === 7 && scatterTputSinr) { 
+                        else if (index === 8 && scatterTputSinr) { 
                             chart = scatterTputSinr; 
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
                             title = `Throughput vs ${xLabel}`; 
                         }
-                        else if (index === 8 && scatterTputRsrp) { 
+                        else if (index === 9 && scatterTputRsrp) { 
                             chart = scatterTputRsrp; 
                             const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
                         }
-                        else if (index === 9 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 10 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
+                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
