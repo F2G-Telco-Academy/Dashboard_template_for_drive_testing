@@ -26,6 +26,9 @@
         let scatterMcsCqi = null;
         let scatterBlerTput = null;
         let kpiHistogramChart = null;
+        let mentorChart1 = null;
+        let mentorChart2 = null;
+        let mentorChart3 = null;
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
@@ -429,6 +432,11 @@
                 this.classList.remove('bg-gray-700');
                 currentKpiType = this.dataset.kpi;
                 renderKPIChart(currentKpiType);
+                // If zoom modal is open, update mentor charts to reflect new KPI selection
+                try {
+                    const modal = document.getElementById('chartZoomModal');
+                    if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                } catch (err) { console.warn('mentor charts update after KPI tab click failed', err); }
             });
         });
 
@@ -443,6 +451,11 @@
                 this.classList.remove('bg-gray-700');
                 currentChartType = this.dataset.type;
                 renderKPIChart(currentKpiType);
+                // Update mentor charts when chart type changes and modal is open
+                try {
+                    const modal = document.getElementById('chartZoomModal');
+                    if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                } catch (err) { console.warn('mentor charts update after chart type change failed', err); }
             });
         });
 
@@ -926,7 +939,252 @@
             });
         }
 
-function renderScatterPlots() {
+function renderMentorCharts(data, kpiType) {
+            if (!data || data.length === 0) return;
+            const tech = detectedTechnology || currentTechFilter || (data[0] && data[0].technology) || 'LTE';
+
+            // ── CHART 1: Signal Quality Distribution (vertical bar) ──────────
+            let sigVals;
+            if (tech === 'NR')        sigVals = data.map(d => parseFloat(d.nr_rsrp) || 0);
+            else if (tech === 'UMTS') sigVals = data.map(d => parseFloat(d.wcdma_rscp) || 0);
+            else if (tech === 'GSM')  sigVals = data.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
+            else                      sigVals = data.map(d => parseFloat(d.rsrp) || 0);
+
+            const qCounts = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
+            sigVals.forEach(v => {
+                if (v >= -80)       qCounts.Excellent++;
+                else if (v >= -90)  qCounts.Good++;
+                else if (v >= -100) qCounts.Fair++;
+                else                qCounts.Poor++;
+            });
+
+            if (mentorChart1) mentorChart1.destroy();
+            mentorChart1 = new Chart(document.getElementById('mentorChart1'), {
+                type: 'bar',
+                data: {
+                    labels: ['EXCELLENT', 'GOOD', 'FAIR', 'POOR'],
+                    datasets: [{
+                        data: [qCounts.Excellent, qCounts.Good, qCounts.Fair, qCounts.Poor],
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        borderRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: {
+                        label: ctx => `${ctx.parsed.y} samples (${((ctx.parsed.y/sigVals.length)*100).toFixed(1)}%)`
+                    }}},
+                    scales: {
+                        x: { ticks: { color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' } }, grid: { display: false } },
+                        y: { ticks: { color: '#6b7280', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+                    }
+                }
+            });
+
+            // ── CHART 2: Dual-line area - dynamic primary/secondary series (keeps blue color palette) ───────────────────
+            const labels = data.map((d, i) => d.time?.split('T')[1]?.slice(0, 5) || `${i+1}`);
+
+            // Determine series based on kpiType
+            let seriesA = [], seriesB = [], labelA = 'A', labelB = 'B', subtitleText = '';
+            const safeNum = v => (v === '' || v === null || v === undefined || isNaN(parseFloat(v))) ? 0 : parseFloat(v);
+
+            if (kpiType === 'throughput_dl_mbps' || kpiType === 'throughput_ul_mbps') {
+                seriesA = data.map(d => safeNum(d.throughput_dl_mbps));
+                seriesB = data.map(d => safeNum(d.throughput_ul_mbps));
+                labelA = 'DL (Mbps)'; labelB = 'UL (Mbps)';
+                subtitleText = 'DL / UL (Mbps)';
+            } else if (kpiType === 'sinr') {
+                seriesA = data.map(d => safeNum(d.nr_sinr || d.sinr));
+                seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
+                labelA = 'SINR (dB)'; labelB = 'DL (Mbps)';
+                subtitleText = 'SINR vs DL Throughput';
+            } else if (kpiType === 'rsrp' || kpiType === 'wcdma_rscp' || kpiType === 'gsm_rxlev') {
+                // Map RSRP-like KPI to technology-specific field and label
+                if (tech === 'NR') {
+                    seriesA = data.map(d => safeNum(d.nr_rsrp));
+                    labelA = 'NR-RSRP (dBm)';
+                } else if (tech === 'UMTS') {
+                    seriesA = data.map(d => safeNum(d.wcdma_rscp));
+                    labelA = 'RSCP (dBm)';
+                } else if (tech === 'GSM') {
+                    seriesA = data.map(d => safeNum(d.gsm_rxlev || d.rxlev));
+                    labelA = 'RxLev (dBm)';
+                } else {
+                    seriesA = data.map(d => safeNum(d.rsrp));
+                    labelA = 'RSRP (dBm)';
+                }
+                seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
+                labelB = 'DL (Mbps)';
+                subtitleText = `${labelA} vs DL Throughput`;
+            } else {
+                // Generic fallback: primary KPI + DL throughput for context
+                seriesA = data.map(d => safeNum(d[kpiType]));
+                seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
+                labelA = (kpiType || 'Metric').toUpperCase();
+                labelB = 'DL (Mbps)';
+                subtitleText = `${labelA} vs DL Throughput`;
+            }
+
+            // Update mentor chart header text if present
+            try {
+                const tEl = document.getElementById('mentorChart2Title');
+                const sEl = document.getElementById('mentorChart2Subtitle');
+                if (tEl) tEl.textContent = labelA.includes('(') ? labelA.split('(')[0].trim() : labelA;
+                if (sEl) sEl.textContent = subtitleText;
+            } catch (e) { /* ignore */ }
+
+            if (mentorChart2) mentorChart2.destroy();
+            mentorChart2 = new Chart(document.getElementById('mentorChart2'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: labelA,
+                            data: seriesA,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.08)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: labelB,
+                            data: seriesB,
+                            borderColor: '#60a5fa',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            borderDash: [4,3],
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: true, position: 'top', labels: { color: '#6b7280', font: { size: 9 } } }, tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', bodyFont: { family: 'JetBrains Mono', size: 10 } } },
+                    scales: {
+                        x: { ticks: { color: '#9ca3af', font: { size: 8 }, maxTicksLimit: 6, maxRotation: 0 }, grid: { color: 'rgba(0,0,0,0.06)' } },
+                        y: { ticks: { color: '#9ca3af', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+                    }
+                }
+            });
+
+            // ── CHART 3: Signal strength by Band (grouped histogram) ─────────
+            const sigLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+            document.getElementById('mentorChart3Title').textContent = `${sigLabel}_LOAD`;
+
+            // Group avg signal per band
+            const bandMap = {};
+            data.forEach(d => {
+                const band = d.band || d.earfcn || d.uarfcn || d.gsm_bcch_arfcn || 'N/A';
+                const key = `B${band}`;
+                if (!bandMap[key]) bandMap[key] = [];
+                const sv = tech === 'NR' ? parseFloat(d.nr_rsrp) :
+                           tech === 'UMTS' ? parseFloat(d.wcdma_rscp) :
+                           tech === 'GSM'  ? parseFloat(d.gsm_rxlev || d.rxlev) :
+                                            parseFloat(d.rsrp);
+                if (!isNaN(sv) && sv !== 0) bandMap[key].push(sv);
+            });
+
+            const bandEntries = Object.entries(bandMap)
+                .filter(([, v]) => v.length > 0)
+                .sort((a, b) => b[1].length - a[1].length)
+                .slice(0, 8);
+
+            const bandLabels = bandEntries.map(([k]) => k);
+            const bandAvg    = bandEntries.map(([, v]) => parseFloat((v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)));
+            const bandCounts = bandEntries.map(([, v]) => v.length);
+
+            // Color bars by avg signal quality
+            const bandColors = bandAvg.map(v =>
+                v >= -80 ? '#22c55e' : v >= -90 ? '#f59e0b' : '#ef4444'
+            );
+
+            // Update health badge
+            const goodPct = sigVals.filter(v => v >= -90).length / (sigVals.length || 1);
+            const badge = document.getElementById('mentorChart3Badge');
+            if (goodPct >= 0.8)      { badge.textContent = 'HEALTHY';  badge.style.background = '#22c55e'; }
+            else if (goodPct >= 0.5) { badge.textContent = 'WARNING';  badge.style.background = '#f59e0b'; }
+            else                     { badge.textContent = 'CRITICAL'; badge.style.background = '#ef4444'; }
+
+            if (mentorChart3) mentorChart3.destroy();
+            mentorChart3 = new Chart(document.getElementById('mentorChart3'), {
+                type: 'bar',
+                data: {
+                    labels: bandLabels,
+                    datasets: [
+                        {
+                            label: `Avg ${sigLabel} (dBm)`,
+                            data: bandAvg,
+                            backgroundColor: bandColors,
+                            borderWidth: 0, borderRadius: 2, yAxisID: 'y'
+                        },
+                        {
+                            label: 'Samples',
+                            data: bandCounts,
+                            backgroundColor: 'rgba(156,163,175,0.4)',
+                            borderWidth: 0, borderRadius: 2, yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' }, boxWidth: 10 } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', bodyFont: { family: 'JetBrains Mono', size: 10 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#6b7280', font: { size: 9 } }, grid: { display: false } },
+                        y:  { position: 'left',  ticks: { color: '#6b7280', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+                        y1: { position: 'right', ticks: { color: '#9ca3af', font: { size: 8 } }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            // ── PANEL 4: Active Events ranked list ───────────────────────────
+            const eventCounts = {};
+            data.forEach(d => {
+                if (d.event && d.event.trim()) {
+                    const key = d.event.trim().toUpperCase();
+                    eventCounts[key] = (eventCounts[key] || 0) + 1;
+                }
+            });
+
+            const eventColors = {
+                HANDOVER: '#f97316', ATTACH: '#3b82f6', DETACH: '#9ca3af',
+                RLF: '#ef4444', CELL_RESELECTION: '#8b5cf6', CSFB: '#a855f7'
+            };
+
+            const sortedEvents = Object.entries(eventCounts).sort((a, b) => b[1] - a[1]);
+            const maxCount = sortedEvents[0]?.[1] || 1;
+            const listEl = document.getElementById('mentorEventsList');
+
+            if (sortedEvents.length === 0) {
+                listEl.innerHTML = '<div style="font-size:11px; color:#9ca3af; padding:8px 0;">No events detected</div>';
+            } else {
+                listEl.innerHTML = sortedEvents.map(([name, count], i) => {
+                    const color = eventColors[name] || '#6b7280';
+                    const barPct = Math.round((count / maxCount) * 100);
+                    return `
+                        <div style="display:flex; flex-direction:column; gap:3px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; font-weight:600; color:#374151; font-family:'JetBrains Mono',monospace;">[0${i}] ${name}</span>
+                                <span style="font-size:11px; font-weight:700; color:#1f2937;">${count.toLocaleString()}</span>
+                            </div>
+                            <div style="height:4px; background:#f3f4f6; border-radius:2px; overflow:hidden;">
+                                <div style="height:100%; width:${barPct}%; background:${color}; border-radius:2px;"></div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+        }
+
+        function renderScatterPlots() {
             if (parsedData.length === 0) return;
 
             const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `${i+1}`);
@@ -1839,8 +2097,18 @@ function renderScatterPlots() {
                     } else if (techValue.includes('NR') || techValue === '5G') {
                         obj.technology = 'NR';
                     } else {
-                        // Mark as Unknown if technology doesn't match any known type
-                        obj.technology = 'Unknown';
+                        // Fallback: auto-detect from signal columns for unrecognized values (e.g. 'Unknown')
+                        if (hasNR && obj.nr_rsrp && obj.nr_rsrp !== '' && obj.nr_rsrp !== '0') {
+                            obj.technology = 'NR';
+                        } else if (hasUMTS && obj.wcdma_rscp && obj.wcdma_rscp !== '' && obj.wcdma_rscp !== '0') {
+                            obj.technology = 'UMTS';
+                        } else if (hasGSM && (obj.gsm_rxlev || obj.rxlev) && (obj.gsm_rxlev !== '0' || obj.rxlev !== '0')) {
+                            obj.technology = 'GSM';
+                        } else if (hasLTE && obj.rsrp && obj.rsrp !== '' && obj.rsrp !== '0') {
+                            obj.technology = 'LTE';
+                        } else {
+                            obj.technology = 'Unknown';
+                        }
                     }
                 }
                 
@@ -2117,6 +2385,12 @@ function renderScatterPlots() {
                 map.fitBounds(bounds, { padding: 50 });
             }
 
+            // If zoom modal is open, update mentor charts with the newly filtered data
+            try {
+                const modal = document.getElementById('chartZoomModal');
+                if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+            } catch (err) { console.warn('mentor charts update after renderMap failed', err); }
+
             // Auto-populate L3 messages (removed - no longer needed)
         }
 
@@ -2140,6 +2414,13 @@ function renderScatterPlots() {
             currentTechFilter = e.target.value;
             if (csvData && rawParsedData.length > 0) {
                 renderMap(); // Call without csvText to re-filter existing data
+                // If zoom modal is open, re-render mentor charts with new filtered data
+                setTimeout(() => {
+                    try {
+                        const modal = document.getElementById('chartZoomModal');
+                        if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                    } catch (err) { console.warn('mentor charts update after tech change failed', err); }
+                }, 250);
             }
         });
 
@@ -2458,6 +2739,10 @@ function renderScatterPlots() {
             if (values.length > 0) {
                 // Update modal statistics with mentor-style design
                 updateMentorModalStatistics(values, currentKpiType);
+
+                // Render mentor 2x2 overview inside the zoom modal using the current filtered data
+                // This ensures mentor charts are created only when the modal opens
+                try { renderMentorCharts(parsedData, currentKpiType); } catch (e) { console.warn('renderMentorCharts error:', e); }
                 
                 const min = Math.min(...values);
                 const max = Math.max(...values);
@@ -2745,28 +3030,30 @@ function renderScatterPlots() {
                         const rsrqLabel = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
                         const sinrLabel = tech === 'NR' ? 'NR-SINR' : 'SINR';
                         
-                        if (index === 0 && compRsrpOnly) { chart = compRsrpOnly; title = rsrpLabel; }
-                        else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; }
-                        else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; }
-                        else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; }
-                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; }
-                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
-                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
-                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
+                        if (index === 0 && compRsrpOnly) { chart = compRsrpOnly; title = rsrpLabel; currentKpiType = 'rsrp'; }
+                        else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; currentKpiType = 'rsrq'; }
+                        else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; currentKpiType = 'sinr'; }
+                        else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; currentKpiType = 'throughput_dl_mbps'; }
+                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; currentKpiType = 'throughput_ul_mbps'; }
+                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; currentKpiType = 'bler'; }
+                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; currentKpiType = 'cqi'; }
+                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; currentKpiType = 'mcs'; }
                         
                         // Scatter plots
                         else if (index === 8 && scatterTputSinr) { 
                             chart = scatterTputSinr; 
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
                             title = `Throughput vs ${xLabel}`; 
+                            currentKpiType = tech === 'UMTS' ? 'wcdma_rscp' : (tech === 'GSM' ? 'gsm_rxlev' : 'sinr');
                         }
                         else if (index === 9 && scatterTputRsrp) { 
                             chart = scatterTputRsrp; 
                             const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
+                            currentKpiType = 'rsrp';
                         }
-                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; currentKpiType = 'cqi'; }
+                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; currentKpiType = 'bler'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
@@ -2847,6 +3134,11 @@ function renderScatterPlots() {
                     const values = parsedData.map(d => parseFloat(d[currentKpiType]) || 0);
                     renderKPIHistogram(currentKpiType, values);
                 }
+                // Re-render mentor charts if modal is open
+                try {
+                    const modal = document.getElementById('chartZoomModal');
+                    if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                } catch (err) { console.warn('mentor charts update after theme change failed', err); }
             }
         });
     
