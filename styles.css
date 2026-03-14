@@ -244,7 +244,7 @@ body {
 
 /* Top Metrics Row Styling - Exact Mentor Template Background */
 .enterprise-modal #topMetricsRow {
-    background: #f5f6fa !important;
+    background: #ffffff !important;
     border-bottom: 1px solid #e1e5e9 !important;
 }
 
@@ -255,9 +255,9 @@ body {
 
 /* Mentor-Style KPI Cards - Fixed Height and Layout */
 .enterprise-kpi-card {
-    background: #ffffff;
+    background: #f5f6fa;
     background-image: 
-        radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+        radial-gradient(circle, #c8cdd6 1px, transparent 1px);
     background-size: 8px 8px;
     border: 1px solid #e1e5e9;
     border-radius: 6px;
