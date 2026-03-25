@@ -982,6 +982,239 @@ function renderMentorCharts(data, kpiType) {
                 }
             });
 
+            // ── CHART 2: Will be replaced by renderMentorChart2WithClickedChart ──────────
+            // This is just a placeholder - the actual chart is rendered separately
+            
+            // ── CHART 3: Signal strength by Band (grouped histogram) ─────────
+            const sigLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+            document.getElementById('mentorChart3Title').textContent = `${sigLabel}_LOAD`;
+
+            // Group avg signal per band
+            const bandMap = {};
+            data.forEach(d => {
+                const band = d.band || d.earfcn || d.uarfcn || d.gsm_bcch_arfcn || 'N/A';
+                const key = `B${band}`;
+                if (!bandMap[key]) bandMap[key] = [];
+                const sv = tech === 'NR' ? parseFloat(d.nr_rsrp) :
+                           tech === 'UMTS' ? parseFloat(d.wcdma_rscp) :
+                           tech === 'GSM'  ? parseFloat(d.gsm_rxlev || d.rxlev) :
+                                            parseFloat(d.rsrp);
+                if (!isNaN(sv) && sv !== 0) bandMap[key].push(sv);
+            });
+
+            const bandEntries = Object.entries(bandMap)
+                .filter(([, v]) => v.length > 0)
+                .sort((a, b) => b[1].length - a[1].length)
+                .slice(0, 8);
+
+            const bandLabels = bandEntries.map(([k]) => k);
+            const bandAvg    = bandEntries.map(([, v]) => parseFloat((v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)));
+            const bandCounts = bandEntries.map(([, v]) => v.length);
+
+            // Color bars by avg signal quality
+            const bandColors = bandAvg.map(v =>
+                v >= -80 ? '#22c55e' : v >= -90 ? '#f59e0b' : '#ef4444'
+            );
+
+            // Update health badge
+            const goodPct = sigVals.filter(v => v >= -90).length / (sigVals.length || 1);
+            const badge = document.getElementById('mentorChart3Badge');
+            if (goodPct >= 0.8)      { badge.textContent = 'HEALTHY';  badge.style.background = '#22c55e'; }
+            else if (goodPct >= 0.5) { badge.textContent = 'WARNING';  badge.style.background = '#f59e0b'; }
+            else                     { badge.textContent = 'CRITICAL'; badge.style.background = '#ef4444'; }
+
+            if (mentorChart3) mentorChart3.destroy();
+            mentorChart3 = new Chart(document.getElementById('mentorChart3'), {
+                type: 'bar',
+                data: {
+                    labels: bandLabels,
+                    datasets: [
+                        {
+                            label: `Avg ${sigLabel} (dBm)`,
+                            data: bandAvg,
+                            backgroundColor: bandColors,
+                            borderWidth: 0, borderRadius: 2, yAxisID: 'y'
+                        },
+                        {
+                            label: 'Samples',
+                            data: bandCounts,
+                            backgroundColor: 'rgba(156,163,175,0.4)',
+                            borderWidth: 0, borderRadius: 2, yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' }, boxWidth: 10 } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', bodyFont: { family: 'JetBrains Mono', size: 10 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#6b7280', font: { size: 9 } }, grid: { display: false } },
+                        y:  { position: 'left',  ticks: { color: '#6b7280', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+                        y1: { position: 'right', ticks: { color: '#9ca3af', font: { size: 8 } }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            // ── PANEL 4: Active Events ranked list ───────────────────────────
+            const eventCounts = {};
+            data.forEach(d => {
+                if (d.event && d.event.trim()) {
+                    const key = d.event.trim().toUpperCase();
+                    eventCounts[key] = (eventCounts[key] || 0) + 1;
+                }
+            });
+
+            const eventColors = {
+                HANDOVER: '#f97316', ATTACH: '#3b82f6', DETACH: '#9ca3af',
+                RLF: '#ef4444', CELL_RESELECTION: '#8b5cf6', CSFB: '#a855f7'
+            };
+
+            const sortedEvents = Object.entries(eventCounts).sort((a, b) => b[1] - a[1]);
+            const maxCount = sortedEvents[0]?.[1] || 1;
+            const listEl = document.getElementById('mentorEventsList');
+
+            if (sortedEvents.length === 0) {
+                listEl.innerHTML = '<div style="font-size:11px; color:#9ca3af; padding:8px 0;">No events detected</div>';
+            } else {
+                listEl.innerHTML = sortedEvents.map(([name, count], i) => {
+                    const color = eventColors[name] || '#6b7280';
+                    const barPct = Math.round((count / maxCount) * 100);
+                    return `
+                        <div style="display:flex; flex-direction:column; gap:3px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; font-weight:600; color:#374151; font-family:'JetBrains Mono',monospace;">[0${i}] ${name}</span>
+                                <span style="font-size:11px; font-weight:700; color:#1f2937;">${count.toLocaleString()}</span>
+                            </div>
+                            <div style="height:4px; background:#f3f4f6; border-radius:2px; overflow:hidden;">
+                                <div style="height:100%; width:${barPct}%; background:${color}; border-radius:2px;"></div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+        }
+
+        // New function to render mentorChart2 with the clicked chart
+        function renderMentorChartsWithClickedChart(data, kpiType, clickedChartInstance) {
+            // First render all other mentor charts (1, 3, 4)
+            renderMentorCharts(data, kpiType);
+            
+            // Now render mentorChart2 as a clone of the clicked chart
+            if (mentorChart2) mentorChart2.destroy();
+            
+            const ctx = document.getElementById('mentorChart2');
+            const cfg = clickedChartInstance.config;
+            const clonedData = JSON.parse(JSON.stringify(cfg.data));
+            
+            // Update title and subtitle based on clicked chart
+            const titleEl = document.getElementById('mentorChart2Title');
+            const subtitleEl = document.getElementById('mentorChart2Subtitle');
+            
+            if (titleEl && subtitleEl) {
+                // Extract meaningful title from chart
+                const chartTitle = cfg.options?.plugins?.title?.text || cfg.data.datasets[0]?.label || 'KPI';
+                titleEl.textContent = chartTitle.split('(')[0].trim();
+                
+                // Set subtitle based on chart type
+                if (cfg.type === 'scatter') {
+                    subtitleEl.textContent = 'CORRELATION';
+                } else {
+                    subtitleEl.textContent = 'TIME_SERIES';
+                }
+            }
+            
+            // Clone the chart with proper type preservation
+            mentorChart2 = new Chart(ctx, {
+                type: cfg.type, // Preserve original type (scatter, line, bar, etc.)
+                data: clonedData,
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    interaction: cfg.options?.interaction || { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { 
+                            display: clonedData.datasets.length > 1, 
+                            position: 'top', 
+                            labels: { color: '#6b7280', font: { size: 9 } } 
+                        }, 
+                        tooltip: cfg.options?.plugins?.tooltip || {
+                            backgroundColor: 'rgba(0,0,0,0.85)', 
+                            bodyFont: { family: 'JetBrains Mono', size: 10 } 
+                        }
+                    },
+                    scales: cfg.type === 'scatter' ? {
+                        // For scatter plots, preserve x and y axes
+                        x: { 
+                            type: 'linear',
+                            ticks: { color: '#9ca3af', font: { size: 8 } }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            title: cfg.options?.scales?.x?.title || undefined
+                        },
+                        y: { 
+                            type: 'linear',
+                            ticks: { color: '#9ca3af', font: { size: 9 } }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            title: cfg.options?.scales?.y?.title || undefined
+                        }
+                    } : {
+                        // For time-series charts
+                        x: { 
+                            ticks: { color: '#9ca3af', font: { size: 8 }, maxTicksLimit: 6, maxRotation: 0 }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' } 
+                        },
+                        y: { 
+                            ticks: { color: '#9ca3af', font: { size: 9 } }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' } 
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMentorCharts(data, kpiType) {
+            if (!data || data.length === 0) return;
+            const tech = detectedTechnology || currentTechFilter || (data[0] && data[0].technology) || 'LTE';
+
+            // ── CHART 1: Signal Quality Distribution (vertical bar) ──────────
+            let sigVals;
+            if (tech === 'NR')        sigVals = data.map(d => parseFloat(d.nr_rsrp) || 0);
+            else if (tech === 'UMTS') sigVals = data.map(d => parseFloat(d.wcdma_rscp) || 0);
+            else if (tech === 'GSM')  sigVals = data.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
+            else                      sigVals = data.map(d => parseFloat(d.rsrp) || 0);
+
+            const qCounts = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
+            sigVals.forEach(v => {
+                if (v >= -80)       qCounts.Excellent++;
+                else if (v >= -90)  qCounts.Good++;
+                else if (v >= -100) qCounts.Fair++;
+                else                qCounts.Poor++;
+            });
+
+            if (mentorChart1) mentorChart1.destroy();
+            mentorChart1 = new Chart(document.getElementById('mentorChart1'), {
+                type: 'bar',
+                data: {
+                    labels: ['EXCELLENT', 'GOOD', 'FAIR', 'POOR'],
+                    datasets: [{
+                        data: [qCounts.Excellent, qCounts.Good, qCounts.Fair, qCounts.Poor],
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        borderRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: {
+                        label: ctx => `${ctx.parsed.y} samples (${((ctx.parsed.y/sigVals.length)*100).toFixed(1)}%)`
+                    }}},
+                    scales: {
+                        x: { ticks: { color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' } }, grid: { display: false } },
+                        y: { ticks: { color: '#6b7280', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+                    }
+                }
+            });
+
             // ── CHART 2: Dual-line area - dynamic primary/secondary series (keeps blue color palette) ───────────────────
             const labels = data.map((d, i) => d.time?.split('T')[1]?.slice(0, 5) || `${i+1}`);
 
@@ -999,7 +1232,7 @@ function renderMentorCharts(data, kpiType) {
                 seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
                 labelA = 'SINR (dB)'; labelB = 'DL (Mbps)';
                 subtitleText = 'SINR vs DL Throughput';
-            } else if (kpiType === 'rsrp' || kpiType === 'wcdma_rscp' || kpiType === 'gsm_rxlev') {
+            } else if (kpiType === 'rsrp' || kpiType === 'wcdma_rscp' || kpiType === 'gsm_rxlev' || kpiType === 'rxlev') {
                 // Map RSRP-like KPI to technology-specific field and label
                 if (tech === 'NR') {
                     seriesA = data.map(d => safeNum(d.nr_rsrp));
@@ -1017,6 +1250,38 @@ function renderMentorCharts(data, kpiType) {
                 seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
                 labelB = 'DL (Mbps)';
                 subtitleText = `${labelA} vs DL Throughput`;
+            } else if (kpiType === 'rsrq' || kpiType === 'wcdma_ecno' || kpiType === 'gsm_rxqual' || kpiType === 'rxqual') {
+                // Handle RSRQ-like KPIs
+                if (tech === 'NR') {
+                    seriesA = data.map(d => safeNum(d.nr_rsrq));
+                    labelA = 'NR-RSRQ (dB)';
+                } else if (tech === 'UMTS') {
+                    seriesA = data.map(d => safeNum(d.wcdma_ecno));
+                    labelA = 'Ec/No (dB)';
+                } else if (tech === 'GSM') {
+                    seriesA = data.map(d => safeNum(d.gsm_rxqual || d.rxqual));
+                    labelA = 'RxQual';
+                } else {
+                    seriesA = data.map(d => safeNum(d.rsrq));
+                    labelA = 'RSRQ (dB)';
+                }
+                seriesB = data.map(d => safeNum(d.throughput_ul_mbps));
+                labelB = 'UL (Mbps)';
+                subtitleText = `${labelA} vs UL Throughput`;
+            } else if (kpiType === 'cqi' || kpiType === 'mcs') {
+                // CQI/MCS vs Throughput
+                seriesA = data.map(d => safeNum(d[kpiType]));
+                seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
+                labelA = kpiType.toUpperCase();
+                labelB = 'DL (Mbps)';
+                subtitleText = `${labelA} vs DL Throughput`;
+            } else if (kpiType === 'bler') {
+                // BLER vs Throughput
+                seriesA = data.map(d => safeNum(d.bler));
+                seriesB = data.map(d => safeNum(d.throughput_dl_mbps));
+                labelA = 'BLER (%)';
+                labelB = 'DL (Mbps)';
+                subtitleText = 'BLER vs DL Throughput';
             } else {
                 // Generic fallback: primary KPI + DL throughput for context
                 seriesA = data.map(d => safeNum(d[kpiType]));
@@ -2729,20 +2994,35 @@ function renderMentorCharts(data, kpiType) {
             title.textContent = chartTitle;
             modal.style.display = 'flex';
             
+            // Show mentor overview grid
+            const mentorGrid = document.getElementById('mentorOverviewGrid');
+            if (mentorGrid) mentorGrid.style.display = 'grid';
+            
             // Force canvas reset
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
             
+            // Extract values - handle both regular arrays and scatter plot {x,y} objects
             const data = chartInstance.data.datasets[0].data;
-            const values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
+            let values;
+            
+            // Check if this is a scatter plot (data contains {x, y} objects)
+            const isScatterPlot = data.length > 0 && typeof data[0] === 'object' && data[0].hasOwnProperty('x');
+            
+            if (isScatterPlot) {
+                // For scatter plots, extract y values for statistics
+                values = data.map(d => d.y).filter(v => v !== null && v !== undefined && !isNaN(v));
+            } else {
+                // For regular charts, use values directly
+                values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
+            }
             
             if (values.length > 0) {
                 // Update modal statistics with mentor-style design
                 updateMentorModalStatistics(values, currentKpiType);
 
-                // Render mentor 2x2 overview inside the zoom modal using the current filtered data
-                // This ensures mentor charts are created only when the modal opens
-                try { renderMentorCharts(parsedData, currentKpiType); } catch (e) { console.warn('renderMentorCharts error:', e); }
+                // Render mentor charts - mentorChart2 will show the clicked chart
+                try { renderMentorChartsWithClickedChart(parsedData, currentKpiType, chartInstance); } catch (e) { console.warn('renderMentorCharts error:', e); }
                 
                 const min = Math.min(...values);
                 const max = Math.max(...values);
@@ -3015,7 +3295,7 @@ function renderMentorCharts(data, kpiType) {
                 });
             }
 
-            // Comparison charts
+            // Comparison charts and scatter plots
             const compContainers = document.querySelectorAll('#kpiPanel .grid.grid-cols-1 > div');
             compContainers.forEach((container, index) => {
                 if (!container.classList.contains('chart-zoomable')) {
@@ -3024,36 +3304,66 @@ function renderMentorCharts(data, kpiType) {
                         let chart = null;
                         let title = '';
                         
+                        // Find which canvas is inside this container
+                        const canvas = container.querySelector('canvas');
+                        if (!canvas) return;
+                        
+                        const canvasId = canvas.id;
+                        
                         // Time-series charts - use technology-aware labels
                         const tech = detectedTechnology || 'LTE';
                         const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                         const rsrqLabel = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
                         const sinrLabel = tech === 'NR' ? 'NR-SINR' : 'SINR';
                         
-                        if (index === 0 && compRsrpOnly) { chart = compRsrpOnly; title = rsrpLabel; currentKpiType = 'rsrp'; }
-                        else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; currentKpiType = 'rsrq'; }
-                        else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; currentKpiType = 'sinr'; }
-                        else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; currentKpiType = 'throughput_dl_mbps'; }
-                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; currentKpiType = 'throughput_ul_mbps'; }
-                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; currentKpiType = 'bler'; }
-                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; currentKpiType = 'cqi'; }
-                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; currentKpiType = 'mcs'; }
+                        // Match by canvas ID instead of index
+                        if (canvasId === 'compRsrpOnly' && compRsrpOnly) { 
+                            chart = compRsrpOnly; title = rsrpLabel; currentKpiType = 'rsrp'; 
+                        }
+                        else if (canvasId === 'compRsrqOnly' && compRsrqOnly) { 
+                            chart = compRsrqOnly; title = rsrqLabel; currentKpiType = 'rsrq'; 
+                        }
+                        else if (canvasId === 'compSinrOnly' && compSinrOnly) { 
+                            chart = compSinrOnly; title = sinrLabel; currentKpiType = 'sinr'; 
+                        }
+                        else if (canvasId === 'compTputOnly' && compTputOnly) { 
+                            chart = compTputOnly; title = 'Throughput DL'; currentKpiType = 'throughput_dl_mbps'; 
+                        }
+                        else if (canvasId === 'compTputUlOnly' && compTputUlOnly) { 
+                            chart = compTputUlOnly; title = 'Throughput UL'; currentKpiType = 'throughput_ul_mbps'; 
+                        }
+                        else if (canvasId === 'compBlerOnly' && compBlerOnly) { 
+                            chart = compBlerOnly; title = 'BLER'; currentKpiType = 'bler'; 
+                        }
+                        else if (canvasId === 'compCqiOnly' && compCqiOnly) { 
+                            chart = compCqiOnly; title = 'CQI'; currentKpiType = 'cqi'; 
+                        }
+                        else if (canvasId === 'compMcsOnly' && compMcsOnly) { 
+                            chart = compMcsOnly; title = 'MCS'; currentKpiType = 'mcs'; 
+                        }
                         
                         // Scatter plots
-                        else if (index === 8 && scatterTputSinr) { 
+                        else if (canvasId === 'scatterTputSinr' && scatterTputSinr) { 
                             chart = scatterTputSinr; 
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
                             title = `Throughput vs ${xLabel}`; 
                             currentKpiType = tech === 'UMTS' ? 'wcdma_rscp' : (tech === 'GSM' ? 'gsm_rxlev' : 'sinr');
                         }
-                        else if (index === 9 && scatterTputRsrp) { 
+                        else if (canvasId === 'scatterTputRsrp' && scatterTputRsrp) { 
                             chart = scatterTputRsrp; 
-                            const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
                             currentKpiType = 'rsrp';
                         }
-                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; currentKpiType = 'cqi'; }
-                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; currentKpiType = 'bler'; }
+                        else if (canvasId === 'scatterMcsCqi' && scatterMcsCqi) { 
+                            chart = scatterMcsCqi; 
+                            title = 'MCS vs CQI'; 
+                            currentKpiType = 'cqi'; 
+                        }
+                        else if (canvasId === 'scatterBlerTput' && scatterBlerTput) { 
+                            chart = scatterBlerTput; 
+                            title = 'Throughput vs BLER'; 
+                            currentKpiType = 'bler'; 
+                        }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
