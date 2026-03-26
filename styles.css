@@ -608,20 +608,22 @@ body {
 /* Quality Distribution Bar */
 .quality-bar {
     display: flex;
-    height: 8px;
+    height: 24px;
     border-radius: 4px;
     overflow: hidden;
     margin: 8px 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .quality-segment {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.3px;
 }
 
 .quality-segment.excellent {

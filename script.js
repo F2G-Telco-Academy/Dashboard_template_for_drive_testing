@@ -2794,9 +2794,11 @@ function renderMentorCharts(data, kpiType) {
                 document.getElementById('modalP50').textContent = p50.toFixed(1);
                 document.getElementById('modalP90').textContent = p90.toFixed(1);
                 
-                // Status badge
+                // Status badge - Enhanced to handle all metric types
                 let status = 'UNKNOWN';
                 let statusClass = 'poor';
+                
+                // Signal metrics (RSRP, RSCP, RxLev, RSRQ, Ec/No, RxQual, SINR)
                 if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
                     if (current >= -80) { status = 'EXCELLENT'; statusClass = 'excellent'; }
                     else if (current >= -90) { status = 'GOOD'; statusClass = 'good'; }
@@ -2811,6 +2813,34 @@ function renderMentorCharts(data, kpiType) {
                     if (current >= 20) { status = 'EXCELLENT'; statusClass = 'excellent'; }
                     else if (current >= 13) { status = 'GOOD'; statusClass = 'good'; }
                     else if (current >= 0) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // CQI metric (0-15 scale)
+                else if (chartTitle.includes('CQI')) {
+                    if (current >= 12) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 9) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 6) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // MCS metric (0-28 for LTE, 0-31 for NR)
+                else if (chartTitle.includes('MCS')) {
+                    if (current >= 20) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 15) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 10) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // BLER metric (percentage, lower is better)
+                else if (chartTitle.includes('BLER')) {
+                    if (current <= 2) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current <= 5) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current <= 10) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // Throughput metrics (Mbps, higher is better)
+                else if (chartTitle.includes('Throughput') || chartTitle.includes('Mbps')) {
+                    if (current >= 50) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 20) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 5) { status = 'FAIR'; statusClass = 'fair'; }
                     else { status = 'POOR'; statusClass = 'poor'; }
                 }
                 
@@ -2858,13 +2888,13 @@ function renderMentorCharts(data, kpiType) {
                     const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
                     
                     document.getElementById('qualityExcellent').style.width = exPct + '%';
-                    document.getElementById('qualityExcellent').textContent = exPct > 8 ? exPct + '%' : '';
+                    document.getElementById('qualityExcellent').textContent = exPct > 5 ? exPct + '%' : '';
                     document.getElementById('qualityGood').style.width = gdPct + '%';
-                    document.getElementById('qualityGood').textContent = gdPct > 8 ? gdPct + '%' : '';
+                    document.getElementById('qualityGood').textContent = gdPct > 5 ? gdPct + '%' : '';
                     document.getElementById('qualityFair').style.width = frPct + '%';
-                    document.getElementById('qualityFair').textContent = frPct > 8 ? frPct + '%' : '';
+                    document.getElementById('qualityFair').textContent = frPct > 5 ? frPct + '%' : '';
                     document.getElementById('qualityPoor').style.width = prPct + '%';
-                    document.getElementById('qualityPoor').textContent = prPct > 8 ? prPct + '%' : '';
+                    document.getElementById('qualityPoor').textContent = prPct > 5 ? prPct + '%' : '';
                     document.getElementById('qualityText').textContent = `${goodOrBetter}% Good or Better`;
                 } else {
                     qualityCard.style.display = 'none';
@@ -2877,16 +2907,12 @@ function renderMentorCharts(data, kpiType) {
                 
                 if (tech === 'GSM') {
                     networkStatus = '2G GSM Network Active';
-                    document.getElementById('signalAlert').textContent = 'RxLev below -100 dBm';
                 } else if (tech === 'UMTS') {
                     networkStatus = '3G UMTS Network Active';
-                    document.getElementById('signalAlert').textContent = 'RSCP below -100 dBm';
                 } else if (tech === 'NR') {
                     networkStatus = '5G NR Network Active';
-                    document.getElementById('signalAlert').textContent = 'NR-RSRP below -100 dBm';
                 } else {
                     networkStatus = '4G LTE Network Active';
-                    document.getElementById('signalAlert').textContent = 'RSRP below -100 dBm';
                 }
                 
                 if (current < -110) {
@@ -2899,6 +2925,127 @@ function renderMentorCharts(data, kpiType) {
                 
                 document.getElementById('networkStatus').textContent = networkStatus;
                 document.getElementById('networkStatus').style.color = networkStatusColor;
+                
+                // Calculate real Coverage percentage (samples with good signal / total)
+                let coverageThreshold = -100; // Default for LTE/NR
+                if (tech === 'GSM') coverageThreshold = -95;
+                else if (tech === 'UMTS') coverageThreshold = -105;
+                
+                const samplesWithCoverage = values.filter(v => v >= coverageThreshold).length;
+                const coveragePct = ((samplesWithCoverage / values.length) * 100).toFixed(1);
+                const coverageEl = document.getElementById('networkCoverage');
+                coverageEl.textContent = `${coveragePct}% ${coveragePct >= 95 ? '✓' : '⚠'}`;
+                coverageEl.style.color = coveragePct >= 95 ? '#10b981' : coveragePct >= 85 ? '#f59e0b' : '#ef4444';
+                
+                // Calculate real Handover success rate from parsedData events
+                const handoverEvents = parsedData.filter(d => d.event && d.event.toLowerCase().includes('handover'));
+                const totalHandovers = handoverEvents.length;
+                let handoverSuccessPct = 100; // Default if no handovers
+                
+                if (totalHandovers > 0) {
+                    // Assume handovers are successful unless followed by RLF within next few samples
+                    // For simplicity, we'll use a high success rate based on absence of RLF
+                    const rlfEvents = parsedData.filter(d => d.event && d.event.toLowerCase().includes('rlf')).length;
+                    handoverSuccessPct = Math.max(0, ((totalHandovers - rlfEvents) / totalHandovers) * 100).toFixed(1);
+                }
+                
+                const handoverEl = document.getElementById('networkHandovers');
+                if (totalHandovers === 0) {
+                    handoverEl.textContent = 'N/A (no handovers)';
+                    handoverEl.style.color = '#6b7280';
+                } else {
+                    handoverEl.textContent = `${handoverSuccessPct}% ${handoverSuccessPct >= 98 ? '✓' : '⚠'}`;
+                    handoverEl.style.color = handoverSuccessPct >= 98 ? '#10b981' : handoverSuccessPct >= 95 ? '#f59e0b' : '#ef4444';
+                }
+                
+                // Calculate real Error rate (RLF + failures / total samples)
+                const rlfCount = parsedData.filter(d => d.event && d.event.toLowerCase().includes('rlf')).length;
+                const detachCount = parsedData.filter(d => d.event && d.event.toLowerCase().includes('detach')).length;
+                const totalErrors = rlfCount + detachCount;
+                const errorPct = ((totalErrors / parsedData.length) * 100).toFixed(2);
+                
+                const errorEl = document.getElementById('networkErrors');
+                errorEl.textContent = `${errorPct}% ${errorPct <= 0.5 ? '✓' : '✗'}`;
+                errorEl.style.color = errorPct <= 0.5 ? '#10b981' : errorPct <= 2 ? '#f59e0b' : '#ef4444';
+                
+                // Dynamic Alerts - only show relevant alerts
+                const alertsContainer = document.getElementById('alertsContainer');
+                alertsContainer.innerHTML = ''; // Clear existing alerts
+                
+                // Alert 1: Signal Degradation (only if samples below threshold exist)
+                let signalThreshold = -100; // Default for LTE/NR
+                let signalMetricName = 'RSRP';
+                if (tech === 'GSM') {
+                    signalThreshold = -100;
+                    signalMetricName = 'RxLev';
+                } else if (tech === 'UMTS') {
+                    signalThreshold = -105;
+                    signalMetricName = 'RSCP';
+                } else if (tech === 'NR') {
+                    signalMetricName = 'NR-RSRP';
+                }
+                
+                const poorSignalSamples = values.filter(v => v < signalThreshold).length;
+                const poorSignalPct = ((poorSignalSamples / values.length) * 100).toFixed(1);
+                
+                if (poorSignalSamples > 0 && isSignalChart) {
+                    const alertType = poorSignalPct > 20 ? 'error' : 'warning';
+                    alertsContainer.innerHTML += `
+                        <div class="alert-item ${alertType}">
+                            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <div class="alert-content">
+                                <div class="alert-title">Signal Degradation</div>
+                                <div class="alert-description">${poorSignalSamples} samples (${poorSignalPct}%) with ${signalMetricName} below ${signalThreshold} dBm</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Alert 2: High Error Rate (only if errors exist)
+                if (totalErrors > 0) {
+                    const errorAlertType = errorPct > 2 ? 'error' : 'warning';
+                    alertsContainer.innerHTML += `
+                        <div class="alert-item ${errorAlertType}">
+                            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="alert-content">
+                                <div class="alert-title">Network Errors Detected</div>
+                                <div class="alert-description">${totalErrors} errors (${rlfCount} RLF, ${detachCount} Detach) - ${errorPct}% error rate</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Alert 3: Poor Coverage (only if coverage is low)
+                if (parseFloat(coveragePct) < 90) {
+                    alertsContainer.innerHTML += `
+                        <div class="alert-item warning">
+                            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <div class="alert-content">
+                                <div class="alert-title">Low Coverage</div>
+                                <div class="alert-description">Only ${coveragePct}% of samples have acceptable signal strength</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Show "All Clear" message if no alerts
+                if (alertsContainer.innerHTML === '') {
+                    alertsContainer.innerHTML = `
+                        <div style="text-align:center; padding:16px; color:#10b981;">
+                            <svg style="width:24px; height:24px; margin:0 auto 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div style="font-weight:600; font-size:12px;">All Systems Normal</div>
+                            <div style="font-size:10px; color:#6b7280; margin-top:4px;">No alerts detected</div>
+                        </div>
+                    `;
+                }
             }
             
             // Create enterprise-styled chart

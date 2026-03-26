@@ -748,15 +748,15 @@
                             </div>
                             <div class="network-status-item">
                                 <span class="status-label">Coverage</span>
-                                <span class="status-value">98.2% ✓</span>
+                                <span id="networkCoverage" class="status-value">-</span>
                             </div>
                             <div class="network-status-item">
                                 <span class="status-label">Handovers</span>
-                                <span class="status-value">99.7% ✓</span>
+                                <span id="networkHandovers" class="status-value">-</span>
                             </div>
                             <div class="network-status-item">
                                 <span class="status-label">Errors</span>
-                                <span class="status-value" style="color:#ef4444;">0.02% ✗</span>
+                                <span id="networkErrors" class="status-value">-</span>
                             </div>
                         </div>
                     </div>
@@ -769,25 +769,8 @@
                             </svg>
                             ALERTS
                         </div>
-                        <div class="panel-content">
-                            <div class="alert-item warning">
-                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                                </svg>
-                                <div class="alert-content">
-                                    <div class="alert-title">Signal Degradation</div>
-                                    <div id="signalAlert" class="alert-description">RSRP below -100 dBm</div>
-                                </div>
-                            </div>
-                            <div class="alert-item error">
-                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <div class="alert-content">
-                                    <div class="alert-title">High Latency</div>
-                                    <div class="alert-description">Avg 150ms detected</div>
-                                </div>
-                            </div>
+                        <div id="alertsContainer" class="panel-content">
+                            <!-- Alerts will be dynamically populated -->
                         </div>
                     </div>
                     
