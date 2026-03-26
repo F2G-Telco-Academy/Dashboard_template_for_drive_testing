@@ -3278,31 +3278,78 @@ function updateMentorModalStatistics(values, kpiType) {
     document.getElementById('modalAvg').textContent = avg.toFixed(1);
     document.getElementById('modalMax').textContent = max.toFixed(1);
     
-    // Calculate CURRENT trend (recent vs previous data movement)
+    // Calculate temporal trends for all cards
     const segmentSize = Math.max(1, Math.floor(values.length * 0.1));
     const recentSegment = values.slice(-segmentSize);
     const previousSegment = values.slice(-segmentSize * 2, -segmentSize);
     
-    const recentAvg = recentSegment.reduce((a, b) => a + b, 0) / recentSegment.length;
-    const previousAvg = previousSegment.length > 0 
-        ? previousSegment.reduce((a, b) => a + b, 0) / previousSegment.length 
-        : recentAvg;
+    if (previousSegment.length === 0) {
+        // Not enough data for trends, set all to neutral
+        updateTrendBadge('modalTrendBadge', 'trendArrow', 'trendPct', 0, null, true);
+        updateTrendBadge('modalMinBadge', 'minArrow', 'minPct', 0, null, true);
+        updateTrendBadge('modalAvgBadge', 'avgArrow', 'avgPct', 0, null, true);
+        updateTrendBadge('modalMaxBadge', 'maxArrow', 'maxPct', 0, null, true);
+    } else {
+        // Determine if this is a signal metric (RSRP/RSCP/RxLev/RSRQ/etc.)
+        const isSignalMetric = kpiType === 'rsrp' || kpiType.includes('rsrp') || 
+                               kpiType.includes('rscp') || kpiType.includes('rxlev') ||
+                               kpiType.includes('rsrq') || kpiType.includes('ecno') ||
+                               kpiType.includes('rxqual') || kpiType.includes('sinr');
+        
+        // CURRENT trend: recent average vs previous average
+        const recentAvg = recentSegment.reduce((a, b) => a + b, 0) / recentSegment.length;
+        const previousAvg = previousSegment.reduce((a, b) => a + b, 0) / previousSegment.length;
+        const currentAbsChange = recentAvg - previousAvg;
+        const currentTrendPercent = previousAvg !== 0 ? (currentAbsChange / Math.abs(previousAvg) * 100) : 0;
+        
+        // MIN trend: recent minimum vs previous minimum
+        const recentMin = Math.min(...recentSegment);
+        const previousMin = Math.min(...previousSegment);
+        const minAbsChange = recentMin - previousMin;
+        const minTrendPercent = previousMin !== 0 ? (minAbsChange / Math.abs(previousMin) * 100) : 0;
+        
+        // AVG trend: recent average vs previous average (same as current but for clarity)
+        const avgAbsChange = currentAbsChange;
+        const avgTrendPercent = currentTrendPercent;
+        
+        // MAX trend: recent maximum vs previous maximum
+        const recentMax = Math.max(...recentSegment);
+        const previousMax = Math.max(...previousSegment);
+        const maxAbsChange = recentMax - previousMax;
+        const maxTrendPercent = previousMax !== 0 ? (maxAbsChange / Math.abs(previousMax) * 100) : 0;
+        
+        // Update all trend badges with absolute changes and signal metric flag
+        updateTrendBadge('modalTrendBadge', 'trendArrow', 'trendPct', currentTrendPercent, currentAbsChange, isSignalMetric);
+        updateTrendBadge('modalMinBadge', 'minArrow', 'minPct', minTrendPercent, minAbsChange, isSignalMetric);
+        updateTrendBadge('modalAvgBadge', 'avgArrow', 'avgPct', avgTrendPercent, avgAbsChange, isSignalMetric);
+        updateTrendBadge('modalMaxBadge', 'maxArrow', 'maxPct', maxTrendPercent, maxAbsChange, isSignalMetric);
+    }
     
-    const trendDiff = recentAvg - previousAvg;
-    const currentTrendPercent = previousAvg !== 0 ? (trendDiff / Math.abs(previousAvg) * 100) : 0;
+    // Generate rolling statistics for sparklines
+    const windowSize = 20;
+    const currentSparkline = values.slice(-20); // Last 20 actual values
     
-    // Calculate meaningful percentages relative to average
-    const minPercent = avg !== 0 ? ((min - avg) / Math.abs(avg) * 100) : 0;
-    const avgPercent = 0; // Average is always baseline (0%)
-    const maxPercent = avg !== 0 ? ((max - avg) / Math.abs(avg) * 100) : 0;
+    // Rolling minimum sparkline
+    const minSparkline = [];
+    for (let i = 0; i < values.length; i++) {
+        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        minSparkline.push(Math.min(...window));
+    }
     
-    // Update CURRENT card with trend percentage
-    updateTrendBadge('modalTrendBadge', 'trendArrow', 'trendPct', currentTrendPercent);
+    // Rolling average sparkline
+    const avgSparkline = [];
+    for (let i = 0; i < values.length; i++) {
+        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        const windowAvg = window.reduce((a, b) => a + b, 0) / window.length;
+        avgSparkline.push(windowAvg);
+    }
     
-    // Update OTHER cards with relative-to-average percentages
-    updateTrendBadge('modalMinBadge', 'minArrow', 'minPct', minPercent);
-    updateTrendBadge('modalAvgBadge', 'avgArrow', 'avgPct', avgPercent);
-    updateTrendBadge('modalMaxBadge', 'maxArrow', 'maxPct', maxPercent);
+    // Rolling maximum sparkline
+    const maxSparkline = [];
+    for (let i = 0; i < values.length; i++) {
+        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        maxSparkline.push(Math.max(...window));
+    }
     
     // Define sparkline colors based on card type
     const sparklineColors = {
@@ -3312,23 +3359,24 @@ function updateMentorModalStatistics(values, kpiType) {
         max: '#10b981'
     };
     
-    // Render mentor-style sparklines
-    renderMentorSparkline('sparklineCurrent', values, sparklineColors.current);
-    renderMentorSparkline('sparklineMin', values, sparklineColors.min);
-    renderMentorSparkline('sparklineAvg', values, sparklineColors.avg);
-    renderMentorSparkline('sparklineMax', values, sparklineColors.max);
+    // Render mentor-style sparklines with proper data
+    renderMentorSparkline('sparklineCurrent', currentSparkline, sparklineColors.current);
+    renderMentorSparkline('sparklineMin', minSparkline.slice(-20), sparklineColors.min);
+    renderMentorSparkline('sparklineAvg', avgSparkline.slice(-20), sparklineColors.avg);
+    renderMentorSparkline('sparklineMax', maxSparkline.slice(-20), sparklineColors.max);
     
-    // Update status dots for RSRP-like metrics
+    // Update status dots with technology-specific thresholds
+    const tech = detectedTechnology || 'LTE';
     if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
-        updateMentorStatusDot('statusDotCurrent', current);
-        updateMentorStatusDot('statusDotMin', min);
-        updateMentorStatusDot('statusDotAvg', avg);
-        updateMentorStatusDot('statusDotMax', max);
+        updateMentorStatusDot('statusDotCurrent', current, tech);
+        updateMentorStatusDot('statusDotMin', min, tech);
+        updateMentorStatusDot('statusDotAvg', avg, tech);
+        updateMentorStatusDot('statusDotMax', max, tech);
     }
 }
 
-// Universal function to update trend badges with proper arrows and colors
-function updateTrendBadge(badgeId, arrowId, pctId, percentage) {
+// Universal function to update trend badges with proper arrows, colors, and quality indicators
+function updateTrendBadge(badgeId, arrowId, pctId, percentage, absoluteChange = null, isSignalMetric = false) {
     const badge = document.getElementById(badgeId);
     const arrow = document.getElementById(arrowId);
     const pct = document.getElementById(pctId);
@@ -3338,42 +3386,89 @@ function updateTrendBadge(badgeId, arrowId, pctId, percentage) {
     // Remove existing classes
     badge.classList.remove('positive', 'negative', 'neutral');
     
+    // Determine quality indicator text for signal metrics
+    let qualityText = '';
+    if (isSignalMetric && Math.abs(percentage) > 0.5) {
+        // For signal metrics (RSRP/RSCP/RxLev), positive change = better signal
+        qualityText = percentage > 0 ? ' BETTER' : ' WORSE';
+    }
+    
     // Set arrow and class based on percentage value
     if (Math.abs(percentage) > 0.5) {
         if (percentage > 0) {
             badge.classList.add('positive');
-            arrow.textContent = '↗'; // ↗
+            arrow.textContent = '↗';
         } else {
             badge.classList.add('negative');
-            arrow.textContent = '↘'; // ↘
+            arrow.textContent = '↘';
         }
     } else {
         badge.classList.add('neutral');
-        arrow.textContent = '▬'; // ▬
+        arrow.textContent = '▬';
+        qualityText = ' STABLE';
     }
     
-    pct.textContent = Math.abs(percentage).toFixed(1) + '%';
+    // Format percentage and absolute change
+    let displayText = Math.abs(percentage).toFixed(1) + '%';
+    
+    // Add absolute change if provided
+    if (absoluteChange !== null) {
+        const absValue = Math.abs(absoluteChange).toFixed(1);
+        const sign = absoluteChange >= 0 ? '+' : '-';
+        displayText += ` (${sign}${absValue} dBm)`;
+    }
+    
+    // Add quality indicator
+    displayText += qualityText;
+    
+    pct.textContent = displayText;
 }
 
-// Update mentor-style status dot with proper classes
-function updateMentorStatusDot(dotId, value) {
+// Update mentor-style status dot with proper classes and technology-specific thresholds
+function updateMentorStatusDot(dotId, value, tech = 'LTE') {
     const dot = document.getElementById(dotId);
     if (!dot) return;
     
     // Remove existing status classes
     dot.classList.remove('excellent', 'good', 'fair', 'poor', 'critical', 'neutral');
     
-    // Apply new status class based on RSRP thresholds
-    if (value >= -80) {
-        dot.classList.add('excellent');
-    } else if (value >= -90) {
-        dot.classList.add('good');
-    } else if (value >= -100) {
-        dot.classList.add('fair');
-    } else if (value >= -110) {
-        dot.classList.add('poor');
-    } else {
-        dot.classList.add('critical');
+    // Apply technology-specific thresholds
+    if (tech === 'GSM') {
+        if (value >= -70) {
+            dot.classList.add('excellent');
+        } else if (value >= -85) {
+            dot.classList.add('good');
+        } else if (value >= -95) {
+            dot.classList.add('fair');
+        } else if (value >= -105) {
+            dot.classList.add('poor');
+        } else {
+            dot.classList.add('critical');
+        }
+    } else if (tech === 'UMTS') {
+        if (value >= -85) {
+            dot.classList.add('excellent');
+        } else if (value >= -95) {
+            dot.classList.add('good');
+        } else if (value >= -105) {
+            dot.classList.add('fair');
+        } else if (value >= -115) {
+            dot.classList.add('poor');
+        } else {
+            dot.classList.add('critical');
+        }
+    } else { // LTE/NR
+        if (value >= -80) {
+            dot.classList.add('excellent');
+        } else if (value >= -90) {
+            dot.classList.add('good');
+        } else if (value >= -100) {
+            dot.classList.add('fair');
+        } else if (value >= -110) {
+            dot.classList.add('poor');
+        } else {
+            dot.classList.add('critical');
+        }
     }
 }
 
