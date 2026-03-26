@@ -1160,7 +1160,7 @@ function renderMentorCharts(data, kpiType) {
                 options: {
                     responsive: true, 
                     maintainAspectRatio: false,
-                    interaction: cfg.options?.interaction || { mode: 'index', intersect: false },
+                    interaction: cfg.options?.interaction || { mode: 'point', intersect: true },
                     plugins: { 
                         legend: { 
                             display: clonedData.datasets.length > 1, 
@@ -3141,13 +3141,13 @@ function renderMentorCharts(data, kpiType) {
                     const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
                     
                     document.getElementById('qualityExcellent').style.width = exPct + '%';
-                    document.getElementById('qualityExcellent').textContent = exPct > 5 ? exPct + '%' : '';
+                    document.getElementById('qualityExcellent').textContent = exPct > 2 ? exPct + '%' : '';
                     document.getElementById('qualityGood').style.width = gdPct + '%';
-                    document.getElementById('qualityGood').textContent = gdPct > 5 ? gdPct + '%' : '';
+                    document.getElementById('qualityGood').textContent = gdPct > 2 ? gdPct + '%' : '';
                     document.getElementById('qualityFair').style.width = frPct + '%';
-                    document.getElementById('qualityFair').textContent = frPct > 5 ? frPct + '%' : '';
+                    document.getElementById('qualityFair').textContent = frPct > 2 ? frPct + '%' : '';
                     document.getElementById('qualityPoor').style.width = prPct + '%';
-                    document.getElementById('qualityPoor').textContent = prPct > 5 ? prPct + '%' : '';
+                    document.getElementById('qualityPoor').textContent = prPct > 2 ? prPct + '%' : '';
                     document.getElementById('qualityText').textContent = `${goodOrBetter}% Good or Better`;
                 } else {
                     qualityCard.style.display = 'none';

@@ -509,7 +509,7 @@
 
     <!-- Chart Zoom Modal -->
     <div id="chartZoomModal" class="enterprise-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; justify-content:center; align-items:center; background:rgba(0,0,0,0.8);">
-        <div id="chartZoomModalContent" style="padding:0; width:98%; height:90vh; max-width:1600px; display:flex; flex-direction:column; border-radius:8px; background:var(--card-bg-light); overflow:hidden; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <div id="chartZoomModalContent" style="padding:0; width:98%; height:95vh; max-width:1600px; display:flex; flex-direction:column; border-radius:8px; background:var(--card-bg-light); overflow-y:auto; overflow-x:hidden; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25);">
             
             <!-- Header -->
             <div id="chartZoomHeader" class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -622,51 +622,51 @@
             </div>
             
             <!-- Mentor-Style 2x2 Overview Grid -->
-            <div id="mentorOverviewGrid" style="padding:12px 24px; background:#f8fafc; border-bottom:1px solid #e1e5e9; display:grid; grid-template-columns:1fr 1fr; gap:12px; flex-shrink:0;">
+            <div id="mentorOverviewGrid" style="padding:16px 24px 16px 24px; background:#f1f3f5; border-bottom:1px solid #d1d5db; display:grid; grid-template-columns:1fr 1fr; gap:16px; flex-shrink:0; overflow:visible;">
 
                 <!-- TOP-LEFT: Signal Quality Distribution -->
-                <div style="background:#fff; border:1px solid #e5e7eb; padding:12px; height:200px;">
-                    <div style="font-size:10px; font-weight:700; color:#1f2937; letter-spacing:.06em;">SIGNAL_QUALITY</div>
-                    <div style="font-size:9px; color:#9ca3af; margin-bottom:6px;">QUALITY_DISTRIBUTION</div>
-                    <div style="position:relative; height:150px;"><canvas id="mentorChart1"></canvas></div>
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em;">SIGNAL_QUALITY</div>
+                    <div style="font-size:9px; color:#6b7280; margin-bottom:8px;">QUALITY_DISTRIBUTION</div>
+                    <div style="position:relative; height:185px; overflow:visible;"><canvas id="mentorChart1"></canvas></div>
                 </div>
 
                 <!-- TOP-RIGHT: DL + UL Throughput -->
-                <div style="background:#fff; border:1px solid #e5e7eb; padding:12px; height:200px;">
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div>
-                            <div id="mentorChart2Title" style="font-size:10px; font-weight:700; color:#1f2937; letter-spacing:.06em;">THROUGHPUT_I/O</div>
-                            <div id="mentorChart2Subtitle" style="font-size:9px; color:#9ca3af; margin-bottom:6px;">DL_UL_ANALYSIS</div>
+                            <div id="mentorChart2Title" style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em;">THROUGHPUT_I/O</div>
+                            <div id="mentorChart2Subtitle" style="font-size:9px; color:#6b7280; margin-bottom:8px;">DL_UL_ANALYSIS</div>
                         </div>
-                        <div style="display:flex; gap:10px; font-size:9px; font-weight:600; color:#6b7280;">
+                        <div style="display:flex; gap:12px; font-size:9px; font-weight:600; color:#6b7280;">
                             <span>&#9632; DL</span><span style="opacity:.6;">&#9675; UL</span>
                         </div>
                     </div>
-                    <div style="position:relative; height:150px;"><canvas id="mentorChart2"></canvas></div>
+                    <div style="position:relative; height:185px; overflow:visible;"><canvas id="mentorChart2"></canvas></div>
                 </div>
 
                 <!-- BOTTOM-LEFT: Signal by Band histogram -->
-                <div style="background:#fff; border:1px solid #e5e7eb; padding:12px; height:200px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                         <div>
-                            <div id="mentorChart3Title" style="font-size:10px; font-weight:700; color:#1f2937; letter-spacing:.06em;">SIGNAL_LOAD</div>
-                            <div style="font-size:9px; color:#9ca3af;">BAND_DISTRIBUTION</div>
+                            <div id="mentorChart3Title" style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em;">SIGNAL_LOAD</div>
+                            <div style="font-size:9px; color:#6b7280;">BAND_DISTRIBUTION</div>
                         </div>
-                        <div id="mentorChart3Badge" style="font-size:8px; font-weight:700; padding:2px 7px; background:#22c55e; color:#fff; border-radius:3px;">HEALTHY</div>
+                        <div id="mentorChart3Badge" style="font-size:8px; font-weight:700; padding:3px 8px; background:#10b981; color:#fff; border-radius:4px;">HEALTHY</div>
                     </div>
-                    <div style="position:relative; height:150px;"><canvas id="mentorChart3"></canvas></div>
+                    <div style="position:relative; height:185px; overflow:visible;"><canvas id="mentorChart3"></canvas></div>
                 </div>
 
                 <!-- BOTTOM-RIGHT: Active Events ranked list -->
-                <div style="background:#fff; border:1px solid #e5e7eb; padding:12px; height:200px; overflow:hidden;">
-                    <div style="font-size:10px; font-weight:700; color:#1f2937; letter-spacing:.06em; margin-bottom:8px;">ACTIVE_EVENTS</div>
-                    <div id="mentorEventsList" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:160px;"></div>
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em; margin-bottom:10px;">ACTIVE_EVENTS</div>
+                    <div id="mentorEventsList" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:195px;"></div>
                 </div>
 
             </div>
 
             <!-- Main Content Area -->
-            <div style="flex:1; display:flex; padding:24px; gap:24px; overflow:hidden;">
+            <div style="flex:1; display:flex; padding:24px; gap:24px; overflow:hidden; background:#f8f9fa;">
                 <!-- Chart Container (70%) - HIDDEN to avoid duplication with mentor grid -->
                 <div style="display:none; flex:0 0 70%;">
                     <div class="enterprise-chart-container" style="flex:1; position:relative;">
