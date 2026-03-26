@@ -952,10 +952,23 @@ function renderMentorCharts(data, kpiType) {
 
             const qCounts = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
             sigVals.forEach(v => {
-                if (v >= -80)       qCounts.Excellent++;
-                else if (v >= -90)  qCounts.Good++;
-                else if (v >= -100) qCounts.Fair++;
-                else                qCounts.Poor++;
+                // Technology-specific thresholds
+                if (tech === 'GSM') {
+                    if (v >= -70)       qCounts.Excellent++;
+                    else if (v >= -85)  qCounts.Good++;
+                    else if (v >= -95)  qCounts.Fair++;
+                    else                qCounts.Poor++;
+                } else if (tech === 'UMTS') {
+                    if (v >= -85)       qCounts.Excellent++;
+                    else if (v >= -95)  qCounts.Good++;
+                    else if (v >= -105) qCounts.Fair++;
+                    else                qCounts.Poor++;
+                } else { // LTE/NR
+                    if (v >= -80)       qCounts.Excellent++;
+                    else if (v >= -90)  qCounts.Good++;
+                    else if (v >= -100) qCounts.Fair++;
+                    else                qCounts.Poor++;
+                }
             });
 
             if (mentorChart1) mentorChart1.destroy();
@@ -992,7 +1005,8 @@ function renderMentorCharts(data, kpiType) {
             // Group avg signal per band
             const bandMap = {};
             data.forEach(d => {
-                const band = d.band || d.earfcn || d.uarfcn || d.gsm_bcch_arfcn || 'N/A';
+                // Support both CSV formats: 'BCCH-ARFCN' (hyphen) and 'gsm_bcch_arfcn' (underscore)
+                const band = d.band || d.earfcn || d.uarfcn || d.gsm_bcch_arfcn || d['bcch-arfcn'] || 'N/A';
                 const key = `B${band}`;
                 if (!bandMap[key]) bandMap[key] = [];
                 const sv = tech === 'NR' ? parseFloat(d.nr_rsrp) :
@@ -1011,13 +1025,27 @@ function renderMentorCharts(data, kpiType) {
             const bandAvg    = bandEntries.map(([, v]) => parseFloat((v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)));
             const bandCounts = bandEntries.map(([, v]) => v.length);
 
-            // Color bars by avg signal quality
-            const bandColors = bandAvg.map(v =>
-                v >= -80 ? '#22c55e' : v >= -90 ? '#f59e0b' : '#ef4444'
-            );
+            // Color bars by avg signal quality (technology-specific thresholds)
+            const bandColors = bandAvg.map(v => {
+                if (tech === 'GSM') {
+                    return v >= -70 ? '#22c55e' : v >= -85 ? '#f59e0b' : '#ef4444';
+                } else if (tech === 'UMTS') {
+                    return v >= -85 ? '#22c55e' : v >= -95 ? '#f59e0b' : '#ef4444';
+                } else { // LTE/NR
+                    return v >= -80 ? '#22c55e' : v >= -90 ? '#f59e0b' : '#ef4444';
+                }
+            });
 
-            // Update health badge
-            const goodPct = sigVals.filter(v => v >= -90).length / (sigVals.length || 1);
+            // Update health badge (technology-specific thresholds)
+            let goodPct;
+            if (tech === 'GSM') {
+                goodPct = sigVals.filter(v => v >= -85).length / (sigVals.length || 1);
+            } else if (tech === 'UMTS') {
+                goodPct = sigVals.filter(v => v >= -95).length / (sigVals.length || 1);
+            } else { // LTE/NR
+                goodPct = sigVals.filter(v => v >= -90).length / (sigVals.length || 1);
+            }
+            
             const badge = document.getElementById('mentorChart3Badge');
             if (goodPct >= 0.8)      { badge.textContent = 'HEALTHY';  badge.style.background = '#22c55e'; }
             else if (goodPct >= 0.5) { badge.textContent = 'WARNING';  badge.style.background = '#f59e0b'; }
