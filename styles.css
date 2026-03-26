@@ -261,8 +261,8 @@ body {
     background-size: 8px 8px;
     border: 1px solid #e1e5e9;
     border-radius: 6px;
-    padding: 18px;
-    height: 140px;
+    padding: 14px;
+    height: 120px;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -342,11 +342,11 @@ body {
 
 /* Main Value Display */
 .enterprise-kpi-card .card-value {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     color: #111827;
     line-height: 1;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-family: 'Inter', system-ui, sans-serif;
     letter-spacing: -0.025em;
     flex-shrink: 0;
