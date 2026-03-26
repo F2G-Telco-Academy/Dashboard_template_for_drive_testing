@@ -2223,60 +2223,313 @@ function renderMentorCharts(data, kpiType) {
                 'voice call': { icon: '☎️', color: '#10b981', label: 'Voice Call', circleIcon: true }
             };
 
-            // Add markers
+            // Group coordinates by location to handle overlapping points
+            const locationGroups = {};
             coords.forEach((p, i) => {
-                const row = p.row;
-                const hasEvent = row.event && row.event.trim() !== '';
-
-                if (!hasEvent) {
-                    const el = document.createElement('div');
-                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
-                    
-                    // Build popup content based on technology
-                    const tech = row.technology || 'LTE';
-                    let kpiContent = '';
-                    
-                    if (tech === 'NR') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
-                            <div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
-                    } else if (tech === 'LTE') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>`;
-                    } else if (tech === 'UMTS') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
-                            <div style="margin:4px 0;"><b>UARFCN:</b> ${row.uarfcn || '-'}</div>`;
-                    } else if (tech === 'GSM') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
-                            <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
-                            <div style="margin:4px 0;"><b>ARFCN:</b> ${row.gsm_bcch_arfcn || row['bcch-arfcn'] || '-'}</div>`;
-                    }
-                    
-                    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
-                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
-                            <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div>
-                            <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
-                            ${kpiContent}
-                            ${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}
-                        </div>
-                    `);
-                    markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                const key = `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`;
+                if (!locationGroups[key]) {
+                    locationGroups[key] = { all: [], noEvent: [], withEvent: [] };
+                }
+                locationGroups[key].all.push({ ...p, originalIndex: i });
+                
+                // Separate by event status
+                const hasEvent = p.row.event && p.row.event.trim() !== '';
+                if (hasEvent) {
+                    locationGroups[key].withEvent.push({ ...p, originalIndex: i });
+                } else {
+                    locationGroups[key].noEvent.push({ ...p, originalIndex: i });
                 }
             });
 
-            // Event markers
+            // Add markers with count badges for grouped locations (non-event points)
+            Object.values(locationGroups).forEach(groupData => {
+                const group = groupData.noEvent;
+                if (group.length === 0) return; // Skip if no non-event points
+                
+                const p = group[0]; // Use first point for location
+                const row = p.row;
+                const totalCount = groupData.all.length; // Total count including events
+                const count = group.length; // Count without events
+
+                const el = document.createElement('div');
+                
+                // If multiple points at same location, show count badge (use total count)
+                if (totalCount > 1) {
+                    el.innerHTML = `
+                        <div style="position:relative;display:inline-block;">
+                            <div style="width:14px;height:14px;border-radius:50%;background:${p.color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>
+                            <div style="position:absolute;top:-8px;right:-8px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.5);">${totalCount}</div>
+                        </div>`;
+                } else {
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
+                }
+                
+                // Build popup content based on technology
+                const tech = row.technology || 'LTE';
+                
+                // For single point, show standard popup
+                if (count === 1 && totalCount === 1) {
+                        let kpiContent = '';
+                        
+                        if (tech === 'NR') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
+                                <div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
+                        } else if (tech === 'LTE') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>`;
+                        } else if (tech === 'UMTS') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
+                                <div style="margin:4px 0;"><b>UARFCN:</b> ${row.uarfcn || '-'}</div>`;
+                        } else if (tech === 'GSM') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
+                                <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
+                                <div style="margin:4px 0;"><b>ARFCN:</b> ${row.gsm_bcch_arfcn || row['bcch-arfcn'] || '-'}</div>`;
+                        }
+                        
+                        const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                                <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || p.originalIndex + 1}</div>
+                                <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                                ${kpiContent}
+                                ${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}
+                            </div>
+                        `);
+                        markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                    } else {
+                        // For multiple points, show enhanced popup with sample table and timeline controls
+                        // Use ALL samples at this location (including events)
+                        const allSamples = groupData.all;
+                        const eventCount = groupData.withEvent.length;
+                        
+                        // Debug logging
+                        console.log(`Location ${p.lat.toFixed(6)},${p.lon.toFixed(6)}:`, {
+                            totalCount,
+                            allSamplesLength: allSamples.length,
+                            eventCount,
+                            noEventCount: groupData.noEvent.length
+                        });
+                        
+                        const timeRange = `${allSamples[0].row.time?.split('T')[1]?.slice(0, 8) || '-'} to ${allSamples[totalCount-1].row.time?.split('T')[1]?.slice(0, 8) || '-'}`;
+                        
+                        // Build sample table rows for ALL samples
+                        let tableRows = '';
+                        console.log(`Building table with ${allSamples.length} samples:`, allSamples.map(s => ({
+                            time: s.row.time,
+                            hasEvent: !!(s.row.event && s.row.event.trim() !== ''),
+                            event: s.row.event
+                        })));
+                        
+                        allSamples.forEach((sample, idx) => {
+                            const sRow = sample.row;
+                            const sColor = sample.color;
+                            const time = sRow.time?.split('T')[1]?.slice(0, 8) || '-';
+                            const hasEvent = sRow.event && sRow.event.trim() !== '';
+                            
+                            let kpiValues = '';
+                            if (tech === 'NR') {
+                                kpiValues = `<td>${sRow.nr_rsrp || '-'}</td><td>${sRow.nr_rsrq || '-'}</td><td>${sRow.nr_sinr || '-'}</td><td>${sRow.nr_pci || '-'}</td>`;
+                            } else if (tech === 'LTE') {
+                                kpiValues = `<td>${sRow.rsrp || '-'}</td><td>${sRow.rsrq || '-'}</td><td>${sRow.sinr || '-'}</td><td>${sRow.pci || '-'}</td>`;
+                            } else if (tech === 'UMTS') {
+                                kpiValues = `<td>${sRow.wcdma_rscp || '-'}</td><td>${sRow.wcdma_ecno || '-'}</td><td>-</td><td>${sRow.wcdma_psc || '-'}</td>`;
+                            } else if (tech === 'GSM') {
+                                kpiValues = `<td>${sRow.gsm_rxlev || sRow.rxlev || '-'}</td><td>${sRow.gsm_rxqual || sRow.rxqual || '-'}</td><td>-</td><td>${sRow.gsm_bsic || '-'}</td>`;
+                            }
+                            
+                            // Add event indicator if present
+                            const eventBadge = hasEvent ? `<span style="background:#f97316;color:white;padding:1px 4px;border-radius:3px;font-size:8px;margin-left:4px;">${sRow.event}</span>` : '';
+                            
+                            tableRows += `
+                                <tr style="background:${idx % 2 === 0 ? '#f9fafb' : '#fff'};border-left:3px solid ${sColor};" data-sample-idx="${idx}">
+                                    <td style="padding:4px 6px;font-size:10px;white-space:nowrap;">${time}${eventBadge}</td>
+                                    ${kpiValues}
+                                </tr>`;
+                        });
+                        
+                        // Determine column headers based on technology
+                        let headers = '';
+                        if (tech === 'NR') {
+                            headers = '<th>NR-RSRP</th><th>NR-RSRQ</th><th>NR-SINR</th><th>PCI</th>';
+                        } else if (tech === 'LTE') {
+                            headers = '<th>RSRP</th><th>RSRQ</th><th>SINR</th><th>PCI</th>';
+                        } else if (tech === 'UMTS') {
+                            headers = '<th>RSCP</th><th>Ec/No</th><th>-</th><th>PSC</th>';
+                        } else if (tech === 'GSM') {
+                            headers = '<th>RxLev</th><th>RxQual</th><th>-</th><th>BSIC</th>';
+                        }
+                        
+                        // Event info message
+                        const eventInfo = eventCount > 0 ? `<br/><small style="color:#f97316;">⚡ Includes ${eventCount} event sample${eventCount > 1 ? 's' : ''}</small>` : '';
+                        
+                        const popupContent = `
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;max-width:450px;">
+                                <div style="font-weight:800;color:#1f2937;margin-bottom:8px;border-bottom:2px solid #3b82f6;padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                                    <span>📍 ${tech} - ${totalCount} Samples</span>
+                                    <button id="playTimelineBtn" style="background:#3b82f6;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:bold;">▶ Play</button>
+                                </div>
+                                <div style="margin:8px 0;padding:8px;background:#fef3c7;border-left:3px solid #f59e0b;font-size:10px;">
+                                    <b>⚠️ ${totalCount} samples at same location</b><br/>
+                                    <small>Time range: ${timeRange}${eventInfo}</small>
+                                </div>
+                                
+                                <!-- Timeline Playback Controls -->
+                                <div id="timelineControls" style="display:none;margin:8px 0;padding:8px;background:#dbeafe;border-left:3px solid #3b82f6;border-radius:4px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <div style="font-size:10px;font-weight:bold;">Timeline Playback</div>
+                                        <div style="display:flex;gap:4px;">
+                                            <button id="prevSampleBtn" style="background:#6b7280;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;">◀</button>
+                                            <button id="pauseTimelineBtn" style="background:#ef4444;color:white;border:none;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px;">⏸</button>
+                                            <button id="nextSampleBtn" style="background:#6b7280;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;">▶</button>
+                                        </div>
+                                    </div>
+                                    <div style="font-size:10px;color:#1f2937;margin-bottom:4px;">
+                                        Sample <span id="currentSampleNum">1</span> of ${totalCount} - <span id="currentSampleTime">${allSamples[0].row.time?.split('T')[1]?.slice(0, 8) || '-'}</span>
+                                    </div>
+                                    <input type="range" id="timelineSlider" min="0" max="${totalCount - 1}" value="0" style="width:100%;cursor:pointer;" />
+                                </div>
+                                
+                                <div style="max-height:250px;overflow-y:scroll;margin-top:8px;border:1px solid #e5e7eb;border-radius:4px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.06);">
+                                    <table style="width:100%;border-collapse:collapse;font-size:10px;">
+                                        <thead style="position:sticky;top:0;background:#1f2937;color:white;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                            <tr>
+                                                <th style="padding:6px;text-align:left;font-weight:600;">Time</th>
+                                                ${headers}
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sampleTableBody">
+                                            ${tableRows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div style="margin-top:8px;padding:6px;background:#f3f4f6;border-radius:4px;font-size:9px;color:#6b7280;">
+                                    💡 Click Play to animate through samples or use the table to compare KPIs
+                                </div>
+                            </div>
+                        `;
+                        
+                        const popup = new maplibregl.Popup({ 
+                            offset: 10,
+                            maxWidth: '500px',
+                            className: 'timeline-popup'
+                        }).setHTML(popupContent);
+                        
+                        // Add timeline playback functionality
+                        popup.on('open', () => {
+                            let currentSampleIndex = 0;
+                            let playInterval = null;
+                            const timelineControls = document.getElementById('timelineControls');
+                            const playBtn = document.getElementById('playTimelineBtn');
+                            const pauseBtn = document.getElementById('pauseTimelineBtn');
+                            const prevBtn = document.getElementById('prevSampleBtn');
+                            const nextBtn = document.getElementById('nextSampleBtn');
+                            const slider = document.getElementById('timelineSlider');
+                            const tableBody = document.getElementById('sampleTableBody');
+                            
+                            function highlightSample(index) {
+                                currentSampleIndex = index;
+                                // Update UI
+                                document.getElementById('currentSampleNum').textContent = index + 1;
+                                document.getElementById('currentSampleTime').textContent = allSamples[index].row.time?.split('T')[1]?.slice(0, 8) || '-';
+                                slider.value = index;
+                                
+                                // Highlight row in table
+                                const rows = tableBody.querySelectorAll('tr');
+                                rows.forEach((row, idx) => {
+                                    if (idx === index) {
+                                        row.style.background = '#dbeafe';
+                                        row.style.fontWeight = 'bold';
+                                        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                    } else {
+                                        row.style.background = idx % 2 === 0 ? '#f9fafb' : '#fff';
+                                        row.style.fontWeight = 'normal';
+                                    }
+                                });
+                            }
+                            
+                            function playTimeline() {
+                                timelineControls.style.display = 'block';
+                                playBtn.style.display = 'none';
+                                highlightSample(0);
+                                
+                                playInterval = setInterval(() => {
+                                    if (currentSampleIndex < totalCount - 1) {
+                                        highlightSample(currentSampleIndex + 1);
+                                    } else {
+                                        clearInterval(playInterval);
+                                        playBtn.style.display = 'inline-block';
+                                        playBtn.textContent = '🔄 Replay';
+                                    }
+                                }, 800); // 800ms per sample
+                            }
+                            
+                            function pauseTimeline() {
+                                if (playInterval) {
+                                    clearInterval(playInterval);
+                                    playInterval = null;
+                                    playBtn.style.display = 'inline-block';
+                                    playBtn.textContent = '▶ Resume';
+                                }
+                            }
+                            
+                            playBtn.addEventListener('click', playTimeline);
+                            pauseBtn.addEventListener('click', pauseTimeline);
+                            prevBtn.addEventListener('click', () => {
+                                if (currentSampleIndex > 0) highlightSample(currentSampleIndex - 1);
+                            });
+                            nextBtn.addEventListener('click', () => {
+                                if (currentSampleIndex < totalCount - 1) highlightSample(currentSampleIndex + 1);
+                            });
+                            slider.addEventListener('input', (e) => {
+                                pauseTimeline();
+                                highlightSample(parseInt(e.target.value));
+                            });
+                            
+                            // Click on table row to jump to that sample
+                            tableBody.querySelectorAll('tr').forEach((row, idx) => {
+                                row.style.cursor = 'pointer';
+                                row.addEventListener('click', () => {
+                                    pauseTimeline();
+                                    highlightSample(idx);
+                                });
+                            });
+                        });
+                        
+                        markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                    }
+            });
+
+            // Event markers - only create separate markers for events NOT in location groups
+            const groupedEventLocations = new Set();
+            Object.entries(locationGroups).forEach(([key, groupData]) => {
+                if (groupData.withEvent.length > 0 && groupData.all.length > 1) {
+                    // This location has events AND multiple samples, so events are included in the group popup
+                    groupData.withEvent.forEach(evt => {
+                        groupedEventLocations.add(`${evt.lat.toFixed(6)},${evt.lon.toFixed(6)},${evt.originalIndex}`);
+                    });
+                }
+            });
+            
             coords.filter(p => p.row.event && p.row.event.trim() !== '').forEach((p, i) => {
+                // Skip if this event is part of a multi-sample location group
+                const eventKey = `${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.originalIndex}`;
+                if (groupedEventLocations.has(eventKey)) {
+                    console.log(`Skipping separate event marker for ${eventKey} - already in group popup`);
+                    return;
+                }
+                
                 const row = p.row;
                 const evtKey = row.event.toLowerCase().trim();
                 const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
