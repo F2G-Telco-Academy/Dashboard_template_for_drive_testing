@@ -2973,6 +2973,90 @@ function renderMentorCharts(data, kpiType) {
         // =====================================================
         let zoomedChart = null;
 
+        function updateModalTheme() {
+            const modal = document.getElementById('chartZoomModal');
+            const modalContent = document.getElementById('chartZoomModalContent');
+            
+            if (!modal || !modalContent) return;
+            
+            if (kpiTheme === 'dark') {
+                modal.classList.add('dark');
+                modalContent.style.background = 'var(--card-bg-dark)';
+                
+                // Apply dark mode to mentor grid panels
+                const mentorPanels = document.querySelectorAll('.mentor-grid-panel');
+                mentorPanels.forEach(panel => {
+                    panel.style.background = '#1a1f2e';
+                    panel.style.borderColor = '#2d3748';
+                    
+                    // Update text colors in panels
+                    const textElements = panel.querySelectorAll('div[style*="color"]');
+                    textElements.forEach(el => {
+                        if (el.style.color === 'rgb(55, 65, 81)' || el.style.color === '#374151') {
+                            el.style.color = '#9ca3af';
+                        }
+                        if (el.style.color === 'rgb(107, 114, 128)' || el.style.color === '#6b7280') {
+                            el.style.color = '#9ca3af';
+                        }
+                    });
+                });
+                
+                // Apply dark mode to mentor grid background
+                const mentorGrid = document.getElementById('mentorOverviewGrid');
+                if (mentorGrid) {
+                    mentorGrid.style.background = '#0f172a';
+                    mentorGrid.style.borderBottomColor = '#2d3748';
+                }
+                
+                // Apply dark mode to main content area
+                const mainContentDivs = document.querySelectorAll('#chartZoomModalContent > div');
+                mainContentDivs.forEach(div => {
+                    if (div.style.background && div.style.background.includes('#f8f9fa')) {
+                        div.style.background = '#0f172a';
+                    }
+                });
+            } else {
+                modal.classList.remove('dark');
+                modalContent.style.background = 'var(--card-bg-light)';
+                
+                // Reset mentor grid panels to light mode
+                const mentorPanels = document.querySelectorAll('.mentor-grid-panel');
+                mentorPanels.forEach(panel => {
+                    panel.style.background = '#fff';
+                    panel.style.borderColor = '#d1d5db';
+                    
+                    // Reset text colors
+                    const textElements = panel.querySelectorAll('div[style*="color"]');
+                    textElements.forEach(el => {
+                        if (el.style.color === 'rgb(156, 163, 175)' || el.style.color === '#9ca3af') {
+                            // Restore original colors
+                            const originalStyle = el.getAttribute('style');
+                            if (originalStyle && originalStyle.includes('374151')) {
+                                el.style.color = '#374151';
+                            } else if (originalStyle && originalStyle.includes('6b7280')) {
+                                el.style.color = '#6b7280';
+                            }
+                        }
+                    });
+                });
+                
+                // Reset mentor grid background
+                const mentorGrid = document.getElementById('mentorOverviewGrid');
+                if (mentorGrid) {
+                    mentorGrid.style.background = '#f1f3f5';
+                    mentorGrid.style.borderBottomColor = '#d1d5db';
+                }
+                
+                // Reset main content area
+                const mainContentDivs = document.querySelectorAll('#chartZoomModalContent > div');
+                mainContentDivs.forEach(div => {
+                    if (div.style.background && div.style.background.includes('#0f172a')) {
+                        div.style.background = '#f8f9fa';
+                    }
+                });
+            }
+        }
+
         function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
             const canvas = document.getElementById('chartZoomCanvas');
@@ -2984,13 +3068,8 @@ function renderMentorCharts(data, kpiType) {
             // Add enterprise modal class
             modal.classList.add('enterprise-modal');
             
-            if (kpiTheme === 'dark') {
-                modal.classList.add('dark');
-                modalContent.style.background = 'var(--card-bg-dark)';
-            } else {
-                modal.classList.remove('dark');
-                modalContent.style.background = 'var(--card-bg-light)';
-            }
+            // Apply theme using the shared function
+            updateModalTheme();
             
             // Destroy previous chart if exists
             if (zoomedChart) {
@@ -3601,7 +3680,12 @@ function renderMentorCharts(data, kpiType) {
                 // Re-render mentor charts if modal is open
                 try {
                     const modal = document.getElementById('chartZoomModal');
-                    if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                    if (modal && modal.style.display === 'flex') {
+                        renderMentorCharts(parsedData, currentKpiType);
+                        
+                        // Update modal theme dynamically
+                        updateModalTheme();
+                    }
                 } catch (err) { console.warn('mentor charts update after theme change failed', err); }
             }
         });

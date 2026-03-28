@@ -663,9 +663,31 @@ body {
     z-index: 1;
 }
 
+.enterprise-modal.dark .mentor-grid-panel {
+    background: #1a1f2e !important;
+    border-color: #2d3748 !important;
+}
+
 .enterprise-modal.dark .mentor-grid-panel::before,
 .enterprise-modal.dark .mentor-grid-panel::after {
     border-color: #f9fafb;
+}
+
+/* Dark mode text colors for mentor panels */
+.enterprise-modal.dark .mentor-grid-panel div[style*="color:#374151"],
+.enterprise-modal.dark .mentor-grid-panel div[style*="color:#6b7280"] {
+    color: #9ca3af !important;
+}
+
+/* Dark mode for mentor grid background */
+.enterprise-modal.dark #mentorOverviewGrid {
+    background: #0f172a !important;
+    border-bottom-color: #2d3748 !important;
+}
+
+/* Dark mode for main content area */
+.enterprise-modal.dark #chartZoomModalContent > div[style*="background:#f8f9fa"] {
+    background: #0f172a !important;
 }
 
 /* Ensure chart containers allow tooltips to overflow */
