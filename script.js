@@ -2855,17 +2855,8 @@ function renderScatterPlots() {
             // Technology detection
             const tech = detectedTechnology || 'LTE';
             
-            // Color palette for multi-KPI (distinct, professional colors)
-            const colorPalette = [
-                '#3b82f6', // Blue
-                '#10b981', // Green
-                '#f59e0b', // Amber
-                '#ef4444', // Red
-                '#8b5cf6', // Purple
-                '#ec4899', // Pink
-                '#06b6d4', // Cyan
-                '#f97316'  // Orange
-            ];
+            // Use consistent blue color for all KPIs in multi-KPI comparison
+            const kpiColor = '#3b82f6'; // Blue
             
             // Build datasets
             const datasets = selectedKpis.map((kpiObj, index) => {
@@ -2922,7 +2913,7 @@ function renderScatterPlots() {
                 return {
                     label: fullLabel,
                     data: values,
-                    borderColor: colorPalette[index % colorPalette.length],
+                    borderColor: kpiColor,
                     backgroundColor: 'transparent',
                     borderWidth: 2.5,
                     fill: false,
