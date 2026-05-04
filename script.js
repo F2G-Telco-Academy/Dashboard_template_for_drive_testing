@@ -2865,46 +2865,46 @@ function renderScatterPlots() {
                 let values = [];
                 let label = kpi.toUpperCase();
                 
-                // Technology-specific field mapping
+                // Technology-specific field mapping (match single KPI behavior with || 0)
                 if (kpi === 'rsrp') {
                     if (tech === 'NR') {
-                        values = parsedData.map(d => parseFloat(d.nr_rsrp) || null);
+                        values = parsedData.map(d => parseFloat(d.nr_rsrp) || 0);
                         label = 'NR-RSRP';
                     } else if (tech === 'UMTS') {
-                        values = parsedData.map(d => parseFloat(d.wcdma_rscp) || null);
+                        values = parsedData.map(d => parseFloat(d.wcdma_rscp) || 0);
                         label = 'RSCP';
                     } else if (tech === 'GSM') {
-                        values = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || null);
+                        values = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
                         label = 'RxLev';
                     } else {
-                        values = parsedData.map(d => parseFloat(d.rsrp) || null);
+                        values = parsedData.map(d => parseFloat(d.rsrp) || 0);
                         label = 'RSRP';
                     }
                 } else if (kpi === 'rsrq') {
                     if (tech === 'NR') {
-                        values = parsedData.map(d => parseFloat(d.nr_rsrq) || null);
+                        values = parsedData.map(d => parseFloat(d.nr_rsrq) || 0);
                         label = 'NR-RSRQ';
                     } else if (tech === 'UMTS') {
-                        values = parsedData.map(d => parseFloat(d.wcdma_ecno) || null);
+                        values = parsedData.map(d => parseFloat(d.wcdma_ecno) || 0);
                         label = 'Ec/No';
                     } else if (tech === 'GSM') {
-                        values = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || null);
+                        values = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || 0);
                         label = 'RxQual';
                     } else {
-                        values = parsedData.map(d => parseFloat(d.rsrq) || null);
+                        values = parsedData.map(d => parseFloat(d.rsrq) || 0);
                         label = 'RSRQ';
                     }
                 } else if (kpi === 'sinr') {
                     if (tech === 'NR') {
-                        values = parsedData.map(d => parseFloat(d.nr_sinr) || null);
+                        values = parsedData.map(d => parseFloat(d.nr_sinr) || 0);
                         label = 'NR-SINR';
                     } else {
-                        values = parsedData.map(d => parseFloat(d.sinr) || null);
+                        values = parsedData.map(d => parseFloat(d.sinr) || 0);
                         label = 'SINR';
                     }
                 } else {
                     // Generic KPI extraction
-                    values = parsedData.map(d => parseFloat(d[kpi]) || null);
+                    values = parsedData.map(d => parseFloat(d[kpi]) || 0);
                 }
                 
                 // Add unit to label
@@ -2922,7 +2922,7 @@ function renderScatterPlots() {
                     pointHoverRadius: 6,
                     pointHoverBorderWidth: 2,
                     yAxisID: axis,
-                    spanGaps: true // Handle missing values
+                    spanGaps: false // Match single KPI behavior - show all data points including zeros
                 };
             });
             
@@ -3119,7 +3119,7 @@ function renderScatterPlots() {
                             tension: 0.3,
                             pointRadius: 1,
                             pointHoverRadius: 5,
-                            spanGaps: true
+                            spanGaps: false // Match single KPI behavior
                         }]
                     },
                     options: {
