@@ -3461,15 +3461,22 @@ function renderScatterPlots() {
                 
                 // Update button state
                 countSpan.textContent = selectedKpis.length;
-                compareBtn.disabled = selectedKpis.length < 2;
+                compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 6;
                 
                 // Update button appearance
-                if (selectedKpis.length < 2) {
+                if (selectedKpis.length < 2 || selectedKpis.length > 6) {
                     compareBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     compareBtn.classList.remove('hover:bg-blue-700');
                 } else {
                     compareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     compareBtn.classList.add('hover:bg-blue-700');
+                }
+                
+                // Warn user visually when exceeding 6
+                if (selectedKpis.length > 6) {
+                    countSpan.style.color = '#ef4444'; // Red
+                } else {
+                    countSpan.style.color = '';
                 }
             }
             
@@ -3489,10 +3496,9 @@ function renderScatterPlots() {
                     alert('⚠️ Please select at least 2 KPIs to compare');
                     return;
                 }
-                if (selectedKpis.length > 5) {
-                    if (!confirm('⚠️ You selected ' + selectedKpis.length + ' KPIs. For best clarity, 2-5 KPIs are recommended.\n\nContinue anyway?')) {
-                        return;
-                    }
+                if (selectedKpis.length > 6) {
+                    alert('⚠️ Maximum 6 KPIs allowed. Please deselect ' + (selectedKpis.length - 6) + ' KPI(s) to continue.');
+                    return;
                 }
                 renderMultiKpiChart(selectedKpis);
             });
