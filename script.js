@@ -25,6 +25,7 @@
         let scatterMcsCqi = null;
         let scatterBlerTput = null;
         let kpiHistogramChart = null;
+        let polynomialDegree = 2; // Default: Quadratic (degree 2)
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
@@ -1503,6 +1504,145 @@ function renderScatterPlots() {
             }));
         }
 
+        /**
+         * POLYNOMIAL REGRESSION IMPLEMENTATION
+         * Computes polynomial coefficients using least squares method
+         * @param {Array} xData - Array of x values
+         * @param {Array} yData - Array of y values
+         * @param {Number} degree - Polynomial degree (1=linear, 2=quadratic, 3=cubic, etc.)
+         * @returns {Array} - Coefficients [a0, a1, a2, ..., an] where y = a0 + a1*x + a2*x^2 + ...
+         */
+        function polynomialRegression(xData, yData, degree) {
+            // Filter out invalid data points
+            const validPoints = [];
+            for (let i = 0; i < xData.length; i++) {
+                if (!isNaN(xData[i]) && !isNaN(yData[i]) && isFinite(xData[i]) && isFinite(yData[i])) {
+                    validPoints.push({ x: xData[i], y: yData[i] });
+                }
+            }
+            
+            if (validPoints.length < degree + 1) {
+                console.warn('Insufficient data points for polynomial degree', degree);
+                return null;
+            }
+            
+            const n = validPoints.length;
+            const x = validPoints.map(p => p.x);
+            const y = validPoints.map(p => p.y);
+            
+            // Build the Vandermonde matrix and solve using normal equations
+            // X^T * X * coeffs = X^T * y
+            
+            const matrixSize = degree + 1;
+            const matrix = Array(matrixSize).fill(0).map(() => Array(matrixSize).fill(0));
+            const vector = Array(matrixSize).fill(0);
+            
+            // Construct the normal equation matrix
+            for (let i = 0; i < matrixSize; i++) {
+                for (let j = 0; j < matrixSize; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < n; k++) {
+                        sum += Math.pow(x[k], i + j);
+                    }
+                    matrix[i][j] = sum;
+                }
+                
+                let sum = 0;
+                for (let k = 0; k < n; k++) {
+                    sum += y[k] * Math.pow(x[k], i);
+                }
+                vector[i] = sum;
+            }
+            
+            // Solve using Gaussian elimination
+            const coefficients = gaussianElimination(matrix, vector);
+            return coefficients;
+        }
+        
+        /**
+         * Gaussian Elimination solver for linear systems
+         * @param {Array} matrix - 2D array representing coefficient matrix
+         * @param {Array} vector - 1D array representing constants
+         * @returns {Array} - Solution vector
+         */
+        function gaussianElimination(matrix, vector) {
+            const n = matrix.length;
+            const augmented = matrix.map((row, i) => [...row, vector[i]]);
+            
+            // Forward elimination
+            for (let i = 0; i < n; i++) {
+                // Find pivot
+                let maxRow = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
+                        maxRow = k;
+                    }
+                }
+                
+                // Swap rows
+                [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
+                
+                // Check for singular matrix
+                if (Math.abs(augmented[i][i]) < 1e-10) {
+                    console.warn('Matrix is singular or nearly singular');
+                    return null;
+                }
+                
+                // Eliminate column
+                for (let k = i + 1; k < n; k++) {
+                    const factor = augmented[k][i] / augmented[i][i];
+                    for (let j = i; j <= n; j++) {
+                        augmented[k][j] -= factor * augmented[i][j];
+                    }
+                }
+            }
+            
+            // Back substitution
+            const solution = Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                solution[i] = augmented[i][n];
+                for (let j = i + 1; j < n; j++) {
+                    solution[i] -= augmented[i][j] * solution[j];
+                }
+                solution[i] /= augmented[i][i];
+            }
+            
+            return solution;
+        }
+        
+        /**
+         * Generate polynomial trendline data points
+         * @param {Array} xData - Original x values (for range determination)
+         * @param {Array} coefficients - Polynomial coefficients
+         * @param {Number} numPoints - Number of points to generate (default: 100)
+         * @returns {Array} - Array of {x, y} points for the trendline
+         */
+        function generatePolynomialTrendline(xData, coefficients, numPoints = 100) {
+            if (!coefficients || coefficients.length === 0) return [];
+            
+            const validX = xData.filter(x => !isNaN(x) && isFinite(x));
+            if (validX.length === 0) return [];
+            
+            const xMin = Math.min(...validX);
+            const xMax = Math.max(...validX);
+            const step = (xMax - xMin) / (numPoints - 1);
+            
+            const trendline = [];
+            for (let i = 0; i < numPoints; i++) {
+                const x = xMin + i * step;
+                let y = 0;
+                
+                // Evaluate polynomial: y = a0 + a1*x + a2*x^2 + ... + an*x^n
+                for (let j = 0; j < coefficients.length; j++) {
+                    y += coefficients[j] * Math.pow(x, j);
+                }
+                
+                trendline.push({ x, y });
+            }
+            
+            return trendline;
+        }
+
         function renderCorrelationScatters() {
             if (parsedData.length === 0) return;
 
@@ -1543,6 +1683,10 @@ function renderScatterPlots() {
                 const tputXP90 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 90);
                 const tputXP50 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 50);
                 const tputXAvg = calculateBinnedAverage(xAxisVals, tputDlVals);
+                
+                // Calculate polynomial trendline
+                const polyCoeffs = polynomialRegression(xAxisVals, tputDlVals, polynomialDegree);
+                const polyTrendline = polyCoeffs ? generatePolynomialTrendline(xAxisVals, polyCoeffs, 100) : [];
 
                 if (scatterTputSinr) scatterTputSinr.destroy();
                 scatterTputSinr = new Chart(document.getElementById('scatterTputSinr'), {
@@ -1552,7 +1696,8 @@ function renderScatterPlots() {
                             { label: 'Data Points', data: tputXData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                             { label: '90th Percentile', data: tputXP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                             { label: 'Median (50th)', data: tputXP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                            { label: 'Average', data: tputXAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                            { label: 'Average', data: tputXAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                            { label: `Polynomial (Degree ${polynomialDegree})`, data: polyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                         ]
                     },
                     options: {
@@ -1577,6 +1722,10 @@ function renderScatterPlots() {
             const rsrpTputP90 = calculateBinnedPercentiles(rsrpVals, tputDlVals, 90);
             const rsrpTputP50 = calculateBinnedPercentiles(rsrpVals, tputDlVals, 50);
             const rsrpTputAvg = calculateBinnedAverage(rsrpVals, tputDlVals);
+            
+            // Calculate polynomial trendline
+            const rsrpPolyCoeffs = polynomialRegression(rsrpVals, tputDlVals, polynomialDegree);
+            const rsrpPolyTrendline = rsrpPolyCoeffs ? generatePolynomialTrendline(rsrpVals, rsrpPolyCoeffs, 100) : [];
 
             if (scatterTputRsrp) scatterTputRsrp.destroy();
             scatterTputRsrp = new Chart(document.getElementById('scatterTputRsrp'), {
@@ -1586,7 +1735,8 @@ function renderScatterPlots() {
                         { label: 'Data Points', data: rsrpTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                         { label: '90th Percentile', data: rsrpTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                         { label: 'Median (50th)', data: rsrpTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: rsrpTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'Average', data: rsrpTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                        { label: `Polynomial (Degree ${polynomialDegree})`, data: rsrpPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                     ]
                 },
                 options: {
@@ -1611,6 +1761,10 @@ function renderScatterPlots() {
                 const cqiMcsP90 = calculateBinnedPercentiles(cqiVals, mcsVals, 90);
                 const cqiMcsP50 = calculateBinnedPercentiles(cqiVals, mcsVals, 50);
                 const cqiMcsAvg = calculateBinnedAverage(cqiVals, mcsVals);
+                
+                // Calculate polynomial trendline
+                const cqiPolyCoeffs = polynomialRegression(cqiVals, mcsVals, polynomialDegree);
+                const cqiPolyTrendline = cqiPolyCoeffs ? generatePolynomialTrendline(cqiVals, cqiPolyCoeffs, 100) : [];
 
                 if (scatterMcsCqi) scatterMcsCqi.destroy();
             scatterMcsCqi = new Chart(document.getElementById('scatterMcsCqi'), {
@@ -1620,7 +1774,8 @@ function renderScatterPlots() {
                         { label: 'Data Points', data: cqiMcsData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                         { label: '90th Percentile', data: cqiMcsP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                         { label: 'Median (50th)', data: cqiMcsP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: cqiMcsAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'Average', data: cqiMcsAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                        { label: `Polynomial (Degree ${polynomialDegree})`, data: cqiPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                     ]
                 },
                 options: {
@@ -1648,6 +1803,10 @@ function renderScatterPlots() {
                 const blerTputP90 = calculateBinnedPercentiles(blerVals, tputDlVals, 90);
                 const blerTputP50 = calculateBinnedPercentiles(blerVals, tputDlVals, 50);
                 const blerTputAvg = calculateBinnedAverage(blerVals, tputDlVals);
+                
+                // Calculate polynomial trendline
+                const blerPolyCoeffs = polynomialRegression(blerVals, tputDlVals, polynomialDegree);
+                const blerPolyTrendline = blerPolyCoeffs ? generatePolynomialTrendline(blerVals, blerPolyCoeffs, 100) : [];
 
                 if (scatterBlerTput) scatterBlerTput.destroy();
             scatterBlerTput = new Chart(document.getElementById('scatterBlerTput'), {
@@ -1657,7 +1816,8 @@ function renderScatterPlots() {
                         { label: 'Data Points', data: blerTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                         { label: '90th Percentile', data: blerTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                         { label: 'Median (50th)', data: blerTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: blerTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'Average', data: blerTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                        { label: `Polynomial (Degree ${polynomialDegree})`, data: blerPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                     ]
                 },
                 options: {
@@ -2236,6 +2396,22 @@ function renderScatterPlots() {
             currentTechFilter = e.target.value;
             if (csvData && rawParsedData.length > 0) {
                 renderMap(); // Call without csvText to re-filter existing data
+            }
+        });
+        
+        // Polynomial degree selector change handler
+        document.getElementById('polynomialDegreeSelector').addEventListener('change', function(e) {
+            polynomialDegree = parseInt(e.target.value, 10);
+            console.log('Polynomial degree changed to:', polynomialDegree);
+            
+            // Warn user about high-degree polynomials
+            if (polynomialDegree >= 6) {
+                console.warn('⚠️ High-degree polynomial (degree ' + polynomialDegree + ') may overfit data and show oscillations. Consider using degree 2-3 for most telecom KPI analysis.');
+            }
+            
+            // Re-render scatter plots with new polynomial degree
+            if (parsedData.length > 0) {
+                renderCorrelationScatters();
             }
         });
 

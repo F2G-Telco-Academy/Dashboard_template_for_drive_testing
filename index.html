@@ -360,7 +360,20 @@
 
                 <!-- Correlation Analysis Section - Scatter Plots -->
                 <div class="border-4 border-black bg-white p-4">
-                    <h3 class="text-gray-900 font-bold mb-4 text-base border-b-2 border-gray-300 pb-2">🔬 CORRELATION ANALYSIS (Scatter Plots)</h3>
+                    <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-2">
+                        <h3 class="text-gray-900 font-bold text-base">🔬 CORRELATION ANALYSIS (Scatter Plots)</h3>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-700">TRENDLINE:</label>
+                            <select id="polynomialDegreeSelector" class="bg-gray-100 border-2 border-gray-300 text-gray-900 px-3 py-1 text-xs font-bold font-mono cursor-pointer hover:bg-gray-200 transition-all" title="Select polynomial degree for trendline fitting. Higher degrees may overfit data.">
+                                <option value="1">Linear (Degree 1)</option>
+                                <option value="2" selected>Quadratic (Degree 2)</option>
+                                <option value="3">Cubic (Degree 3)</option>
+                                <option value="4">Quartic (Degree 4)</option>
+                                <option value="5">Quintic (Degree 5)</option>
+                                <option value="6">Sextic (Degree 6) ⚠️</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 gap-4">
                         <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
                             <canvas id="scatterTputSinr"></canvas>
