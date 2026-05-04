@@ -112,14 +112,18 @@
                     document.getElementById('editModeBtn').click();
                 }
 
-                // Also clear the map (markers, per-segment layers) and CSV state
+                // Clear map and CSV state
                 try {
                     clearMap();
                     csvData = null;
                     parsedData = [];
+                    rawParsedData = [];
+                    detectedTechnology = null;
+                    currentTechFilter = 'all';
+                    const techFilterEl = document.getElementById('techFilter');
+                    if (techFilterEl) techFilterEl.value = 'all';
                     const pc = document.getElementById('pointCount');
                     if (pc) pc.textContent = '0';
-                    // Reset map view to default center/zoom if map exists
                     if (map && typeof map.setCenter === 'function') {
                         map.setCenter([11.5021, 3.8480]);
                         map.setZoom(12);
@@ -127,6 +131,114 @@
                 } catch (e) {
                     console.warn('Error clearing map during reset:', e);
                 }
+
+                // Destroy ALL Chart.js instances
+                try {
+                    if (kpiChart) { kpiChart.destroy(); kpiChart = null; }
+                    if (kpiHistogramChart) { kpiHistogramChart.destroy(); kpiHistogramChart = null; }
+                    if (zoomedChart) { zoomedChart.destroy(); zoomedChart = null; }
+                    if (compCqiMcs) { compCqiMcs.destroy(); compCqiMcs = null; }
+                    if (compCqiOnly) { compCqiOnly.destroy(); compCqiOnly = null; }
+                    if (compMcsOnly) { compMcsOnly.destroy(); compMcsOnly = null; }
+                    if (compSinrTput) { compSinrTput.destroy(); compSinrTput = null; }
+                    if (compSinrOnly) { compSinrOnly.destroy(); compSinrOnly = null; }
+                    if (compRsrqRsrp) { compRsrqRsrp.destroy(); compRsrqRsrp = null; }
+                    if (compRsrpOnly) { compRsrpOnly.destroy(); compRsrpOnly = null; }
+                    if (compRsrqOnly) { compRsrqOnly.destroy(); compRsrqOnly = null; }
+                    if (compBlerTput) { compBlerTput.destroy(); compBlerTput = null; }
+                    if (compTputOnly) { compTputOnly.destroy(); compTputOnly = null; }
+                    if (compBlerOnly) { compBlerOnly.destroy(); compBlerOnly = null; }
+                    if (scatterTputSinr) { scatterTputSinr.destroy(); scatterTputSinr = null; }
+                    if (scatterTputRsrp) { scatterTputRsrp.destroy(); scatterTputRsrp = null; }
+                    if (scatterMcsCqi) { scatterMcsCqi.destroy(); scatterMcsCqi = null; }
+                    if (scatterBlerTput) { scatterBlerTput.destroy(); scatterBlerTput = null; }
+                    if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
+                        window.multiKpiCharts.forEach(c => c.destroy());
+                        window.multiKpiCharts = [];
+                    }
+                } catch (e) {
+                    console.warn('Error destroying charts during reset:', e);
+                }
+
+                // Close zoom modal if open
+                try {
+                    const zoomModal = document.getElementById('chartZoomModal');
+                    if (zoomModal) {
+                        zoomModal.style.display = 'none';
+                        const chartContainer = document.getElementById('chartZoomContainer');
+                        if (chartContainer) {
+                            chartContainer.innerHTML = '<canvas id="chartZoomCanvas"></canvas>';
+                            chartContainer.style.cssText = 'flex:1; border:3px solid white; padding:20px; overflow:hidden; display:block;';
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error closing modal during reset:', e);
+                }
+
+                // Reset summary cards
+                ['summaryCurrentValue', 'summaryMin', 'summaryAvg', 'summaryMax'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '-'; el.style.color = ''; }
+                });
+                const trendEl = document.getElementById('summaryCurrentTrend');
+                if (trendEl) trendEl.textContent = '-';
+
+                // Reset stat values
+                ['statMin', 'statP10', 'statP50', 'statP90', 'statAvg', 'statMax'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '-'; el.style.color = ''; }
+                });
+
+                // Reset table values
+                ['tableMin', 'tableMinQuality', 'tableP10', 'tableP10Quality',
+                 'tableP50', 'tableP50Quality', 'tableP90', 'tableP90Quality',
+                 'tableAvg', 'tableAvgQuality', 'tableMax', 'tableMaxQuality'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '-'; el.style.color = ''; }
+                });
+
+                // Reset signal quality counts
+                ['qualExcellent', 'qualExcellentPct', 'qualGood', 'qualGoodPct',
+                 'qualFair', 'qualFairPct', 'qualPoor', 'qualPoorPct'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '0';
+                });
+
+                // Reset events list
+                const eventsList = document.getElementById('eventsList');
+                if (eventsList) eventsList.innerHTML = '<div class="text-gray-600">No events</div>';
+
+                // Hide histogram
+                const histContainer = document.getElementById('kpiHistogramContainer');
+                if (histContainer) histContainer.style.display = 'none';
+
+                // Reset multi-KPI checkboxes and state
+                selectedKpis = [];
+                document.querySelectorAll('.kpi-selector').forEach(cb => { cb.checked = false; });
+                const compareBtn = document.getElementById('compareKpisBtn');
+                const countSpan = document.getElementById('selectedKpiCount');
+                if (compareBtn) compareBtn.disabled = true;
+                if (countSpan) countSpan.textContent = '0';
+
+                // Hide KPI panel, show dashboard panel
+                const kpiPanel = document.getElementById('kpiPanel');
+                const dashboardPanel = document.getElementById('dashboardPanel');
+                const kpiToggleBtn = document.getElementById('kpisBtn');
+                if (kpiPanel) { kpiPanel.classList.add('hidden'); kpiPanel.classList.remove('flex'); }
+                if (dashboardPanel) dashboardPanel.classList.remove('hidden');
+                if (kpiToggleBtn) {
+                    kpiToggleBtn.classList.remove('bg-green-600');
+                    kpiToggleBtn.classList.add('bg-purple-600');
+                    kpiToggleBtn.innerHTML = '📊 <span class="hidden sm:inline">KPIs</span>';
+                }
+
+                // Reset KPI panel title
+                const kpiTitle = document.getElementById('kpiPanelTitle');
+                if (kpiTitle) kpiTitle.textContent = '📊 KPI VISUALIZATION';
+
+                // Reset CSV file input
+                const csvInput = document.getElementById('csvFile');
+                if (csvInput) csvInput.value = '';
 
                 alert('Dashboard reset to default successfully!');
             }
