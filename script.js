@@ -371,6 +371,85 @@
             });
         }
         
+        // Update Multi-KPI Comparison checkbox labels based on technology
+        function updateMultiKpiLabels() {
+            const tech = detectedTechnology || 'LTE';
+            console.log('updateMultiKpiLabels called with technology:', tech);
+            
+            // Define checkbox visibility per technology
+            const checkboxVisibility = {
+                'NR': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'LTE': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'UMTS': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'GSM': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps']
+            };
+            
+            // Define checkbox labels per technology
+            const checkboxLabels = {
+                'NR': { 
+                    rsrp: 'NR-RSRP', 
+                    rsrq: 'NR-RSRQ', 
+                    sinr: 'NR-SINR', 
+                    cqi: 'CQI', 
+                    mcs: 'MCS', 
+                    bler: 'BLER', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                },
+                'LTE': { 
+                    rsrp: 'RSRP', 
+                    rsrq: 'RSRQ', 
+                    sinr: 'SINR', 
+                    cqi: 'CQI', 
+                    mcs: 'MCS', 
+                    bler: 'BLER', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                },
+                'UMTS': { 
+                    rsrp: 'RSCP', 
+                    rsrq: 'Ec/No', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                },
+                'GSM': { 
+                    rsrp: 'RxLev', 
+                    rsrq: 'RxQual', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                }
+            };
+            
+            const visibleCheckboxes = checkboxVisibility[tech] || checkboxVisibility['LTE'];
+            const labels = checkboxLabels[tech] || checkboxLabels['LTE'];
+            
+            // Update each checkbox label and visibility
+            document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                const kpiType = checkbox.dataset.kpi;
+                const labelElement = checkbox.parentElement.querySelector('.kpi-label');
+                const parentLabel = checkbox.parentElement;
+                
+                if (visibleCheckboxes.includes(kpiType)) {
+                    parentLabel.style.display = 'flex';
+                    const newLabel = labels[kpiType] || kpiType.toUpperCase();
+                    if (labelElement) {
+                        labelElement.textContent = newLabel;
+                    }
+                    console.log(`Multi-KPI checkbox ${kpiType}: visible, label = ${newLabel}`);
+                } else {
+                    parentLabel.style.display = 'none';
+                    // Uncheck hidden checkboxes
+                    checkbox.checked = false;
+                    console.log(`Multi-KPI checkbox ${kpiType}: hidden`);
+                }
+            });
+            
+            // Trigger update of selected count if the function exists
+            if (window.updateMultiKpiSelectedCount) {
+                window.updateMultiKpiSelectedCount();
+            }
+        }
+        
         document.getElementById('kpisBtn').addEventListener('click', function() {
             showingKPIs = !showingKPIs;
             const dashboardPanel = document.getElementById('dashboardPanel');
@@ -394,6 +473,7 @@
                     }
                     
                     updateKPITabs(); // Update tabs based on technology
+                    updateMultiKpiLabels(); // Update multi-KPI checkbox labels based on technology
                     // Click the first visible tab to render its chart
                     const firstVisibleTab = document.querySelector('.kpi-tab[style*="display: inline-block"], .kpi-tab:not([style*="display: none"])');
                     if (firstVisibleTab) {
@@ -420,12 +500,13 @@
                 // Only process if tab is visible
                 if (this.style.display === 'none') return;
                 
+                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
                 document.querySelectorAll('.kpi-tab').forEach(t => {
-                    t.classList.remove('active', 'bg-blue-600');
-                    t.classList.add('bg-gray-700');
+                    t.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
+                    t.classList.add(inactiveBg);
                 });
                 this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentKpiType = this.dataset.kpi;
                 renderKPIChart(currentKpiType);
             });
@@ -434,12 +515,13 @@
         // Chart Type switching
         document.querySelectorAll('.chart-type-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
                 document.querySelectorAll('.chart-type-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600');
-                    b.classList.add('bg-gray-700');
+                    b.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
+                    b.classList.add(inactiveBg);
                 });
                 this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentChartType = this.dataset.type;
                 renderKPIChart(currentKpiType);
             });
@@ -448,12 +530,13 @@
         // View Mode switching
         document.querySelectorAll('.view-mode-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
                 document.querySelectorAll('.view-mode-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600');
-                    b.classList.add('bg-gray-700');
+                    b.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
+                    b.classList.add(inactiveBg);
                 });
                 this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentViewMode = this.dataset.mode;
                 toggleViewMode();
             });
@@ -2323,10 +2406,30 @@ function renderScatterPlots() {
 
         function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
-            const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
             const modalContent = modal.querySelector('div');
             const chartContainer = document.getElementById('chartZoomContainer');
+            
+            // Clean up multi-KPI charts if they exist
+            if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
+                window.multiKpiCharts.forEach(chart => chart.destroy());
+                window.multiKpiCharts = [];
+            }
+            
+            // Reset container to original single-chart structure
+            chartContainer.innerHTML = '<canvas id="chartZoomCanvas"></canvas>';
+            chartContainer.style.flex = '1';
+            chartContainer.style.border = '3px solid white';
+            chartContainer.style.padding = '20px';
+            chartContainer.style.overflow = 'hidden';
+            chartContainer.style.display = 'block'; // Reset from flex
+            chartContainer.style.flexDirection = ''; // Clear flex direction
+            chartContainer.style.gap = ''; // Clear gap
+            chartContainer.style.overflowY = ''; // Clear overflow-y
+            chartContainer.style.overflowX = ''; // Clear overflow-x
+            
+            // Now get the canvas (it exists after innerHTML reset)
+            const canvas = document.getElementById('chartZoomCanvas');
             
             title.textContent = chartTitle;
             modal.style.display = 'flex';
@@ -2381,6 +2484,11 @@ function renderScatterPlots() {
             if (zoomedChart) {
                 zoomedChart.destroy();
                 zoomedChart = null;
+            }
+            // Clean up multi-KPI charts
+            if (window.multiKpiCharts) {
+                window.multiKpiCharts.forEach(chart => chart.destroy());
+                window.multiKpiCharts = [];
             }
         }
 
@@ -2530,6 +2638,25 @@ function renderScatterPlots() {
                     el.classList.remove('text-gray-400');
                     el.classList.add('text-gray-600');
                 });
+                // Fix KPI tab and button borders for light mode
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    el.classList.remove('border-white');
+                    el.classList.add('border-gray-400');
+                    // Switch inactive button background to light
+                    if (!el.classList.contains('bg-blue-600')) {
+                        el.classList.remove('bg-gray-700');
+                        el.classList.add('bg-gray-200');
+                    }
+                });
+                // Fix theme toggle button for light mode
+                const toggleBtn = document.getElementById('kpiThemeToggle');
+                toggleBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                toggleBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');                // Update multi-KPI checkbox hover states for light mode
+                document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                    const label = checkbox.parentElement;
+                    label.classList.remove('hover:bg-gray-700');
+                    label.classList.add('hover:bg-gray-100');
+                });
             } else {
                 panel.classList.remove('bg-white');
                 panel.classList.add('bg-gray-900');
@@ -2556,6 +2683,26 @@ function renderScatterPlots() {
                     el.classList.remove('text-gray-600');
                     el.classList.add('text-gray-400');
                 });
+                // Fix KPI tab and button borders for dark mode
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    el.classList.remove('border-gray-400');
+                    el.classList.add('border-white');
+                    // Switch inactive button background to dark
+                    if (!el.classList.contains('bg-blue-600')) {
+                        el.classList.remove('bg-gray-200');
+                        el.classList.add('bg-gray-700');
+                    }
+                });
+                // Fix theme toggle button for dark mode
+                const toggleBtn = document.getElementById('kpiThemeToggle');
+                toggleBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                toggleBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                // Update multi-KPI checkbox hover states for dark mode
+                document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                    const label = checkbox.parentElement;
+                    label.classList.remove('hover:bg-gray-100');
+                    label.classList.add('hover:bg-gray-700');
+                });
             }
             
             if (parsedData.length > 0) {
@@ -2569,3 +2716,517 @@ function renderScatterPlots() {
             }
         });
     
+
+        // =====================================================
+        // MULTI-KPI COMPARISON FEATURE
+        // =====================================================
+        
+        // Global state for multi-KPI selection
+        let selectedKpis = [];
+        
+        /**
+         * Prepare multi-KPI dataset for comparison chart
+         * @param {Array} selectedKpis - Array of KPI objects: [{kpi: 'rsrp', unit: 'dBm', axis: 'left'}, ...]
+         * @returns {Object} - {labels, datasets, axisConfig}
+    
+         */
+        function prepareMultiKpiData(selectedKpis) {
+            if (parsedData.length === 0 || selectedKpis.length === 0) {
+                return null;
+            }
+            
+            // Extract shared time labels
+            const labels = parsedData.map((d, i) => 
+                d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`
+            );
+            
+            // Technology detection
+            const tech = detectedTechnology || 'LTE';
+            
+            // Color palette for multi-KPI (distinct, professional colors)
+            const colorPalette = [
+                '#3b82f6', // Blue
+                '#10b981', // Green
+                '#f59e0b', // Amber
+                '#ef4444', // Red
+                '#8b5cf6', // Purple
+                '#ec4899', // Pink
+                '#06b6d4', // Cyan
+                '#f97316'  // Orange
+            ];
+            
+            // Build datasets
+            const datasets = selectedKpis.map((kpiObj, index) => {
+                const { kpi, unit, axis } = kpiObj;
+                
+                let values = [];
+                let label = kpi.toUpperCase();
+                
+                // Technology-specific field mapping
+                if (kpi === 'rsrp') {
+                    if (tech === 'NR') {
+                        values = parsedData.map(d => parseFloat(d.nr_rsrp) || null);
+                        label = 'NR-RSRP';
+                    } else if (tech === 'UMTS') {
+                        values = parsedData.map(d => parseFloat(d.wcdma_rscp) || null);
+                        label = 'RSCP';
+                    } else if (tech === 'GSM') {
+                        values = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || null);
+                        label = 'RxLev';
+                    } else {
+                        values = parsedData.map(d => parseFloat(d.rsrp) || null);
+                        label = 'RSRP';
+                    }
+                } else if (kpi === 'rsrq') {
+                    if (tech === 'NR') {
+                        values = parsedData.map(d => parseFloat(d.nr_rsrq) || null);
+                        label = 'NR-RSRQ';
+                    } else if (tech === 'UMTS') {
+                        values = parsedData.map(d => parseFloat(d.wcdma_ecno) || null);
+                        label = 'Ec/No';
+                    } else if (tech === 'GSM') {
+                        values = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || null);
+                        label = 'RxQual';
+                    } else {
+                        values = parsedData.map(d => parseFloat(d.rsrq) || null);
+                        label = 'RSRQ';
+                    }
+                } else if (kpi === 'sinr') {
+                    if (tech === 'NR') {
+                        values = parsedData.map(d => parseFloat(d.nr_sinr) || null);
+                        label = 'NR-SINR';
+                    } else {
+                        values = parsedData.map(d => parseFloat(d.sinr) || null);
+                        label = 'SINR';
+                    }
+                } else {
+                    // Generic KPI extraction
+                    values = parsedData.map(d => parseFloat(d[kpi]) || null);
+                }
+                
+                // Add unit to label
+                const fullLabel = unit ? `${label} (${unit})` : label;
+                
+                return {
+                    label: fullLabel,
+                    data: values,
+                    borderColor: colorPalette[index % colorPalette.length],
+                    backgroundColor: 'transparent',
+                    borderWidth: 2.5,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 1.5,
+                    pointHoverRadius: 6,
+                    pointHoverBorderWidth: 2,
+                    yAxisID: axis,
+                    spanGaps: true // Handle missing values
+                };
+            });
+            
+            // Determine axis configuration
+            const hasLeftAxis = selectedKpis.some(k => k.axis === 'left');
+            const hasRightAxis = selectedKpis.some(k => k.axis === 'right');
+            
+            // Get units for axis labels
+            const leftUnits = [...new Set(selectedKpis.filter(k => k.axis === 'left').map(k => k.unit).filter(u => u))];
+            const rightUnits = [...new Set(selectedKpis.filter(k => k.axis === 'right').map(k => k.unit).filter(u => u))];
+            
+            const axisConfig = {
+                hasLeft: hasLeftAxis,
+                hasRight: hasRightAxis,
+                leftLabel: leftUnits.length === 1 ? leftUnits[0] : leftUnits.length > 1 ? 'Mixed Units' : 'Value',
+                rightLabel: rightUnits.length === 1 ? rightUnits[0] : rightUnits.length > 1 ? 'Mixed Units' : 'Value'
+            };
+            
+            return { labels, datasets, axisConfig };
+        }
+        
+        /**
+         * Render multi-KPI comparison chart in zoom modal (STACKED CHARTS VERSION)
+         * Each KPI gets its own chart with its own Y-axis, all sharing the same X-axis
+         * @param {Array} selectedKpis - Array of selected KPI objects
+         */
+        function renderMultiKpiChart(selectedKpis) {
+            const data = prepareMultiKpiData(selectedKpis);
+            
+            if (!data) {
+                alert('⚠️ No data available for selected KPIs');
+                return;
+            }
+            
+            const { labels, datasets } = data;
+            
+            // Open modal
+            const modal = document.getElementById('chartZoomModal');
+            const title = document.getElementById('chartZoomTitle');
+            const modalContent = modal.querySelector('div');
+            const chartContainer = document.getElementById('chartZoomContainer');
+            
+            // Set title
+            const tech = detectedTechnology || 'LTE';
+            const kpiNames = selectedKpis.map(k => {
+                if (k.kpi === 'rsrp') {
+                    return tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                } else if (k.kpi === 'rsrq') {
+                    return tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                } else if (k.kpi === 'sinr') {
+                    return tech === 'NR' ? 'NR-SINR' : 'SINR';
+                } else if (k.kpi === 'throughput_dl_mbps') {
+                    return 'DL Tput';
+                } else if (k.kpi === 'throughput_ul_mbps') {
+                    return 'UL Tput';
+                }
+                return k.kpi.toUpperCase();
+            }).join(' + ');
+            
+            title.textContent = `📊 Multi-KPI Analysis: ${kpiNames}`;
+            
+            // Show modal
+            modal.style.display = 'flex';
+            
+            // Apply theme
+            const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
+            const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+            const tickColor = kpiTheme === 'dark' ? '#9ca3af' : '#4b5563';
+            const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
+            
+            if (kpiTheme === 'light') {
+                modal.style.background = 'rgba(255,255,255,0.95)';
+                modalContent.style.background = '#f3f4f6';
+                title.style.color = '#1f2937';
+            } else {
+                modal.style.background = 'rgba(0,0,0,0.95)';
+                modalContent.style.background = '#1f2937';
+                title.style.color = '#fff';
+            }
+            
+            // Clear existing content and create stacked charts container
+            chartContainer.innerHTML = '';
+            chartContainer.style.background = bgColor;
+            chartContainer.style.overflowY = 'auto';
+            chartContainer.style.overflowX = 'hidden';
+            chartContainer.style.display = 'flex';
+            chartContainer.style.flexDirection = 'column';
+            chartContainer.style.gap = '15px';
+            chartContainer.style.padding = '20px';
+            
+            // Destroy existing chart if any
+            if (zoomedChart) {
+                zoomedChart.destroy();
+                zoomedChart = null;
+            }
+            
+            // Store all chart instances for cleanup
+            if (!window.multiKpiCharts) {
+                window.multiKpiCharts = [];
+            }
+            // Destroy previous charts
+            window.multiKpiCharts.forEach(chart => chart.destroy());
+            window.multiKpiCharts = [];
+            
+            // Shared state for synchronized crosshair
+            const syncState = {
+                activeIndex: null,
+                isHovering: false
+            };
+            
+            // Custom plugin for vertical crosshair line
+            const crosshairPlugin = {
+                id: 'crosshair',
+                afterDraw: (chart) => {
+                    if (syncState.activeIndex !== null && syncState.isHovering) {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        
+                        // Get x position for the active index
+                        const x = xAxis.getPixelForValue(syncState.activeIndex);
+                        
+                        // Draw vertical line
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(x, yAxis.top);
+                        ctx.lineTo(x, yAxis.bottom);
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = kpiTheme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.3)';
+                        ctx.setLineDash([5, 5]);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            };
+            
+            // Calculate height per chart (responsive)
+            const numCharts = datasets.length;
+            const chartHeight = Math.max(180, Math.min(300, Math.floor((window.innerHeight * 0.85) / numCharts) - 30));
+            
+            // Create a separate chart for each KPI
+            datasets.forEach((dataset, index) => {
+                // Create container for this chart
+                const chartWrapper = document.createElement('div');
+                chartWrapper.style.background = bgColor;
+                chartWrapper.style.border = `2px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
+                chartWrapper.style.borderRadius = '4px';
+                chartWrapper.style.padding = '15px 20px 15px 70px'; // Even more left padding (70px)
+                chartWrapper.style.minHeight = `${chartHeight}px`;
+                chartWrapper.style.position = 'relative';
+                chartWrapper.style.boxSizing = 'border-box';
+                
+                // Add KPI title
+                const chartTitle = document.createElement('div');
+                chartTitle.textContent = dataset.label;
+                chartTitle.style.color = textColor;
+                chartTitle.style.fontFamily = 'JetBrains Mono';
+                chartTitle.style.fontSize = '13px';
+                chartTitle.style.fontWeight = 'bold';
+                chartTitle.style.marginBottom = '10px';
+                chartTitle.style.paddingBottom = '8px';
+                chartTitle.style.borderBottom = `1px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
+                chartWrapper.appendChild(chartTitle);
+                
+                // Create canvas wrapper with overflow control
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.style.position = 'relative';
+                canvasWrapper.style.width = '100%';
+                canvasWrapper.style.height = `${chartHeight - 50}px`;
+                canvasWrapper.style.overflow = 'visible'; // Allow labels to show
+                
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvasWrapper.appendChild(canvas);
+                chartWrapper.appendChild(canvasWrapper);
+                
+                chartContainer.appendChild(chartWrapper);
+                
+                // Create chart
+                const ctx = canvas.getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: dataset.label,
+                            data: dataset.data,
+                            borderColor: dataset.borderColor,
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 1,
+                            pointHoverRadius: 5,
+                            spanGaps: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                left: 30,
+                                right: 20,
+                                top: 15,
+                                bottom: 15
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0,0,0,0.9)',
+                                titleFont: { family: 'JetBrains Mono', size: 11 },
+                                bodyFont: { family: 'JetBrains Mono', size: 10 },
+                                padding: 10,
+                                borderColor: dataset.borderColor,
+                                borderWidth: 2,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label || '';
+                                    },
+                                    label: function(context) {
+                                        if (context.parsed.y !== null) {
+                                            return `${dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                                        }
+                                        return 'N/A';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: index === datasets.length - 1,
+                                ticks: { 
+                                    color: tickColor, 
+                                    font: { size: 9, family: 'JetBrains Mono' },
+                                    maxRotation: 45,
+                                    minRotation: 45,
+                                    autoSkip: true,
+                                    maxTicksLimit: 12
+                                },
+                                grid: { 
+                                    color: gridColor,
+                                    display: true,
+                                    drawBorder: true
+                                },
+                                title: {
+                                    display: index === datasets.length - 1,
+                                    text: 'Time',
+                                    color: textColor,
+                                    font: { size: 11, family: 'JetBrains Mono', weight: 'bold' }
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                ticks: { 
+                                    color: tickColor,
+                                    font: { family: 'JetBrains Mono', size: 9 },
+                                    autoSkip: true,
+                                    maxTicksLimit: 8,
+                                    padding: 10,
+                                    align: 'end'
+                                },
+                                grid: { 
+                                    color: gridColor,
+                                    drawBorder: true,
+                                    offset: false
+                                },
+                                offset: false,
+                                beginAtZero: false
+                            }
+                        }
+                    },
+                    plugins: [crosshairPlugin]
+                });
+                
+                // Add mouse event listeners for synchronization
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Get the data index at mouse position
+                    const xAxis = chart.scales.x;
+                    const xValue = xAxis.getValueForPixel(x);
+                    
+                    if (xValue !== undefined && xValue >= 0 && xValue < labels.length) {
+                        syncState.activeIndex = Math.round(xValue);
+                        syncState.isHovering = true;
+                        
+                        // Update all charts
+                        window.multiKpiCharts.forEach(c => {
+                            // Show tooltip at the synced position
+                            const meta = c.getDatasetMeta(0);
+                            if (meta && meta.data[syncState.activeIndex]) {
+                                c.tooltip.setActiveElements([{
+                                    datasetIndex: 0,
+                                    index: syncState.activeIndex
+                                }]);
+                            }
+                            c.update('none'); // Update without animation
+                        });
+                    }
+                });
+                
+                canvas.addEventListener('mouseleave', () => {
+                    syncState.isHovering = false;
+                    syncState.activeIndex = null;
+                    
+                    // Clear all tooltips and crosshairs
+                    window.multiKpiCharts.forEach(c => {
+                        c.tooltip.setActiveElements([]);
+                        c.update('none');
+                    });
+                });
+                
+                // Store chart instance
+                window.multiKpiCharts.push(chart);
+            });
+            
+            console.log('✅ Multi-KPI stacked charts rendered:', datasets.length, 'charts');
+        }
+        
+        /**
+         * Initialize multi-KPI comparison feature
+         */
+        function initMultiKpiComparison() {
+            const checkboxes = document.querySelectorAll('.kpi-selector');
+            const compareBtn = document.getElementById('compareKpisBtn');
+            const countSpan = document.getElementById('selectedKpiCount');
+            
+            if (!compareBtn || !countSpan) {
+                console.warn('Multi-KPI comparison UI not found');
+                return;
+            }
+            
+            // Update selected KPIs array
+            function updateSelectedKpis() {
+                selectedKpis = [];
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.checked && checkbox.parentElement.style.display !== 'none') {
+                        selectedKpis.push({
+                            kpi: checkbox.dataset.kpi,
+                            unit: checkbox.dataset.unit,
+                            axis: checkbox.dataset.axis
+                        });
+                    }
+                });
+                
+                // Update button state
+                countSpan.textContent = selectedKpis.length;
+                compareBtn.disabled = selectedKpis.length < 2;
+                
+                // Update button appearance
+                if (selectedKpis.length < 2) {
+                    compareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    compareBtn.classList.remove('hover:bg-blue-700');
+                } else {
+                    compareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    compareBtn.classList.add('hover:bg-blue-700');
+                }
+            }
+            
+            // Expose globally so updateMultiKpiLabels can call it
+            window.updateMultiKpiSelectedCount = updateSelectedKpis;
+            
+            // Update selected KPIs on checkbox change
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSelectedKpis();
+                });
+            });
+            
+            // Compare button click handler
+            compareBtn.addEventListener('click', function() {
+                if (selectedKpis.length < 2) {
+                    alert('⚠️ Please select at least 2 KPIs to compare');
+                    return;
+                }
+                if (selectedKpis.length > 5) {
+                    if (!confirm('⚠️ You selected ' + selectedKpis.length + ' KPIs. For best clarity, 2-5 KPIs are recommended.\n\nContinue anyway?')) {
+                        return;
+                    }
+                }
+                renderMultiKpiChart(selectedKpis);
+            });
+            
+            // Initial update
+            updateSelectedKpis();
+            
+            console.log('✅ Multi-KPI comparison initialized');
+        }
+        
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMultiKpiComparison);
+        } else {
+            initMultiKpiComparison();
+        }

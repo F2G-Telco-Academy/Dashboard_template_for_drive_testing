@@ -229,7 +229,7 @@
                 <div class="text-gray-900 text-center mb-4">
                     <div class="flex justify-between items-center mb-2">
                         <h2 id="kpiPanelTitle" class="text-xl font-bold">📊 KPI VISUALIZATION</h2>
-                        <button id="kpiThemeToggle" class="bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-600 transition-all" title="Toggle Light/Dark Mode">
+                        <button id="kpiThemeToggle" class="bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-300 transition-all" title="Toggle Light/Dark Mode">
                             ☀️ Light
                         </button>
                     </div>
@@ -239,24 +239,24 @@
                 <!-- KPI Tabs, Chart Type & View Mode Selector -->
                 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                     <div class="flex gap-2 flex-wrap">
-                        <button class="kpi-tab active bg-blue-600 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrp">RSRP</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="rsrq">RSRQ</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="sinr">SINR</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="cqi">CQI</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="mcs">MCS</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="bler">BLER</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="throughput_dl_mbps">DL Mbps</button>
-                        <button class="kpi-tab bg-gray-700 text-white px-3 py-2 text-xs font-bold border-2 border-white" data-kpi="throughput_ul_mbps">UL Mbps</button>
+                        <button class="kpi-tab active bg-blue-600 text-white px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="rsrp">RSRP</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="rsrq">RSRQ</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="sinr">SINR</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="cqi">CQI</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="mcs">MCS</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="bler">BLER</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="throughput_dl_mbps">DL Mbps</button>
+                        <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="throughput_ul_mbps">UL Mbps</button>
                     </div>
                     <div class="flex gap-2">
-                        <div class="flex gap-1 bg-gray-800 rounded border border-gray-600 overflow-hidden">
+                        <div class="flex gap-1 bg-gray-100 rounded border border-gray-300 overflow-hidden">
                             <button class="chart-type-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-type="line">📈 Line</button>
-                            <button class="chart-type-btn bg-gray-700 text-white px-2 py-1 text-xs font-bold" data-type="area">📊 Area</button>
-                            <button class="chart-type-btn bg-gray-700 text-white px-2 py-1 text-xs font-bold" data-type="bar">📊 Bar</button>
+                            <button class="chart-type-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-type="area">📊 Area</button>
+                            <button class="chart-type-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-type="bar">📊 Bar</button>
                         </div>
-                        <div class="flex gap-1 bg-gray-800 rounded border border-gray-600 overflow-hidden">
+                        <div class="flex gap-1 bg-gray-100 rounded border border-gray-300 overflow-hidden">
                             <button class="view-mode-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-mode="grid">🔲 Grid</button>
-                            <button class="view-mode-btn bg-gray-700 text-white px-2 py-1 text-xs font-bold" data-mode="table">📋 Table</button>
+                            <button class="view-mode-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-mode="table">📋 Table</button>
                         </div>
                     </div>
                 </div>
@@ -264,6 +264,57 @@
                 <!-- Chart Container -->
                 <div class="border-4 border-black bg-white p-4" style="height: 300px;">
                     <canvas id="kpiChart"></canvas>
+                </div>
+
+                <!-- Multi-KPI Comparison Section -->
+                <div class="border-4 border-black dark:border-white bg-white dark:bg-gray-800 p-4 mt-4">
+                    <h3 class="text-gray-900 dark:text-white font-bold mb-3 text-sm flex items-center gap-2">
+                        <span>🔬 MULTI-KPI COMPARISON</span>
+                    </h3>
+                    <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">Select multiple KPIs to analyze correlations and trends together</p>
+                    
+                    <!-- KPI Checkboxes Grid -->
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="rsrp" data-unit="dBm" data-axis="left">
+                            <span class="kpi-label font-mono text-gray-900">RSRP</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="rsrq" data-unit="dB" data-axis="left">
+                            <span class="kpi-label font-mono text-gray-900">RSRQ</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="sinr" data-unit="dB" data-axis="left">
+                            <span class="kpi-label font-mono text-gray-900">SINR</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="throughput_dl_mbps" data-unit="Mbps" data-axis="right">
+                            <span class="kpi-label font-mono text-gray-900">DL Throughput</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="throughput_ul_mbps" data-unit="Mbps" data-axis="right">
+                            <span class="kpi-label font-mono text-gray-900">UL Throughput</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="bler" data-unit="%" data-axis="right">
+                            <span class="kpi-label font-mono text-gray-900">BLER</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="cqi" data-unit="" data-axis="right">
+                            <span class="kpi-label font-mono text-gray-900">CQI</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="mcs" data-unit="" data-axis="right">
+                            <span class="kpi-label font-mono text-gray-900">MCS</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Compare Button -->
+                    <button id="compareKpisBtn" 
+                        class="w-full bg-blue-600 text-white px-4 py-3 text-sm font-bold border-2 border-black hover:bg-blue-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                        disabled>
+                        📊 COMPARE SELECTED KPIs (<span id="selectedKpiCount">0</span>)
+                    </button>
                 </div>
 
 <!-- KPI Distribution Histogram -->
