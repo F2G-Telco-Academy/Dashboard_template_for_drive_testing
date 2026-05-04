@@ -315,6 +315,14 @@
                         disabled>
                         📊 COMPARE SELECTED KPIs (<span id="selectedKpiCount">0</span>/6)
                     </button>
+                    
+                    <!-- Event Markers Toggle (Hidden by default, shown when chart is rendered) -->
+                    <div id="eventMarkersControl" class="mt-3 p-3 bg-gray-50 border border-gray-300 rounded hidden">
+                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                            <input type="checkbox" id="showEventMarkersToggle" class="w-4 h-4" checked>
+                            <span class="font-mono text-gray-900">📍 Show Event Markers (Handovers, PCI Changes, Releases)</span>
+                        </label>
+                    </div>
                 </div>
 
 <!-- KPI Distribution Histogram -->

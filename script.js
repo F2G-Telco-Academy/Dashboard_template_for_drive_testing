@@ -1505,6 +1505,231 @@ function renderScatterPlots() {
         }
 
         /**
+         * EXTRACT EVENT TIMELINE FROM PARSED DATA
+         * Identifies network events, PCI changes, and connection releases
+         * @param {Array} data - Parsed CSV data
+         * @returns {Array} - Array of event objects with time, type, and details
+         */
+        function extractEventTimeline(data) {
+            if (!data || data.length === 0) return [];
+            
+            const events = [];
+            
+            data.forEach((point, index) => {
+                // 1. EXPLICIT EVENTS FROM CSV (handover, attach, detach, rlf, etc.)
+                if (point.event && point.event.trim() !== '') {
+                    const eventType = point.event.toLowerCase().trim();
+                    
+                    // Get PCI based on technology
+                    let pci = '-';
+                    const tech = point.technology || 'LTE';
+                    if (tech === 'NR') {
+                        pci = point.nr_pci || '-';
+                    } else if (tech === 'UMTS') {
+                        pci = point.wcdma_psc || point.psc || '-';
+                    } else if (tech === 'GSM') {
+                        pci = point.gsm_bsic || point.bsic || '-';
+                    } else {
+                        pci = point.pci || '-';
+                    }
+                    
+                    events.push({
+                        time: point.time,
+                        index: index,
+                        type: eventType,
+                        pci: pci,
+                        technology: tech,
+                        details: `${eventType.toUpperCase()} event`
+                    });
+                }
+                
+                // 2. PCI CHANGES (detect cell changes)
+                if (index > 0) {
+                    const tech = point.technology || 'LTE';
+                    let prevPci, currPci;
+                    
+                    if (tech === 'NR') {
+                        prevPci = data[index-1].nr_pci;
+                        currPci = point.nr_pci;
+                    } else if (tech === 'UMTS') {
+                        prevPci = data[index-1].wcdma_psc || data[index-1].psc;
+                        currPci = point.wcdma_psc || point.psc;
+                    } else if (tech === 'GSM') {
+                        prevPci = data[index-1].gsm_bsic || data[index-1].bsic;
+                        currPci = point.gsm_bsic || point.bsic;
+                    } else {
+                        prevPci = data[index-1].pci;
+                        currPci = point.pci;
+                    }
+                    
+                    // Only add if both PCIs exist and are different
+                    if (prevPci && currPci && prevPci !== '' && currPci !== '' && prevPci !== currPci) {
+                        // Check if there's already an event at this index (avoid duplicates)
+                        const existingEvent = events.find(e => e.index === index);
+                        if (!existingEvent) {
+                            events.push({
+                                time: point.time,
+                                index: index,
+                                type: 'pci_change',
+                                pci: currPci,
+                                prevPci: prevPci,
+                                technology: tech,
+                                details: `Cell change: ${prevPci} → ${currPci}`
+                            });
+                        }
+                    }
+                }
+                
+                // 3. RELEASE/DROP DETECTION (throughput drops to 0 + signal degradation)
+                if (index > 0) {
+                    const prevTput = parseFloat(data[index-1].throughput_dl_mbps) || 0;
+                    const currTput = parseFloat(point.throughput_dl_mbps) || 0;
+                    
+                    // Detect connection drop: throughput was >1 Mbps, now is 0
+                    if (prevTput > 1 && currTput === 0) {
+                        const tech = point.technology || 'LTE';
+                        let pci = '-';
+                        
+                        if (tech === 'NR') {
+                            pci = point.nr_pci || '-';
+                        } else if (tech === 'UMTS') {
+                            pci = point.wcdma_psc || point.psc || '-';
+                        } else if (tech === 'GSM') {
+                            pci = point.gsm_bsic || point.bsic || '-';
+                        } else {
+                            pci = point.pci || '-';
+                        }
+                        
+                        // Check if there's already an event at this index
+                        const existingEvent = events.find(e => e.index === index);
+                        if (!existingEvent) {
+                            events.push({
+                                time: point.time,
+                                index: index,
+                                type: 'release',
+                                pci: pci,
+                                technology: tech,
+                                details: 'Connection released/dropped'
+                            });
+                        }
+                    }
+                }
+                
+                // 4. TECHNOLOGY CHANGES (RAT change: LTE→UMTS, etc.)
+                if (index > 0) {
+                    const prevTech = data[index-1].technology;
+                    const currTech = point.technology;
+                    
+                    if (prevTech && currTech && prevTech !== currTech) {
+                        events.push({
+                            time: point.time,
+                            index: index,
+                            type: 'tech_change',
+                            technology: currTech,
+                            prevTechnology: prevTech,
+                            details: `RAT change: ${prevTech} → ${currTech}`
+                        });
+                    }
+                }
+            });
+            
+            // Sort events by index (chronological order)
+            events.sort((a, b) => a.index - b.index);
+            
+            console.log(`✅ Extracted ${events.length} events from timeline`);
+            return events;
+        }
+
+        /**
+         * GET EVENT ICON FOR VISUAL REPRESENTATION
+         * @param {String} type - Event type
+         * @returns {String} - Emoji icon
+         */
+        function getEventIcon(type) {
+            const icons = {
+                'handover': '↔',
+                'pci_change': '🔄',
+                'release': '❌',
+                'tech_change': '📡',
+                'rlf': '⚠',
+                'attach': '✅',
+                'detach': '🔌',
+                'drop': '📉'
+            };
+            return icons[type] || '📍';
+        }
+
+        /**
+         * GET EVENT COLOR FOR VISUAL REPRESENTATION
+         * @param {String} type - Event type
+         * @returns {String} - Color hex code
+         */
+        function getEventColor(type) {
+            const colors = {
+                'handover': '#f97316',      // Orange
+                'pci_change': '#3b82f6',    // Blue
+                'release': '#ef4444',       // Red
+                'tech_change': '#8b5cf6',   // Purple
+                'rlf': '#dc2626',           // Dark red
+                'attach': '#10b981',        // Green
+                'detach': '#6b7280',        // Gray
+                'drop': '#ef4444'           // Red
+            };
+            return colors[type] || '#6b7280';
+        }
+
+        /**
+         * CHART.JS PLUGIN: MULTI-KPI EVENT MARKERS
+         * Draws vertical dashed lines with event icons at event timestamps
+         */
+        const multiKpiEventMarkerPlugin = {
+            id: 'multiKpiEventMarkers',
+            afterDatasetsDraw: (chart, args, options) => {
+                // Check global toggle
+                if (!showEventMarkers) return;
+                
+                const events = options.events || [];
+                if (events.length === 0) return;
+                
+                const ctx = chart.ctx;
+                const xAxis = chart.scales.x;
+                const yAxis = chart.scales.y;
+                
+                if (!xAxis || !yAxis) return;
+                
+                ctx.save();
+                
+                events.forEach(event => {
+                    // Get x position for this event's index
+                    const x = xAxis.getPixelForValue(event.index);
+                    
+                    // Skip if outside visible range
+                    if (x < xAxis.left || x > xAxis.right) return;
+                    
+                    // Draw vertical dashed line
+                    ctx.beginPath();
+                    ctx.moveTo(x, yAxis.top);
+                    ctx.lineTo(x, yAxis.bottom);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = getEventColor(event.type);
+                    ctx.setLineDash([8, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Draw event icon at top
+                    const icon = getEventIcon(event.type);
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillStyle = getEventColor(event.type);
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(icon, x, yAxis.top - 5);
+                });
+                
+                ctx.restore();
+            }
+        };
+
+        /**
          * POLYNOMIAL REGRESSION IMPLEMENTATION
          * Computes polynomial coefficients using least squares method
          * @param {Array} xData - Array of x values
@@ -3011,6 +3236,7 @@ function renderScatterPlots() {
         
         // Global state for multi-KPI selection
         let selectedKpis = [];
+        let showEventMarkers = true; // Global toggle for event markers
         
         /**
          * Prepare multi-KPI dataset for comparison chart
@@ -3134,6 +3360,10 @@ function renderScatterPlots() {
             }
             
             const { labels, datasets } = data;
+            
+            // Extract event timeline for event markers
+            const eventTimeline = extractEventTimeline(parsedData);
+            console.log(`📍 Rendering ${eventTimeline.length} event markers on multi-KPI charts`);
             
             // Open modal
             const modal = document.getElementById('chartZoomModal');
@@ -3298,6 +3528,7 @@ function renderScatterPlots() {
                             spanGaps: false // Match single KPI behavior
                         }]
                     },
+                    plugins: [crosshairPlugin, multiKpiEventMarkerPlugin], // Register event marker plugin
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -3305,7 +3536,7 @@ function renderScatterPlots() {
                             padding: {
                                 left: 30,
                                 right: 20,
-                                top: 15,
+                                top: 25, // Increased top padding for event icons
                                 bottom: 15
                             }
                         },
@@ -3335,8 +3566,46 @@ function renderScatterPlots() {
                                             return `${dataset.label}: ${context.parsed.y.toFixed(2)}`;
                                         }
                                         return 'N/A';
+                                    },
+                                    afterLabel: function(context) {
+                                        // Add PCI and event info to tooltip
+                                        const dataIndex = context.dataIndex;
+                                        const point = parsedData[dataIndex];
+                                        
+                                        if (!point) return '';
+                                        
+                                        const lines = [];
+                                        
+                                        // Add PCI information
+                                        const tech = point.technology || 'LTE';
+                                        let pci = '';
+                                        if (tech === 'NR') {
+                                            pci = point.nr_pci || '-';
+                                        } else if (tech === 'UMTS') {
+                                            pci = point.wcdma_psc || point.psc || '-';
+                                        } else if (tech === 'GSM') {
+                                            pci = point.gsm_bsic || point.bsic || '-';
+                                        } else {
+                                            pci = point.pci || '-';
+                                        }
+                                        
+                                        if (pci !== '-') {
+                                            lines.push(`📡 PCI: ${pci}`);
+                                        }
+                                        
+                                        // Check if there's an event at this index
+                                        const event = eventTimeline.find(e => e.index === dataIndex);
+                                        if (event) {
+                                            const icon = getEventIcon(event.type);
+                                            lines.push(`📍 Event: ${icon} ${event.details}`);
+                                        }
+                                        
+                                        return lines.join('\n');
                                     }
                                 }
+                            },
+                            multiKpiEventMarkers: {
+                                events: eventTimeline // Pass event data to plugin
                             }
                         },
                         scales: {
@@ -3440,10 +3709,26 @@ function renderScatterPlots() {
             const checkboxes = document.querySelectorAll('.kpi-selector');
             const compareBtn = document.getElementById('compareKpisBtn');
             const countSpan = document.getElementById('selectedKpiCount');
+            const eventMarkersToggle = document.getElementById('showEventMarkersToggle');
             
             if (!compareBtn || !countSpan) {
                 console.warn('Multi-KPI comparison UI not found');
                 return;
+            }
+            
+            // Event markers toggle handler
+            if (eventMarkersToggle) {
+                eventMarkersToggle.addEventListener('change', function() {
+                    showEventMarkers = this.checked;
+                    
+                    // Refresh all multi-KPI charts if they exist
+                    if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
+                        window.multiKpiCharts.forEach(chart => {
+                            chart.update('none'); // Update without animation
+                        });
+                        console.log(`📍 Event markers ${showEventMarkers ? 'enabled' : 'disabled'}`);
+                    }
+                });
             }
             
             // Update selected KPIs array
@@ -3500,6 +3785,13 @@ function renderScatterPlots() {
                     alert('⚠️ Maximum 6 KPIs allowed. Please deselect ' + (selectedKpis.length - 6) + ' KPI(s) to continue.');
                     return;
                 }
+                
+                // Show event markers control when chart is rendered
+                const eventMarkersControl = document.getElementById('eventMarkersControl');
+                if (eventMarkersControl) {
+                    eventMarkersControl.classList.remove('hidden');
+                }
+                
                 renderMultiKpiChart(selectedKpis);
             });
             
