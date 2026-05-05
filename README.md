@@ -72,6 +72,14 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
 - **Technology-Adaptive KPI Tabs**
   - Auto-hide unavailable KPIs (e.g., SINR for UMTS, CQI for GSM)
   - Dynamic tab labels (RSRP→RSCP for UMTS, RSRP→RxLev for GSM)
+- **Multi-KPI Synchronized Comparison**
+  - Select 2-8 KPIs simultaneously for correlation analysis
+  - Stacked charts with individual Y-axis per KPI (professional telecom tool style)
+  - Synchronized time axis across all charts for perfect alignment
+  - Each KPI has optimal scaling (no unit conflicts)
+  - Technology-aware labels (auto-updates for LTE/NR/UMTS/GSM)
+  - Scrollable layout for many KPIs
+  - Professional appearance matching Ericsson TEMS/Nemo Outdoor
 - **KPI Comparison Section** (7 separate time-series charts)
   - Technology-specific chart titles and labels
   - Section title shows detected technology (e.g., "UMTS KPI COMPARISON ANALYSIS")
@@ -140,6 +148,14 @@ All editable fields will show orange dashed outlines
 ```
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
+
+Multi-KPI Comparison (NEW):
+1. Scroll to "🔬 MULTI-KPI COMPARISON" section
+2. Select 2-8 KPIs (e.g., RSRP, SINR, DL Throughput)
+3. Click "📊 COMPARE SELECTED KPIs"
+4. View stacked synchronized charts with individual Y-axes
+5. Each KPI has optimal scaling - no unit conflicts
+6. Perfect for correlation analysis (e.g., signal vs throughput)
 ```
 
 ### 5. **Save Configuration**
@@ -239,8 +255,9 @@ Client sees dashboard with embedded data (no CSV upload needed)
 - Data throughput validation
 - RLF mitigation
 - Cell reselection optimization
-- **Time-based KPI correlation analysis** (NEW)
+- **Multi-KPI correlation analysis** (NEW)
 - **Signal quality vs throughput trends** (NEW)
+- **Root cause identification** (NEW)
 
 ### **Workflow Example**
 ```

@@ -26,6 +26,7 @@
         let scatterMcsCqi = null;
         let scatterBlerTput = null;
         let kpiHistogramChart = null;
+        let polynomialDegree = 2; // Default: Quadratic (degree 2)
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
@@ -113,14 +114,18 @@
                     document.getElementById('editModeBtn').click();
                 }
 
-                // Also clear the map (markers, per-segment layers) and CSV state
+                // Clear map and CSV state
                 try {
                     clearMap();
                     csvData = null;
                     parsedData = [];
+                    rawParsedData = [];
+                    detectedTechnology = null;
+                    currentTechFilter = 'all';
+                    const techFilterEl = document.getElementById('techFilter');
+                    if (techFilterEl) techFilterEl.value = 'all';
                     const pc = document.getElementById('pointCount');
                     if (pc) pc.textContent = '0';
-                    // Reset map view to default center/zoom if map exists
                     if (map && typeof map.setCenter === 'function') {
                         map.setCenter([11.5021, 3.8480]);
                         map.setZoom(12);
@@ -128,6 +133,114 @@
                 } catch (e) {
                     console.warn('Error clearing map during reset:', e);
                 }
+
+                // Destroy ALL Chart.js instances
+                try {
+                    if (kpiChart) { kpiChart.destroy(); kpiChart = null; }
+                    if (kpiHistogramChart) { kpiHistogramChart.destroy(); kpiHistogramChart = null; }
+                    if (zoomedChart) { zoomedChart.destroy(); zoomedChart = null; }
+                    if (compCqiMcs) { compCqiMcs.destroy(); compCqiMcs = null; }
+                    if (compCqiOnly) { compCqiOnly.destroy(); compCqiOnly = null; }
+                    if (compMcsOnly) { compMcsOnly.destroy(); compMcsOnly = null; }
+                    if (compSinrTput) { compSinrTput.destroy(); compSinrTput = null; }
+                    if (compSinrOnly) { compSinrOnly.destroy(); compSinrOnly = null; }
+                    if (compRsrqRsrp) { compRsrqRsrp.destroy(); compRsrqRsrp = null; }
+                    if (compRsrpOnly) { compRsrpOnly.destroy(); compRsrpOnly = null; }
+                    if (compRsrqOnly) { compRsrqOnly.destroy(); compRsrqOnly = null; }
+                    if (compBlerTput) { compBlerTput.destroy(); compBlerTput = null; }
+                    if (compTputOnly) { compTputOnly.destroy(); compTputOnly = null; }
+                    if (compBlerOnly) { compBlerOnly.destroy(); compBlerOnly = null; }
+                    if (scatterTputSinr) { scatterTputSinr.destroy(); scatterTputSinr = null; }
+                    if (scatterTputRsrp) { scatterTputRsrp.destroy(); scatterTputRsrp = null; }
+                    if (scatterMcsCqi) { scatterMcsCqi.destroy(); scatterMcsCqi = null; }
+                    if (scatterBlerTput) { scatterBlerTput.destroy(); scatterBlerTput = null; }
+                    if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
+                        window.multiKpiCharts.forEach(c => c.destroy());
+                        window.multiKpiCharts = [];
+                    }
+                } catch (e) {
+                    console.warn('Error destroying charts during reset:', e);
+                }
+
+                // Close zoom modal if open
+                try {
+                    const zoomModal = document.getElementById('chartZoomModal');
+                    if (zoomModal) {
+                        zoomModal.style.display = 'none';
+                        const chartContainer = document.getElementById('chartZoomContainer');
+                        if (chartContainer) {
+                            chartContainer.innerHTML = '<canvas id="chartZoomCanvas"></canvas>';
+                            chartContainer.style.cssText = 'flex:1; border:3px solid white; padding:20px; overflow:hidden; display:block;';
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error closing modal during reset:', e);
+                }
+
+                // Reset summary cards
+                ['summaryCurrentValue', 'summaryMin', 'summaryAvg', 'summaryMax'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '-'; el.style.color = ''; }
+                });
+                const trendEl = document.getElementById('summaryCurrentTrend');
+                if (trendEl) trendEl.textContent = '-';
+
+                // Reset stat values
+                ['statMin', 'statP10', 'statP50', 'statP90', 'statAvg', 'statMax'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '-'; el.style.color = ''; }
+                });
+
+                // Reset table values
+                ['tableMin', 'tableMinQuality', 'tableP10', 'tableP10Quality',
+                 'tableP50', 'tableP50Quality', 'tableP90', 'tableP90Quality',
+                 'tableAvg', 'tableAvgQuality', 'tableMax', 'tableMaxQuality'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = '-'; el.style.color = ''; }
+                });
+
+                // Reset signal quality counts
+                ['qualExcellent', 'qualExcellentPct', 'qualGood', 'qualGoodPct',
+                 'qualFair', 'qualFairPct', 'qualPoor', 'qualPoorPct'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '0';
+                });
+
+                // Reset events list
+                const eventsList = document.getElementById('eventsList');
+                if (eventsList) eventsList.innerHTML = '<div class="text-gray-600">No events</div>';
+
+                // Hide histogram
+                const histContainer = document.getElementById('kpiHistogramContainer');
+                if (histContainer) histContainer.style.display = 'none';
+
+                // Reset multi-KPI checkboxes and state
+                selectedKpis = [];
+                document.querySelectorAll('.kpi-selector').forEach(cb => { cb.checked = false; });
+                const compareBtn = document.getElementById('compareKpisBtn');
+                const countSpan = document.getElementById('selectedKpiCount');
+                if (compareBtn) compareBtn.disabled = true;
+                if (countSpan) countSpan.textContent = '0';
+
+                // Hide KPI panel, show dashboard panel
+                const kpiPanel = document.getElementById('kpiPanel');
+                const dashboardPanel = document.getElementById('dashboardPanel');
+                const kpiToggleBtn = document.getElementById('kpisBtn');
+                if (kpiPanel) { kpiPanel.classList.add('hidden'); kpiPanel.classList.remove('flex'); }
+                if (dashboardPanel) dashboardPanel.classList.remove('hidden');
+                if (kpiToggleBtn) {
+                    kpiToggleBtn.classList.remove('bg-green-600');
+                    kpiToggleBtn.classList.add('bg-purple-600');
+                    kpiToggleBtn.innerHTML = '📊 <span class="hidden sm:inline">KPIs</span>';
+                }
+
+                // Reset KPI panel title
+                const kpiTitle = document.getElementById('kpiPanelTitle');
+                if (kpiTitle) kpiTitle.textContent = '📊 KPI VISUALIZATION';
+
+                // Reset CSV file input
+                const csvInput = document.getElementById('csvFile');
+                if (csvInput) csvInput.value = '';
 
                 alert('Dashboard reset to default successfully!');
             }
@@ -372,6 +485,85 @@
             });
         }
         
+        // Update Multi-KPI Comparison checkbox labels based on technology
+        function updateMultiKpiLabels() {
+            const tech = detectedTechnology || 'LTE';
+            console.log('updateMultiKpiLabels called with technology:', tech);
+            
+            // Define checkbox visibility per technology
+            const checkboxVisibility = {
+                'NR': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'LTE': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'UMTS': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps'],
+                'GSM': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps']
+            };
+            
+            // Define checkbox labels per technology
+            const checkboxLabels = {
+                'NR': { 
+                    rsrp: 'NR-RSRP', 
+                    rsrq: 'NR-RSRQ', 
+                    sinr: 'NR-SINR', 
+                    cqi: 'CQI', 
+                    mcs: 'MCS', 
+                    bler: 'BLER', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                },
+                'LTE': { 
+                    rsrp: 'RSRP', 
+                    rsrq: 'RSRQ', 
+                    sinr: 'SINR', 
+                    cqi: 'CQI', 
+                    mcs: 'MCS', 
+                    bler: 'BLER', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                },
+                'UMTS': { 
+                    rsrp: 'RSCP', 
+                    rsrq: 'Ec/No', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                },
+                'GSM': { 
+                    rsrp: 'RxLev', 
+                    rsrq: 'RxQual', 
+                    throughput_dl_mbps: 'DL Throughput', 
+                    throughput_ul_mbps: 'UL Throughput' 
+                }
+            };
+            
+            const visibleCheckboxes = checkboxVisibility[tech] || checkboxVisibility['LTE'];
+            const labels = checkboxLabels[tech] || checkboxLabels['LTE'];
+            
+            // Update each checkbox label and visibility
+            document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                const kpiType = checkbox.dataset.kpi;
+                const labelElement = checkbox.parentElement.querySelector('.kpi-label');
+                const parentLabel = checkbox.parentElement;
+                
+                if (visibleCheckboxes.includes(kpiType)) {
+                    parentLabel.style.display = 'flex';
+                    const newLabel = labels[kpiType] || kpiType.toUpperCase();
+                    if (labelElement) {
+                        labelElement.textContent = newLabel;
+                    }
+                    console.log(`Multi-KPI checkbox ${kpiType}: visible, label = ${newLabel}`);
+                } else {
+                    parentLabel.style.display = 'none';
+                    // Uncheck hidden checkboxes
+                    checkbox.checked = false;
+                    console.log(`Multi-KPI checkbox ${kpiType}: hidden`);
+                }
+            });
+            
+            // Trigger update of selected count if the function exists
+            if (window.updateMultiKpiSelectedCount) {
+                window.updateMultiKpiSelectedCount();
+            }
+        }
+        
         document.getElementById('kpisBtn').addEventListener('click', function() {
             showingKPIs = !showingKPIs;
             const dashboardPanel = document.getElementById('dashboardPanel');
@@ -395,6 +587,7 @@
                     }
                     
                     updateKPITabs(); // Update tabs based on technology
+                    updateMultiKpiLabels(); // Update multi-KPI checkbox labels based on technology
                     // Click the first visible tab to render its chart
                     const firstVisibleTab = document.querySelector('.kpi-tab[style*="display: inline-block"], .kpi-tab:not([style*="display: none"])');
                     if (firstVisibleTab) {
@@ -421,12 +614,13 @@
                 // Only process if tab is visible
                 if (this.style.display === 'none') return;
                 
+                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
                 document.querySelectorAll('.kpi-tab').forEach(t => {
-                    t.classList.remove('active', 'bg-blue-600');
-                    t.classList.add('bg-gray-700');
+                    t.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
+                    t.classList.add(inactiveBg);
                 });
                 this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentKpiType = this.dataset.kpi;
                 renderKPIChart(currentKpiType);
             });
@@ -435,12 +629,13 @@
         // Chart Type switching
         document.querySelectorAll('.chart-type-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
                 document.querySelectorAll('.chart-type-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600');
-                    b.classList.add('bg-gray-700');
+                    b.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
+                    b.classList.add(inactiveBg);
                 });
                 this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentChartType = this.dataset.type;
                 renderKPIChart(currentKpiType);
             });
@@ -449,12 +644,13 @@
         // View Mode switching
         document.querySelectorAll('.view-mode-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
                 document.querySelectorAll('.view-mode-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600');
-                    b.classList.add('bg-gray-700');
+                    b.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
+                    b.classList.add(inactiveBg);
                 });
                 this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700');
+                this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentViewMode = this.dataset.mode;
                 toggleViewMode();
             });
@@ -1348,6 +1544,367 @@ function renderScatterPlots() {
             }));
         }
 
+        /**
+         * EXTRACT EVENT TIMELINE FROM PARSED DATA
+         * Identifies network events, PCI changes, and connection releases
+         * @param {Array} data - Parsed CSV data
+         * @returns {Array} - Array of event objects with time, type, and details
+         */
+        function extractEventTimeline(data) {
+            if (!data || data.length === 0) return [];
+            
+            const events = [];
+            
+            data.forEach((point, index) => {
+                // 1. EXPLICIT EVENTS FROM CSV (handover, attach, detach, rlf, etc.)
+                if (point.event && point.event.trim() !== '') {
+                    const eventType = point.event.toLowerCase().trim();
+                    
+                    // Get PCI based on technology
+                    let pci = '-';
+                    const tech = point.technology || 'LTE';
+                    if (tech === 'NR') {
+                        pci = point.nr_pci || '-';
+                    } else if (tech === 'UMTS') {
+                        pci = point.wcdma_psc || point.psc || '-';
+                    } else if (tech === 'GSM') {
+                        pci = point.gsm_bsic || point.bsic || '-';
+                    } else {
+                        pci = point.pci || '-';
+                    }
+                    
+                    events.push({
+                        time: point.time,
+                        index: index,
+                        type: eventType,
+                        pci: pci,
+                        technology: tech,
+                        details: `${eventType.toUpperCase()} event`
+                    });
+                }
+                
+                // 2. PCI CHANGES (detect cell changes)
+                if (index > 0) {
+                    const tech = point.technology || 'LTE';
+                    let prevPci, currPci;
+                    
+                    if (tech === 'NR') {
+                        prevPci = data[index-1].nr_pci;
+                        currPci = point.nr_pci;
+                    } else if (tech === 'UMTS') {
+                        prevPci = data[index-1].wcdma_psc || data[index-1].psc;
+                        currPci = point.wcdma_psc || point.psc;
+                    } else if (tech === 'GSM') {
+                        prevPci = data[index-1].gsm_bsic || data[index-1].bsic;
+                        currPci = point.gsm_bsic || point.bsic;
+                    } else {
+                        prevPci = data[index-1].pci;
+                        currPci = point.pci;
+                    }
+                    
+                    // Only add if both PCIs exist and are different
+                    if (prevPci && currPci && prevPci !== '' && currPci !== '' && prevPci !== currPci) {
+                        // Check if there's already an event at this index (avoid duplicates)
+                        const existingEvent = events.find(e => e.index === index);
+                        if (!existingEvent) {
+                            events.push({
+                                time: point.time,
+                                index: index,
+                                type: 'pci_change',
+                                pci: currPci,
+                                prevPci: prevPci,
+                                technology: tech,
+                                details: `Cell change: ${prevPci} → ${currPci}`
+                            });
+                        }
+                    }
+                }
+                
+                // 3. RELEASE/DROP DETECTION (throughput drops to 0 + signal degradation)
+                if (index > 0) {
+                    const prevTput = parseFloat(data[index-1].throughput_dl_mbps) || 0;
+                    const currTput = parseFloat(point.throughput_dl_mbps) || 0;
+                    
+                    // Detect connection drop: throughput was >1 Mbps, now is 0
+                    if (prevTput > 1 && currTput === 0) {
+                        const tech = point.technology || 'LTE';
+                        let pci = '-';
+                        
+                        if (tech === 'NR') {
+                            pci = point.nr_pci || '-';
+                        } else if (tech === 'UMTS') {
+                            pci = point.wcdma_psc || point.psc || '-';
+                        } else if (tech === 'GSM') {
+                            pci = point.gsm_bsic || point.bsic || '-';
+                        } else {
+                            pci = point.pci || '-';
+                        }
+                        
+                        // Check if there's already an event at this index
+                        const existingEvent = events.find(e => e.index === index);
+                        if (!existingEvent) {
+                            events.push({
+                                time: point.time,
+                                index: index,
+                                type: 'release',
+                                pci: pci,
+                                technology: tech,
+                                details: 'Connection released/dropped'
+                            });
+                        }
+                    }
+                }
+                
+                // 4. TECHNOLOGY CHANGES (RAT change: LTE→UMTS, etc.)
+                if (index > 0) {
+                    const prevTech = data[index-1].technology;
+                    const currTech = point.technology;
+                    
+                    if (prevTech && currTech && prevTech !== currTech) {
+                        events.push({
+                            time: point.time,
+                            index: index,
+                            type: 'tech_change',
+                            technology: currTech,
+                            prevTechnology: prevTech,
+                            details: `RAT change: ${prevTech} → ${currTech}`
+                        });
+                    }
+                }
+            });
+            
+            // Sort events by index (chronological order)
+            events.sort((a, b) => a.index - b.index);
+            
+            console.log(`✅ Extracted ${events.length} events from timeline`);
+            return events;
+        }
+
+        /**
+         * GET EVENT ICON FOR VISUAL REPRESENTATION
+         * @param {String} type - Event type
+         * @returns {String} - Emoji icon
+         */
+        function getEventIcon(type) {
+            const icons = {
+                'handover': '↔',
+                'pci_change': '🔄',
+                'release': '❌',
+                'tech_change': '📡',
+                'rlf': '⚠',
+                'attach': '✅',
+                'detach': '🔌',
+                'drop': '📉'
+            };
+            return icons[type] || '📍';
+        }
+
+        /**
+         * GET EVENT COLOR FOR VISUAL REPRESENTATION
+         * @param {String} type - Event type
+         * @returns {String} - Color hex code
+         */
+        function getEventColor(type) {
+            const colors = {
+                'handover': '#f97316',      // Orange
+                'pci_change': '#3b82f6',    // Blue
+                'release': '#ef4444',       // Red
+                'tech_change': '#8b5cf6',   // Purple
+                'rlf': '#dc2626',           // Dark red
+                'attach': '#10b981',        // Green
+                'detach': '#6b7280',        // Gray
+                'drop': '#ef4444'           // Red
+            };
+            return colors[type] || '#6b7280';
+        }
+
+        /**
+         * CHART.JS PLUGIN: MULTI-KPI EVENT MARKERS
+         * Draws vertical dashed lines with event icons at event timestamps
+         */
+        const multiKpiEventMarkerPlugin = {
+            id: 'multiKpiEventMarkers',
+            afterDatasetsDraw: (chart, args, options) => {
+                const events = options.events || [];
+                if (events.length === 0) return;
+                
+                const ctx = chart.ctx;
+                const xAxis = chart.scales.x;
+                const yAxis = chart.scales.y;
+                
+                if (!xAxis || !yAxis) return;
+                
+                ctx.save();
+                
+                events.forEach(event => {
+                    // Get x position for this event's index
+                    const x = xAxis.getPixelForValue(event.index);
+                    
+                    // Skip if outside visible range
+                    if (x < xAxis.left || x > xAxis.right) return;
+                    
+                    // Draw vertical dashed line
+                    ctx.beginPath();
+                    ctx.moveTo(x, yAxis.top);
+                    ctx.lineTo(x, yAxis.bottom);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = getEventColor(event.type);
+                    ctx.setLineDash([8, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Draw event icon at top
+                    const icon = getEventIcon(event.type);
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillStyle = getEventColor(event.type);
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(icon, x, yAxis.top - 5);
+                });
+                
+                ctx.restore();
+            }
+        };
+
+        /**
+         * POLYNOMIAL REGRESSION IMPLEMENTATION
+         * Computes polynomial coefficients using least squares method
+         * @param {Array} xData - Array of x values
+         * @param {Array} yData - Array of y values
+         * @param {Number} degree - Polynomial degree (1=linear, 2=quadratic, 3=cubic, etc.)
+         * @returns {Array} - Coefficients [a0, a1, a2, ..., an] where y = a0 + a1*x + a2*x^2 + ...
+         */
+        function polynomialRegression(xData, yData, degree) {
+            // Filter out invalid data points
+            const validPoints = [];
+            for (let i = 0; i < xData.length; i++) {
+                if (!isNaN(xData[i]) && !isNaN(yData[i]) && isFinite(xData[i]) && isFinite(yData[i])) {
+                    validPoints.push({ x: xData[i], y: yData[i] });
+                }
+            }
+            
+            if (validPoints.length < degree + 1) {
+                console.warn('Insufficient data points for polynomial degree', degree);
+                return null;
+            }
+            
+            const n = validPoints.length;
+            const x = validPoints.map(p => p.x);
+            const y = validPoints.map(p => p.y);
+            
+            // Build the Vandermonde matrix and solve using normal equations
+            // X^T * X * coeffs = X^T * y
+            
+            const matrixSize = degree + 1;
+            const matrix = Array(matrixSize).fill(0).map(() => Array(matrixSize).fill(0));
+            const vector = Array(matrixSize).fill(0);
+            
+            // Construct the normal equation matrix
+            for (let i = 0; i < matrixSize; i++) {
+                for (let j = 0; j < matrixSize; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < n; k++) {
+                        sum += Math.pow(x[k], i + j);
+                    }
+                    matrix[i][j] = sum;
+                }
+                
+                let sum = 0;
+                for (let k = 0; k < n; k++) {
+                    sum += y[k] * Math.pow(x[k], i);
+                }
+                vector[i] = sum;
+            }
+            
+            // Solve using Gaussian elimination
+            const coefficients = gaussianElimination(matrix, vector);
+            return coefficients;
+        }
+        
+        /**
+         * Gaussian Elimination solver for linear systems
+         * @param {Array} matrix - 2D array representing coefficient matrix
+         * @param {Array} vector - 1D array representing constants
+         * @returns {Array} - Solution vector
+         */
+        function gaussianElimination(matrix, vector) {
+            const n = matrix.length;
+            const augmented = matrix.map((row, i) => [...row, vector[i]]);
+            
+            // Forward elimination
+            for (let i = 0; i < n; i++) {
+                // Find pivot
+                let maxRow = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) {
+                        maxRow = k;
+                    }
+                }
+                
+                // Swap rows
+                [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
+                
+                // Check for singular matrix
+                if (Math.abs(augmented[i][i]) < 1e-10) {
+                    console.warn('Matrix is singular or nearly singular');
+                    return null;
+                }
+                
+                // Eliminate column
+                for (let k = i + 1; k < n; k++) {
+                    const factor = augmented[k][i] / augmented[i][i];
+                    for (let j = i; j <= n; j++) {
+                        augmented[k][j] -= factor * augmented[i][j];
+                    }
+                }
+            }
+            
+            // Back substitution
+            const solution = Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                solution[i] = augmented[i][n];
+                for (let j = i + 1; j < n; j++) {
+                    solution[i] -= augmented[i][j] * solution[j];
+                }
+                solution[i] /= augmented[i][i];
+            }
+            
+            return solution;
+        }
+        
+        /**
+         * Generate polynomial trendline data points
+         * @param {Array} xData - Original x values (for range determination)
+         * @param {Array} coefficients - Polynomial coefficients
+         * @param {Number} numPoints - Number of points to generate (default: 100)
+         * @returns {Array} - Array of {x, y} points for the trendline
+         */
+        function generatePolynomialTrendline(xData, coefficients, numPoints = 100) {
+            if (!coefficients || coefficients.length === 0) return [];
+            
+            const validX = xData.filter(x => !isNaN(x) && isFinite(x));
+            if (validX.length === 0) return [];
+            
+            const xMin = Math.min(...validX);
+            const xMax = Math.max(...validX);
+            const step = (xMax - xMin) / (numPoints - 1);
+            
+            const trendline = [];
+            for (let i = 0; i < numPoints; i++) {
+                const x = xMin + i * step;
+                let y = 0;
+                
+                // Evaluate polynomial: y = a0 + a1*x + a2*x^2 + ... + an*x^n
+                for (let j = 0; j < coefficients.length; j++) {
+                    y += coefficients[j] * Math.pow(x, j);
+                }
+                
+                trendline.push({ x, y });
+            }
+            
+            return trendline;
+        }
+
         function renderCorrelationScatters() {
             if (parsedData.length === 0) return;
 
@@ -1388,6 +1945,10 @@ function renderScatterPlots() {
                 const tputXP90 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 90);
                 const tputXP50 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 50);
                 const tputXAvg = calculateBinnedAverage(xAxisVals, tputDlVals);
+                
+                // Calculate polynomial trendline
+                const polyCoeffs = polynomialRegression(xAxisVals, tputDlVals, polynomialDegree);
+                const polyTrendline = polyCoeffs ? generatePolynomialTrendline(xAxisVals, polyCoeffs, 100) : [];
 
                 if (scatterTputSinr) scatterTputSinr.destroy();
                 scatterTputSinr = new Chart(document.getElementById('scatterTputSinr'), {
@@ -1397,7 +1958,8 @@ function renderScatterPlots() {
                             { label: 'Data Points', data: tputXData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                             { label: '90th Percentile', data: tputXP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                             { label: 'Median (50th)', data: tputXP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                            { label: 'Average', data: tputXAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                            { label: 'Average', data: tputXAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                            { label: `Polynomial (Degree ${polynomialDegree})`, data: polyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                         ]
                     },
                     options: {
@@ -1422,6 +1984,10 @@ function renderScatterPlots() {
             const rsrpTputP90 = calculateBinnedPercentiles(rsrpVals, tputDlVals, 90);
             const rsrpTputP50 = calculateBinnedPercentiles(rsrpVals, tputDlVals, 50);
             const rsrpTputAvg = calculateBinnedAverage(rsrpVals, tputDlVals);
+            
+            // Calculate polynomial trendline
+            const rsrpPolyCoeffs = polynomialRegression(rsrpVals, tputDlVals, polynomialDegree);
+            const rsrpPolyTrendline = rsrpPolyCoeffs ? generatePolynomialTrendline(rsrpVals, rsrpPolyCoeffs, 100) : [];
 
             if (scatterTputRsrp) scatterTputRsrp.destroy();
             scatterTputRsrp = new Chart(document.getElementById('scatterTputRsrp'), {
@@ -1431,7 +1997,8 @@ function renderScatterPlots() {
                         { label: 'Data Points', data: rsrpTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                         { label: '90th Percentile', data: rsrpTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                         { label: 'Median (50th)', data: rsrpTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: rsrpTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'Average', data: rsrpTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                        { label: `Polynomial (Degree ${polynomialDegree})`, data: rsrpPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                     ]
                 },
                 options: {
@@ -1456,6 +2023,10 @@ function renderScatterPlots() {
                 const cqiMcsP90 = calculateBinnedPercentiles(cqiVals, mcsVals, 90);
                 const cqiMcsP50 = calculateBinnedPercentiles(cqiVals, mcsVals, 50);
                 const cqiMcsAvg = calculateBinnedAverage(cqiVals, mcsVals);
+                
+                // Calculate polynomial trendline
+                const cqiPolyCoeffs = polynomialRegression(cqiVals, mcsVals, polynomialDegree);
+                const cqiPolyTrendline = cqiPolyCoeffs ? generatePolynomialTrendline(cqiVals, cqiPolyCoeffs, 100) : [];
 
                 if (scatterMcsCqi) scatterMcsCqi.destroy();
             scatterMcsCqi = new Chart(document.getElementById('scatterMcsCqi'), {
@@ -1465,7 +2036,8 @@ function renderScatterPlots() {
                         { label: 'Data Points', data: cqiMcsData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                         { label: '90th Percentile', data: cqiMcsP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                         { label: 'Median (50th)', data: cqiMcsP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: cqiMcsAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'Average', data: cqiMcsAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                        { label: `Polynomial (Degree ${polynomialDegree})`, data: cqiPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                     ]
                 },
                 options: {
@@ -1493,6 +2065,10 @@ function renderScatterPlots() {
                 const blerTputP90 = calculateBinnedPercentiles(blerVals, tputDlVals, 90);
                 const blerTputP50 = calculateBinnedPercentiles(blerVals, tputDlVals, 50);
                 const blerTputAvg = calculateBinnedAverage(blerVals, tputDlVals);
+                
+                // Calculate polynomial trendline
+                const blerPolyCoeffs = polynomialRegression(blerVals, tputDlVals, polynomialDegree);
+                const blerPolyTrendline = blerPolyCoeffs ? generatePolynomialTrendline(blerVals, blerPolyCoeffs, 100) : [];
 
                 if (scatterBlerTput) scatterBlerTput.destroy();
             scatterBlerTput = new Chart(document.getElementById('scatterBlerTput'), {
@@ -1502,7 +2078,8 @@ function renderScatterPlots() {
                         { label: 'Data Points', data: blerTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
                         { label: '90th Percentile', data: blerTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
                         { label: 'Median (50th)', data: blerTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: blerTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                        { label: 'Average', data: blerTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
+                        { label: `Polynomial (Degree ${polynomialDegree})`, data: blerPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
                     ]
                 },
                 options: {
@@ -2142,6 +2719,22 @@ function renderScatterPlots() {
                 renderMap(); // Call without csvText to re-filter existing data
             }
         });
+        
+        // Polynomial degree selector change handler
+        document.getElementById('polynomialDegreeSelector').addEventListener('change', function(e) {
+            polynomialDegree = parseInt(e.target.value, 10);
+            console.log('Polynomial degree changed to:', polynomialDegree);
+            
+            // Warn user about high-degree polynomials
+            if (polynomialDegree >= 6) {
+                console.warn('⚠️ High-degree polynomial (degree ' + polynomialDegree + ') may overfit data and show oscillations. Consider using degree 2-3 for most telecom KPI analysis.');
+            }
+            
+            // Re-render scatter plots with new polynomial degree
+            if (parsedData.length > 0) {
+                renderCorrelationScatters();
+            }
+        });
 
         // =====================================================
         // CLIENT VIEW FUNCTIONALITY
@@ -2422,10 +3015,30 @@ function renderScatterPlots() {
 
         function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
-            const canvas = document.getElementById('chartZoomCanvas');
             const title = document.getElementById('chartZoomTitle');
             const modalContent = modal.querySelector('div');
             const chartContainer = document.getElementById('chartZoomContainer');
+            
+            // Clean up multi-KPI charts if they exist
+            if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
+                window.multiKpiCharts.forEach(chart => chart.destroy());
+                window.multiKpiCharts = [];
+            }
+            
+            // Reset container to original single-chart structure
+            chartContainer.innerHTML = '<canvas id="chartZoomCanvas"></canvas>';
+            chartContainer.style.flex = '1';
+            chartContainer.style.border = '3px solid white';
+            chartContainer.style.padding = '20px';
+            chartContainer.style.overflow = 'hidden';
+            chartContainer.style.display = 'block'; // Reset from flex
+            chartContainer.style.flexDirection = ''; // Clear flex direction
+            chartContainer.style.gap = ''; // Clear gap
+            chartContainer.style.overflowY = ''; // Clear overflow-y
+            chartContainer.style.overflowX = ''; // Clear overflow-x
+            
+            // Now get the canvas (it exists after innerHTML reset)
+            const canvas = document.getElementById('chartZoomCanvas');
             
             title.textContent = chartTitle;
             modal.style.display = 'flex';
@@ -2480,6 +3093,11 @@ function renderScatterPlots() {
             if (zoomedChart) {
                 zoomedChart.destroy();
                 zoomedChart = null;
+            }
+            // Clean up multi-KPI charts
+            if (window.multiKpiCharts) {
+                window.multiKpiCharts.forEach(chart => chart.destroy());
+                window.multiKpiCharts = [];
             }
         }
 
@@ -2630,6 +3248,25 @@ function renderScatterPlots() {
                     el.classList.remove('text-gray-400');
                     el.classList.add('text-gray-600');
                 });
+                // Fix KPI tab and button borders for light mode
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    el.classList.remove('border-white');
+                    el.classList.add('border-gray-400');
+                    // Switch inactive button background to light
+                    if (!el.classList.contains('bg-blue-600')) {
+                        el.classList.remove('bg-gray-700');
+                        el.classList.add('bg-gray-200');
+                    }
+                });
+                // Fix theme toggle button for light mode
+                const toggleBtn = document.getElementById('kpiThemeToggle');
+                toggleBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                toggleBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');                // Update multi-KPI checkbox hover states for light mode
+                document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                    const label = checkbox.parentElement;
+                    label.classList.remove('hover:bg-gray-700');
+                    label.classList.add('hover:bg-gray-100');
+                });
             } else {
                 panel.classList.remove('bg-white');
                 panel.classList.add('bg-gray-900');
@@ -2656,6 +3293,26 @@ function renderScatterPlots() {
                     el.classList.remove('text-gray-600');
                     el.classList.add('text-gray-400');
                 });
+                // Fix KPI tab and button borders for dark mode
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    el.classList.remove('border-gray-400');
+                    el.classList.add('border-white');
+                    // Switch inactive button background to dark
+                    if (!el.classList.contains('bg-blue-600')) {
+                        el.classList.remove('bg-gray-200');
+                        el.classList.add('bg-gray-700');
+                    }
+                });
+                // Fix theme toggle button for dark mode
+                const toggleBtn = document.getElementById('kpiThemeToggle');
+                toggleBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                toggleBtn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                // Update multi-KPI checkbox hover states for dark mode
+                document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                    const label = checkbox.parentElement;
+                    label.classList.remove('hover:bg-gray-100');
+                    label.classList.add('hover:bg-gray-700');
+                });
             }
             
             if (parsedData.length > 0) {
@@ -2669,3 +3326,668 @@ function renderScatterPlots() {
             }
         });
     
+
+        // =====================================================
+        // MULTI-KPI COMPARISON FEATURE
+        // =====================================================
+        
+        // Global state for multi-KPI selection
+        let selectedKpis = [];
+        
+        /**
+         * Prepare multi-KPI dataset for comparison chart
+         * @param {Array} selectedKpis - Array of KPI objects: [{kpi: 'rsrp', unit: 'dBm', axis: 'left'}, ...]
+         * @returns {Object} - {labels, datasets, axisConfig}
+    
+         */
+        function prepareMultiKpiData(selectedKpis) {
+            if (parsedData.length === 0 || selectedKpis.length === 0) {
+                return null;
+            }
+            
+            // Extract shared time labels
+            const labels = parsedData.map((d, i) => 
+                d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`
+            );
+            
+            // Technology detection
+            const tech = detectedTechnology || 'LTE';
+            
+            // Use consistent blue color for all KPIs in multi-KPI comparison
+            const kpiColor = '#3b82f6'; // Blue
+            
+            // Build datasets
+            const datasets = selectedKpis.map((kpiObj, index) => {
+                const { kpi, unit, axis } = kpiObj;
+                
+                let values = [];
+                let label = kpi.toUpperCase();
+                
+                // Technology-specific field mapping (match single KPI behavior with || 0)
+                if (kpi === 'rsrp') {
+                    if (tech === 'NR') {
+                        values = parsedData.map(d => parseFloat(d.nr_rsrp) || 0);
+                        label = 'NR-RSRP';
+                    } else if (tech === 'UMTS') {
+                        values = parsedData.map(d => parseFloat(d.wcdma_rscp) || 0);
+                        label = 'RSCP';
+                    } else if (tech === 'GSM') {
+                        values = parsedData.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
+                        label = 'RxLev';
+                    } else {
+                        values = parsedData.map(d => parseFloat(d.rsrp) || 0);
+                        label = 'RSRP';
+                    }
+                } else if (kpi === 'rsrq') {
+                    if (tech === 'NR') {
+                        values = parsedData.map(d => parseFloat(d.nr_rsrq) || 0);
+                        label = 'NR-RSRQ';
+                    } else if (tech === 'UMTS') {
+                        values = parsedData.map(d => parseFloat(d.wcdma_ecno) || 0);
+                        label = 'Ec/No';
+                    } else if (tech === 'GSM') {
+                        values = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || 0);
+                        label = 'RxQual';
+                    } else {
+                        values = parsedData.map(d => parseFloat(d.rsrq) || 0);
+                        label = 'RSRQ';
+                    }
+                } else if (kpi === 'sinr') {
+                    if (tech === 'NR') {
+                        values = parsedData.map(d => parseFloat(d.nr_sinr) || 0);
+                        label = 'NR-SINR';
+                    } else {
+                        values = parsedData.map(d => parseFloat(d.sinr) || 0);
+                        label = 'SINR';
+                    }
+                } else {
+                    // Generic KPI extraction
+                    values = parsedData.map(d => parseFloat(d[kpi]) || 0);
+                }
+                
+                // Add unit to label
+                const fullLabel = unit ? `${label} (${unit})` : label;
+                
+                return {
+                    label: fullLabel,
+                    data: values,
+                    borderColor: kpiColor,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2.5,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 1.5,
+                    pointHoverRadius: 6,
+                    pointHoverBorderWidth: 2,
+                    yAxisID: axis,
+                    spanGaps: false // Match single KPI behavior - show all data points including zeros
+                };
+            });
+            
+            // Determine axis configuration
+            const hasLeftAxis = selectedKpis.some(k => k.axis === 'left');
+            const hasRightAxis = selectedKpis.some(k => k.axis === 'right');
+            
+            // Get units for axis labels
+            const leftUnits = [...new Set(selectedKpis.filter(k => k.axis === 'left').map(k => k.unit).filter(u => u))];
+            const rightUnits = [...new Set(selectedKpis.filter(k => k.axis === 'right').map(k => k.unit).filter(u => u))];
+            
+            const axisConfig = {
+                hasLeft: hasLeftAxis,
+                hasRight: hasRightAxis,
+                leftLabel: leftUnits.length === 1 ? leftUnits[0] : leftUnits.length > 1 ? 'Mixed Units' : 'Value',
+                rightLabel: rightUnits.length === 1 ? rightUnits[0] : rightUnits.length > 1 ? 'Mixed Units' : 'Value'
+            };
+            
+            return { labels, datasets, axisConfig };
+        }
+        
+        /**
+         * Render multi-KPI comparison chart in zoom modal (STACKED CHARTS VERSION)
+         * Each KPI gets its own chart with its own Y-axis, all sharing the same X-axis
+         * @param {Array} selectedKpis - Array of selected KPI objects
+         */
+        function renderMultiKpiChart(selectedKpis) {
+            const data = prepareMultiKpiData(selectedKpis);
+            
+            if (!data) {
+                alert('⚠️ No data available for selected KPIs');
+                return;
+            }
+            
+            const { labels, datasets } = data;
+            
+            // Extract event timeline for event markers
+            const eventTimeline = extractEventTimeline(parsedData);
+            console.log(`📍 Rendering ${eventTimeline.length} event markers on multi-KPI charts`);
+            
+            // Open modal
+            const modal = document.getElementById('chartZoomModal');
+            const title = document.getElementById('chartZoomTitle');
+            const modalContent = modal.querySelector('div');
+            const chartContainer = document.getElementById('chartZoomContainer');
+            
+            // Set title
+            const tech = detectedTechnology || 'LTE';
+            const kpiNames = selectedKpis.map(k => {
+                if (k.kpi === 'rsrp') {
+                    return tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                } else if (k.kpi === 'rsrq') {
+                    return tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                } else if (k.kpi === 'sinr') {
+                    return tech === 'NR' ? 'NR-SINR' : 'SINR';
+                } else if (k.kpi === 'throughput_dl_mbps') {
+                    return 'DL Tput';
+                } else if (k.kpi === 'throughput_ul_mbps') {
+                    return 'UL Tput';
+                }
+                return k.kpi.toUpperCase();
+            }).join(' + ');
+            
+            title.textContent = `📊 Multi-KPI Analysis: ${kpiNames}`;
+            
+            // Show modal
+            modal.style.display = 'flex';
+            
+            // Apply theme
+            const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
+            const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+            const tickColor = kpiTheme === 'dark' ? '#9ca3af' : '#4b5563';
+            const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
+            
+            if (kpiTheme === 'light') {
+                modal.style.background = 'rgba(255,255,255,0.95)';
+                modalContent.style.background = '#f3f4f6';
+                title.style.color = '#1f2937';
+            } else {
+                modal.style.background = 'rgba(0,0,0,0.95)';
+                modalContent.style.background = '#1f2937';
+                title.style.color = '#fff';
+            }
+            
+            // Clear existing content and create stacked charts container
+            chartContainer.innerHTML = '';
+            chartContainer.style.background = bgColor;
+            chartContainer.style.overflowY = 'auto';
+            chartContainer.style.overflowX = 'hidden';
+            chartContainer.style.display = 'flex';
+            chartContainer.style.flexDirection = 'column';
+            chartContainer.style.gap = '8px'; // Reduced from 15px to 8px
+            chartContainer.style.padding = '12px'; // Reduced from 20px to 12px
+            
+            // Destroy existing chart if any
+            if (zoomedChart) {
+                zoomedChart.destroy();
+                zoomedChart = null;
+            }
+            
+            // Store all chart instances for cleanup
+            if (!window.multiKpiCharts) {
+                window.multiKpiCharts = [];
+            }
+            // Destroy previous charts
+            window.multiKpiCharts.forEach(chart => chart.destroy());
+            window.multiKpiCharts = [];
+            
+            // Shared state for synchronized crosshair
+            const syncState = {
+                activeIndex: null,
+                isHovering: false
+            };
+            
+            // Custom plugin for vertical crosshair line
+            const crosshairPlugin = {
+                id: 'crosshair',
+                afterDraw: (chart) => {
+                    if (syncState.activeIndex !== null && syncState.isHovering) {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        
+                        // Get x position for the active index
+                        const x = xAxis.getPixelForValue(syncState.activeIndex);
+                        
+                        // Draw vertical line
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(x, yAxis.top);
+                        ctx.lineTo(x, yAxis.bottom);
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = kpiTheme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.3)';
+                        ctx.setLineDash([5, 5]);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            };
+            
+            // Calculate height per chart (improved dynamic calculation)
+            const numCharts = datasets.length;
+            const availableHeight = window.innerHeight * 0.88; // Use 88% of viewport
+            const titleHeight = 30; // Title + margins
+            const containerPadding = 24; // Top + bottom padding (12px each)
+            const gapTotal = (numCharts - 1) * 8; // Gaps between charts
+            const borderTotal = numCharts * 4; // 2px border top + bottom per chart
+            const wrapperPaddingTotal = numCharts * 16; // 8px top + 8px bottom per chart
+            
+            // Calculate available height per chart
+            const totalOverhead = containerPadding + gapTotal + borderTotal + wrapperPaddingTotal + (numCharts * titleHeight);
+            const chartHeight = Math.max(120, Math.floor((availableHeight - totalOverhead) / numCharts));
+            
+            console.log(`📊 Multi-KPI Layout: ${numCharts} charts, ${chartHeight}px each, total overhead: ${totalOverhead}px`);
+            
+            // Create a separate chart for each KPI
+            datasets.forEach((dataset, index) => {
+                // Create container for this chart
+                const chartWrapper = document.createElement('div');
+                chartWrapper.style.background = bgColor;
+                chartWrapper.style.border = `2px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
+                chartWrapper.style.borderRadius = '4px';
+                chartWrapper.style.padding = '8px 15px 8px 60px'; // Reduced padding: 8px top/bottom, 60px left for Y-axis
+                chartWrapper.style.minHeight = `${chartHeight + titleHeight}px`;
+                chartWrapper.style.position = 'relative';
+                chartWrapper.style.boxSizing = 'border-box';
+                
+                // Add KPI title
+                const chartTitle = document.createElement('div');
+                chartTitle.textContent = dataset.label;
+                chartTitle.style.color = textColor;
+                chartTitle.style.fontFamily = 'JetBrains Mono';
+                chartTitle.style.fontSize = '11px'; // Reduced from 13px to 11px
+                chartTitle.style.fontWeight = 'bold';
+                chartTitle.style.marginBottom = '6px'; // Reduced from 10px to 6px
+                chartTitle.style.paddingBottom = '4px'; // Reduced from 8px to 4px
+                chartTitle.style.borderBottom = `1px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
+                chartWrapper.appendChild(chartTitle);
+                
+                // Create canvas wrapper with overflow control
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.style.position = 'relative';
+                canvasWrapper.style.width = '100%';
+                canvasWrapper.style.height = `${chartHeight}px`; // Use calculated height directly
+                canvasWrapper.style.overflow = 'visible'; // Allow labels to show
+                
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                canvasWrapper.appendChild(canvas);
+                chartWrapper.appendChild(canvasWrapper);
+                
+                chartContainer.appendChild(chartWrapper);
+                
+                // Calculate Y-axis range for this dataset
+                const validData = dataset.data.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
+                let yMin, yMax;
+                const kpiName = selectedKpis[index].kpi;
+                
+                // Apply technology-aware fixed ranges for specific KPIs
+                // This ensures consistency while respecting each technology's actual range
+                if (kpiName === 'rsrp') {
+                    // RSRP / RSCP / RxLev - Technology-specific ranges
+                    if (tech === 'NR' || tech === 'LTE') {
+                        yMin = -110;
+                        yMax = -50;
+                    } else if (tech === 'UMTS') {
+                        yMin = -120; // RSCP can go lower than RSRP
+                        yMax = -25;  // RSCP can go higher than RSRP
+                    } else if (tech === 'GSM') {
+                        yMin = -110;
+                        yMax = -48;
+                    } else {
+                        yMin = -110;
+                        yMax = -50;
+                    }
+                    console.log(`📊 RSRP/RSCP Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                } else if (kpiName === 'rsrq') {
+                    // RSRQ / Ec/No / RxQual - Technology-specific ranges
+                    if (tech === 'NR' || tech === 'LTE') {
+                        yMin = -20;
+                        yMax = -3;
+                    } else if (tech === 'UMTS') {
+                        yMin = -24; // Ec/No can go lower in poor conditions
+                        yMax = 5;   // Ec/No can go positive in excellent conditions
+                    } else if (tech === 'GSM') {
+                        yMin = 0;   // RxQual is inverted (0=best, 7=worst)
+                        yMax = 7;
+                    } else {
+                        yMin = -20;
+                        yMax = -3;
+                    }
+                    console.log(`📊 RSRQ/Ec/No Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                } else if (kpiName === 'sinr') {
+                    // SINR - Only for LTE/NR (3G/2G don't have SINR)
+                    if (tech === 'NR' || tech === 'LTE') {
+                        yMin = -5;
+                        yMax = 31;
+                    } else {
+                        // Fallback to auto-scale if SINR somehow appears in 2G/3G
+                        if (validData.length > 0) {
+                            yMin = Math.min(...validData);
+                            yMax = Math.max(...validData);
+                        } else {
+                            yMin = -5;
+                            yMax = 31;
+                        }
+                    }
+                } else if (kpiName === 'bler') {
+                    // BLER: 0 to 120% (can exceed 100% in poor conditions)
+                    yMin = 0;
+                    yMax = 120;
+                } else if (kpiName === 'cqi') {
+                    // CQI: 0 to 15 (LTE/NR standard)
+                    yMin = 0;
+                    yMax = 15;
+                } else if (kpiName === 'mcs') {
+                    // MCS: 0 to 33 (covers both LTE 0-28 and 5G NR up to 33)
+                    yMin = 0;
+                    yMax = 33;
+                } else if (kpiName === 'throughput_dl_mbps' || kpiName === 'throughput_ul_mbps') {
+                    // Auto-scale for throughput (high variability: 0-500+ Mbps)
+                    if (validData.length > 0) {
+                        yMin = Math.min(...validData);
+                        yMax = Math.max(...validData);
+                        
+                        // Add 10% padding for better visualization
+                        const range = yMax - yMin;
+                        const padding = range * 0.1;
+                        yMin = Math.max(0, yMin - padding); // Don't go below 0
+                        yMax = yMax + padding;
+                    } else {
+                        yMin = 0;
+                        yMax = 100; // Default fallback
+                    }
+                } else {
+                    // Default auto-scale for any other KPIs
+                    if (validData.length > 0) {
+                        yMin = Math.min(...validData);
+                        yMax = Math.max(...validData);
+                        
+                        const range = yMax - yMin;
+                        const padding = range * 0.1;
+                        yMin = yMin - padding;
+                        yMax = yMax + padding;
+                    } else {
+                        yMin = undefined;
+                        yMax = undefined;
+                    }
+                }
+                
+                // Create chart
+                const ctx = canvas.getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: dataset.label,
+                            data: dataset.data,
+                            borderColor: dataset.borderColor,
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 1,
+                            pointHoverRadius: 5,
+                            spanGaps: false // Match single KPI behavior
+                        }]
+                    },
+                    plugins: [crosshairPlugin, multiKpiEventMarkerPlugin], // Register event marker plugin
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                left: 20, // Reduced from 30 to 20
+                                right: 15, // Reduced from 20 to 15
+                                top: 22, // Reduced from 25 to 22 (still room for event icons)
+                                bottom: 10 // Reduced from 15 to 10
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0,0,0,0.9)',
+                                titleFont: { family: 'JetBrains Mono', size: 11 },
+                                bodyFont: { family: 'JetBrains Mono', size: 10 },
+                                padding: 10,
+                                borderColor: dataset.borderColor,
+                                borderWidth: 2,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label || '';
+                                    },
+                                    label: function(context) {
+                                        if (context.parsed.y !== null) {
+                                            return `${dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                                        }
+                                        return 'N/A';
+                                    },
+                                    afterLabel: function(context) {
+                                        // Add PCI and event info to tooltip
+                                        const dataIndex = context.dataIndex;
+                                        const point = parsedData[dataIndex];
+                                        
+                                        if (!point) return '';
+                                        
+                                        const lines = [];
+                                        
+                                        // Add PCI information
+                                        const tech = point.technology || 'LTE';
+                                        let pci = '';
+                                        if (tech === 'NR') {
+                                            pci = point.nr_pci || '-';
+                                        } else if (tech === 'UMTS') {
+                                            pci = point.wcdma_psc || point.psc || '-';
+                                        } else if (tech === 'GSM') {
+                                            pci = point.gsm_bsic || point.bsic || '-';
+                                        } else {
+                                            pci = point.pci || '-';
+                                        }
+                                        
+                                        if (pci !== '-') {
+                                            lines.push(`📡 PCI: ${pci}`);
+                                        }
+                                        
+                                        // Check if there's an event at this index
+                                        const event = eventTimeline.find(e => e.index === dataIndex);
+                                        if (event) {
+                                            const icon = getEventIcon(event.type);
+                                            lines.push(`📍 Event: ${icon} ${event.details}`);
+                                        }
+                                        
+                                        return lines.join('\n');
+                                    }
+                                }
+                            },
+                            multiKpiEventMarkers: {
+                                events: eventTimeline // Pass event data to plugin
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: index === datasets.length - 1,
+                                ticks: { 
+                                    color: tickColor, 
+                                    font: { size: 8, family: 'JetBrains Mono' }, // Reduced from 9 to 8
+                                    maxRotation: 45,
+                                    minRotation: 45,
+                                    autoSkip: true,
+                                    maxTicksLimit: 10 // Reduced from 12 to 10
+                                },
+                                grid: { 
+                                    color: gridColor,
+                                    display: true,
+                                    drawBorder: true
+                                },
+                                title: {
+                                    display: index === datasets.length - 1,
+                                    text: 'Time',
+                                    color: textColor,
+                                    font: { size: 10, family: 'JetBrains Mono', weight: 'bold' } // Reduced from 11 to 10
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                min: yMin,
+                                max: yMax,
+                                ticks: { 
+                                    color: tickColor,
+                                    font: { family: 'JetBrains Mono', size: 8 }, // Reduced from 9 to 8
+                                    autoSkip: true,
+                                    maxTicksLimit: 6, // Reduced from 8 to 6
+                                    padding: 8, // Reduced from 10 to 8
+                                    align: 'end'
+                                },
+                                grid: { 
+                                    color: gridColor,
+                                    drawBorder: true,
+                                    offset: false
+                                },
+                                offset: false,
+                                beginAtZero: false
+                            }
+                        }
+                    },
+                    plugins: [crosshairPlugin]
+                });
+                
+                // Add mouse event listeners for synchronization
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    // Get the data index at mouse position
+                    const xAxis = chart.scales.x;
+                    const xValue = xAxis.getValueForPixel(x);
+                    
+                    if (xValue !== undefined && xValue >= 0 && xValue < labels.length) {
+                        syncState.activeIndex = Math.round(xValue);
+                        syncState.isHovering = true;
+                        
+                        // Update all charts
+                        window.multiKpiCharts.forEach(c => {
+                            // Show tooltip at the synced position
+                            const meta = c.getDatasetMeta(0);
+                            if (meta && meta.data[syncState.activeIndex]) {
+                                c.tooltip.setActiveElements([{
+                                    datasetIndex: 0,
+                                    index: syncState.activeIndex
+                                }]);
+                            }
+                            c.update('none'); // Update without animation
+                        });
+                    }
+                });
+                
+                canvas.addEventListener('mouseleave', () => {
+                    syncState.isHovering = false;
+                    syncState.activeIndex = null;
+                    
+                    // Clear all tooltips and crosshairs
+                    window.multiKpiCharts.forEach(c => {
+                        c.tooltip.setActiveElements([]);
+                        c.update('none');
+                    });
+                });
+                
+                // Store chart instance
+                window.multiKpiCharts.push(chart);
+            });
+            
+            console.log('✅ Multi-KPI stacked charts rendered:', datasets.length, 'charts');
+        }
+        
+        /**
+         * Initialize multi-KPI comparison feature
+         */
+        function initMultiKpiComparison() {
+            const checkboxes = document.querySelectorAll('.kpi-selector');
+            const compareBtn = document.getElementById('compareKpisBtn');
+            const countSpan = document.getElementById('selectedKpiCount');
+            
+            if (!compareBtn || !countSpan) {
+                console.warn('Multi-KPI comparison UI not found');
+                return;
+            }
+            
+            // Update selected KPIs array
+            function updateSelectedKpis() {
+                selectedKpis = [];
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.checked && checkbox.parentElement.style.display !== 'none') {
+                        selectedKpis.push({
+                            kpi: checkbox.dataset.kpi,
+                            unit: checkbox.dataset.unit,
+                            axis: checkbox.dataset.axis
+                        });
+                    }
+                });
+                
+                // Update button state
+                countSpan.textContent = selectedKpis.length;
+                compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 6;
+                
+                // Update button appearance
+                if (selectedKpis.length < 2 || selectedKpis.length > 6) {
+                    compareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    compareBtn.classList.remove('hover:bg-blue-700');
+                } else {
+                    compareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    compareBtn.classList.add('hover:bg-blue-700');
+                }
+                
+                // Warn user visually when exceeding 6
+                if (selectedKpis.length > 6) {
+                    countSpan.style.color = '#ef4444'; // Red
+                } else {
+                    countSpan.style.color = '';
+                }
+            }
+            
+            // Expose globally so updateMultiKpiLabels can call it
+            window.updateMultiKpiSelectedCount = updateSelectedKpis;
+            
+            // Update selected KPIs on checkbox change
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSelectedKpis();
+                });
+            });
+            
+            // Compare button click handler
+            compareBtn.addEventListener('click', function() {
+                if (selectedKpis.length < 2) {
+                    alert('⚠️ Please select at least 2 KPIs to compare');
+                    return;
+                }
+                if (selectedKpis.length > 6) {
+                    alert('⚠️ Maximum 6 KPIs allowed. Please deselect ' + (selectedKpis.length - 6) + ' KPI(s) to continue.');
+                    return;
+                }
+                
+                renderMultiKpiChart(selectedKpis);
+            });
+            
+            // Initial update
+            updateSelectedKpis();
+            
+            console.log('✅ Multi-KPI comparison initialized');
+        }
+        
+        // Initialize on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMultiKpiComparison);
+        } else {
+            initMultiKpiComparison();
+        }
