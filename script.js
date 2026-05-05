@@ -2697,18 +2697,188 @@ function renderScatterPlots() {
             // Auto-populate L3 messages (removed - no longer needed)
         }
 
+        // =====================================================
+        // CSV VALIDATION & ERROR HANDLING
+        // =====================================================
+        
+        function showUploadError(title, message, details = []) {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; display:flex; align-items:center; justify-content:center; font-family:"JetBrains Mono",monospace;';
+            
+            const detailsHTML = details.length > 0 ? `
+                <div style="margin-top:15px; padding:15px; background:#fff3cd; border-left:4px solid #ffc107; border-radius:5px;">
+                    <div style="font-weight:bold; color:#856404; margin-bottom:8px;">📋 Details:</div>
+                    <ul style="margin:0; padding-left:20px; color:#856404; font-size:13px;">
+                        ${details.map(d => `<li style="margin:5px 0;">${d}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : '';
+            
+            modal.innerHTML = `
+                <div style="background:white; border-radius:12px; padding:30px; max-width:600px; width:90%; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation:slideIn 0.3s ease;">
+                    <div style="display:flex; align-items:center; margin-bottom:20px;">
+                        <div style="font-size:48px; margin-right:15px;">⚠️</div>
+                        <div>
+                            <h2 style="margin:0; color:#dc2626; font-size:22px;">${title}</h2>
+                            <p style="margin:5px 0 0 0; color:#666; font-size:14px;">CSV Upload Failed</p>
+                        </div>
+                    </div>
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px;">
+                        <p style="margin:0; color:#333; font-size:15px; line-height:1.6;">${message}</p>
+                    </div>
+                    ${detailsHTML}
+                    <div style="margin-top:20px; padding-top:20px; border-top:1px solid #e5e7eb;">
+                        <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%; padding:12px; background:#FF7900; color:white; border:none; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:background 0.2s;" onmouseover="this.style.background='#e66d00'" onmouseout="this.style.background='#FF7900'">
+                            ✓ Got it, I'll fix my CSV file
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = '@keyframes slideIn { from { transform:translateY(-50px); opacity:0; } to { transform:translateY(0); opacity:1; } }';
+            document.head.appendChild(style);
+            
+            document.body.appendChild(modal);
+        }
+        
+        function validateCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            
+            if (lines.length < 2) {
+                showUploadError(
+                    'Empty or Invalid CSV File',
+                    'Your CSV file appears to be empty or contains only headers. Please ensure your file has data rows.',
+                    ['Minimum requirement: 1 header row + at least 1 data row']
+                );
+                return false;
+            }
+            
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace('#', ''));
+            const errors = [];
+            const warnings = [];
+            
+            // Check for required GPS columns
+            const hasLat = headers.some(h => h === 'lat' || h === 'latitude');
+            const hasLon = headers.some(h => h === 'lon' || h === 'longitude');
+            
+            if (!hasLat || !hasLon) {
+                errors.push('❌ <strong>Missing GPS Coordinates:</strong> Your CSV must have "Lat" and "Lon" columns (or "Latitude" and "Longitude")');
+            }
+            
+            // Check for technology indicators
+            const hasTechColumn = headers.includes('technology');
+            const hasLTE = headers.includes('rsrp') || headers.includes('pci') || headers.includes('earfcn');
+            const hasNR = headers.includes('nr_rsrp') || headers.includes('nr_pci');
+            const hasUMTS = headers.includes('wcdma_rscp') || headers.includes('wcdma_ecno');
+            const hasGSM = headers.includes('gsm_rxlev') || headers.includes('rxlev');
+            
+            if (!hasTechColumn && !hasLTE && !hasNR && !hasUMTS && !hasGSM) {
+                warnings.push('⚠️ <strong>No Technology Detected:</strong> Add a "Technology" column or include KPI columns (RSRP, NR_RSRP, WCDMA_RSCP, or GSM_RxLev)');
+            }
+            
+            // Check if data rows have valid coordinates
+            let validCoordCount = 0;
+            let totalRows = 0;
+            const latIndex = headers.findIndex(h => h === 'lat' || h === 'latitude');
+            const lonIndex = headers.findIndex(h => h === 'lon' || h === 'longitude');
+            
+            if (latIndex >= 0 && lonIndex >= 0) {
+                for (let i = 1; i < Math.min(lines.length, 100); i++) { // Check first 100 rows
+                    const values = lines[i].split(',');
+                    const lat = parseFloat(values[latIndex]);
+                    const lon = parseFloat(values[lonIndex]);
+                    totalRows++;
+                    if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+                        validCoordCount++;
+                    }
+                }
+                
+                if (validCoordCount === 0) {
+                    errors.push('❌ <strong>No Valid GPS Data:</strong> All coordinate values are empty, zero, or invalid');
+                } else if (validCoordCount < totalRows * 0.5) {
+                    warnings.push(`⚠️ <strong>Sparse GPS Data:</strong> Only ${validCoordCount}/${totalRows} rows have valid coordinates`);
+                }
+            }
+            
+            // Show errors if any
+            if (errors.length > 0) {
+                showUploadError(
+                    'CSV Validation Failed',
+                    'Your CSV file is missing required columns or has invalid data. Please fix the issues below and try again:',
+                    [...errors, ...warnings]
+                );
+                return false;
+            }
+            
+            // Show warnings but allow upload
+            if (warnings.length > 0) {
+                console.warn('CSV Upload Warnings:', warnings);
+            }
+            
+            return true;
+        }
+        
         document.getElementById('csvFile').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (!file) return;
+            
+            // Check file extension
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showUploadError(
+                    'Invalid File Type',
+                    'Please upload a CSV file. The selected file does not have a .csv extension.',
+                    [`Selected file: ${file.name}`, 'Expected: filename.csv']
+                );
+                this.value = ''; // Reset file input
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = (event) => {
-                csvData = event.target.result;
-                if (map.isStyleLoaded()) {
-                    renderMap(csvData);
-                } else {
-                    setTimeout(() => renderMap(csvData), 500);
+                const csvText = event.target.result;
+                
+                // Validate CSV before processing
+                if (!validateCSV(csvText)) {
+                    e.target.value = ''; // Reset file input
+                    return;
+                }
+                
+                try {
+                    csvData = csvText;
+                    if (map.isStyleLoaded()) {
+                        renderMap(csvData);
+                    } else {
+                        setTimeout(() => renderMap(csvData), 500);
+                    }
+                    
+                    // Show success message
+                    const successMsg = document.createElement('div');
+                    successMsg.style.cssText = 'position:fixed; top:20px; right:20px; background:#22c55e; color:white; padding:15px 25px; border-radius:8px; font-family:"JetBrains Mono",monospace; font-weight:bold; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.2); animation:slideInRight 0.3s ease;';
+                    successMsg.innerHTML = '✓ CSV uploaded successfully!';
+                    document.body.appendChild(successMsg);
+                    setTimeout(() => successMsg.remove(), 3000);
+                    
+                } catch (error) {
+                    showUploadError(
+                        'CSV Processing Error',
+                        'An error occurred while processing your CSV file. The file may be corrupted or improperly formatted.',
+                        [`Error: ${error.message}`, 'Try opening the file in Excel/Notepad to verify it\'s valid']
+                    );
+                    e.target.value = ''; // Reset file input
                 }
             };
+            
+            reader.onerror = () => {
+                showUploadError(
+                    'File Read Error',
+                    'Unable to read the selected file. Please check file permissions and try again.',
+                    ['Make sure the file is not open in another program', 'Try copying the file to a different location']
+                );
+                e.target.value = ''; // Reset file input
+            };
+            
             reader.readAsText(file);
         });
         
