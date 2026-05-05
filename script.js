@@ -3509,6 +3509,31 @@ function renderScatterPlots() {
                 
                 chartContainer.appendChild(chartWrapper);
                 
+                // Calculate Y-axis range for this dataset
+                const validData = dataset.data.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
+                let yMin, yMax;
+                
+                if (validData.length > 0) {
+                    yMin = Math.min(...validData);
+                    yMax = Math.max(...validData);
+                    
+                    // Add 10% padding to min/max for better visualization
+                    const range = yMax - yMin;
+                    const padding = range * 0.1;
+                    yMin = yMin - padding;
+                    yMax = yMax + padding;
+                    
+                    // Apply KPI-specific maximum limits
+                    const kpiName = selectedKpis[index].kpi;
+                    if (kpiName === 'sinr') {
+                        // Cap SINR at 31 dB
+                        yMax = Math.min(yMax, 31);
+                    }
+                } else {
+                    yMin = undefined;
+                    yMax = undefined;
+                }
+                
                 // Create chart
                 const ctx = canvas.getContext('2d');
                 const chart = new Chart(ctx, {
@@ -3634,6 +3659,8 @@ function renderScatterPlots() {
                             y: {
                                 type: 'linear',
                                 position: 'left',
+                                min: yMin,
+                                max: yMax,
                                 ticks: { 
                                     color: tickColor,
                                     font: { family: 'JetBrains Mono', size: 9 },
