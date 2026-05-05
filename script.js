@@ -1685,9 +1685,6 @@ function renderScatterPlots() {
         const multiKpiEventMarkerPlugin = {
             id: 'multiKpiEventMarkers',
             afterDatasetsDraw: (chart, args, options) => {
-                // Check global toggle
-                if (!showEventMarkers) return;
-                
                 const events = options.events || [];
                 if (events.length === 0) return;
                 
@@ -3236,7 +3233,6 @@ function renderScatterPlots() {
         
         // Global state for multi-KPI selection
         let selectedKpis = [];
-        let showEventMarkers = true; // Global toggle for event markers
         
         /**
          * Prepare multi-KPI dataset for comparison chart
@@ -3416,8 +3412,8 @@ function renderScatterPlots() {
             chartContainer.style.overflowX = 'hidden';
             chartContainer.style.display = 'flex';
             chartContainer.style.flexDirection = 'column';
-            chartContainer.style.gap = '15px';
-            chartContainer.style.padding = '20px';
+            chartContainer.style.gap = '8px'; // Reduced from 15px to 8px
+            chartContainer.style.padding = '12px'; // Reduced from 20px to 12px
             
             // Destroy existing chart if any
             if (zoomedChart) {
@@ -3465,9 +3461,20 @@ function renderScatterPlots() {
                 }
             };
             
-            // Calculate height per chart (responsive)
+            // Calculate height per chart (improved dynamic calculation)
             const numCharts = datasets.length;
-            const chartHeight = Math.max(180, Math.min(300, Math.floor((window.innerHeight * 0.85) / numCharts) - 30));
+            const availableHeight = window.innerHeight * 0.88; // Use 88% of viewport
+            const titleHeight = 30; // Title + margins
+            const containerPadding = 24; // Top + bottom padding (12px each)
+            const gapTotal = (numCharts - 1) * 8; // Gaps between charts
+            const borderTotal = numCharts * 4; // 2px border top + bottom per chart
+            const wrapperPaddingTotal = numCharts * 16; // 8px top + 8px bottom per chart
+            
+            // Calculate available height per chart
+            const totalOverhead = containerPadding + gapTotal + borderTotal + wrapperPaddingTotal + (numCharts * titleHeight);
+            const chartHeight = Math.max(120, Math.floor((availableHeight - totalOverhead) / numCharts));
+            
+            console.log(`📊 Multi-KPI Layout: ${numCharts} charts, ${chartHeight}px each, total overhead: ${totalOverhead}px`);
             
             // Create a separate chart for each KPI
             datasets.forEach((dataset, index) => {
@@ -3476,8 +3483,8 @@ function renderScatterPlots() {
                 chartWrapper.style.background = bgColor;
                 chartWrapper.style.border = `2px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
                 chartWrapper.style.borderRadius = '4px';
-                chartWrapper.style.padding = '15px 20px 15px 70px'; // Even more left padding (70px)
-                chartWrapper.style.minHeight = `${chartHeight}px`;
+                chartWrapper.style.padding = '8px 15px 8px 60px'; // Reduced padding: 8px top/bottom, 60px left for Y-axis
+                chartWrapper.style.minHeight = `${chartHeight + titleHeight}px`;
                 chartWrapper.style.position = 'relative';
                 chartWrapper.style.boxSizing = 'border-box';
                 
@@ -3486,10 +3493,10 @@ function renderScatterPlots() {
                 chartTitle.textContent = dataset.label;
                 chartTitle.style.color = textColor;
                 chartTitle.style.fontFamily = 'JetBrains Mono';
-                chartTitle.style.fontSize = '13px';
+                chartTitle.style.fontSize = '11px'; // Reduced from 13px to 11px
                 chartTitle.style.fontWeight = 'bold';
-                chartTitle.style.marginBottom = '10px';
-                chartTitle.style.paddingBottom = '8px';
+                chartTitle.style.marginBottom = '6px'; // Reduced from 10px to 6px
+                chartTitle.style.paddingBottom = '4px'; // Reduced from 8px to 4px
                 chartTitle.style.borderBottom = `1px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
                 chartWrapper.appendChild(chartTitle);
                 
@@ -3497,7 +3504,7 @@ function renderScatterPlots() {
                 const canvasWrapper = document.createElement('div');
                 canvasWrapper.style.position = 'relative';
                 canvasWrapper.style.width = '100%';
-                canvasWrapper.style.height = `${chartHeight - 50}px`;
+                canvasWrapper.style.height = `${chartHeight}px`; // Use calculated height directly
                 canvasWrapper.style.overflow = 'visible'; // Allow labels to show
                 
                 // Create canvas
@@ -3512,26 +3519,98 @@ function renderScatterPlots() {
                 // Calculate Y-axis range for this dataset
                 const validData = dataset.data.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
                 let yMin, yMax;
+                const kpiName = selectedKpis[index].kpi;
                 
-                if (validData.length > 0) {
-                    yMin = Math.min(...validData);
-                    yMax = Math.max(...validData);
-                    
-                    // Add 10% padding to min/max for better visualization
-                    const range = yMax - yMin;
-                    const padding = range * 0.1;
-                    yMin = yMin - padding;
-                    yMax = yMax + padding;
-                    
-                    // Apply KPI-specific maximum limits
-                    const kpiName = selectedKpis[index].kpi;
-                    if (kpiName === 'sinr') {
-                        // Cap SINR at 31 dB
-                        yMax = Math.min(yMax, 31);
+                // Apply technology-aware fixed ranges for specific KPIs
+                // This ensures consistency while respecting each technology's actual range
+                if (kpiName === 'rsrp') {
+                    // RSRP / RSCP / RxLev - Technology-specific ranges
+                    if (tech === 'NR' || tech === 'LTE') {
+                        yMin = -110;
+                        yMax = -50;
+                    } else if (tech === 'UMTS') {
+                        yMin = -120; // RSCP can go lower than RSRP
+                        yMax = -25;  // RSCP can go higher than RSRP
+                    } else if (tech === 'GSM') {
+                        yMin = -110;
+                        yMax = -48;
+                    } else {
+                        yMin = -110;
+                        yMax = -50;
+                    }
+                    console.log(`📊 RSRP/RSCP Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                } else if (kpiName === 'rsrq') {
+                    // RSRQ / Ec/No / RxQual - Technology-specific ranges
+                    if (tech === 'NR' || tech === 'LTE') {
+                        yMin = -20;
+                        yMax = -3;
+                    } else if (tech === 'UMTS') {
+                        yMin = -24; // Ec/No can go lower in poor conditions
+                        yMax = 5;   // Ec/No can go positive in excellent conditions
+                    } else if (tech === 'GSM') {
+                        yMin = 0;   // RxQual is inverted (0=best, 7=worst)
+                        yMax = 7;
+                    } else {
+                        yMin = -20;
+                        yMax = -3;
+                    }
+                    console.log(`📊 RSRQ/Ec/No Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                } else if (kpiName === 'sinr') {
+                    // SINR - Only for LTE/NR (3G/2G don't have SINR)
+                    if (tech === 'NR' || tech === 'LTE') {
+                        yMin = -5;
+                        yMax = 31;
+                    } else {
+                        // Fallback to auto-scale if SINR somehow appears in 2G/3G
+                        if (validData.length > 0) {
+                            yMin = Math.min(...validData);
+                            yMax = Math.max(...validData);
+                        } else {
+                            yMin = -5;
+                            yMax = 31;
+                        }
+                    }
+                } else if (kpiName === 'bler') {
+                    // BLER: 0 to 100% (all technologies)
+                    yMin = 0;
+                    yMax = 100;
+                } else if (kpiName === 'cqi') {
+                    // CQI: 0 to 15 (LTE/NR standard)
+                    yMin = 0;
+                    yMax = 15;
+                } else if (kpiName === 'mcs') {
+                    // MCS: 0 to 28 (LTE standard, NR can go higher but 28 is common)
+                    yMin = 0;
+                    yMax = 28;
+                } else if (kpiName === 'throughput_dl_mbps' || kpiName === 'throughput_ul_mbps') {
+                    // Auto-scale for throughput (high variability: 0-500+ Mbps)
+                    if (validData.length > 0) {
+                        yMin = Math.min(...validData);
+                        yMax = Math.max(...validData);
+                        
+                        // Add 10% padding for better visualization
+                        const range = yMax - yMin;
+                        const padding = range * 0.1;
+                        yMin = Math.max(0, yMin - padding); // Don't go below 0
+                        yMax = yMax + padding;
+                    } else {
+                        yMin = 0;
+                        yMax = 100; // Default fallback
                     }
                 } else {
-                    yMin = undefined;
-                    yMax = undefined;
+                    // Default auto-scale for any other KPIs
+                    if (validData.length > 0) {
+                        yMin = Math.min(...validData);
+                        yMax = Math.max(...validData);
+                        
+                        const range = yMax - yMin;
+                        const padding = range * 0.1;
+                        yMin = yMin - padding;
+                        yMax = yMax + padding;
+                    } else {
+                        yMin = undefined;
+                        yMax = undefined;
+                    }
                 }
                 
                 // Create chart
@@ -3559,10 +3638,10 @@ function renderScatterPlots() {
                         maintainAspectRatio: false,
                         layout: {
                             padding: {
-                                left: 30,
-                                right: 20,
-                                top: 25, // Increased top padding for event icons
-                                bottom: 15
+                                left: 20, // Reduced from 30 to 20
+                                right: 15, // Reduced from 20 to 15
+                                top: 22, // Reduced from 25 to 22 (still room for event icons)
+                                bottom: 10 // Reduced from 15 to 10
                             }
                         },
                         interaction: {
@@ -3638,11 +3717,11 @@ function renderScatterPlots() {
                                 display: index === datasets.length - 1,
                                 ticks: { 
                                     color: tickColor, 
-                                    font: { size: 9, family: 'JetBrains Mono' },
+                                    font: { size: 8, family: 'JetBrains Mono' }, // Reduced from 9 to 8
                                     maxRotation: 45,
                                     minRotation: 45,
                                     autoSkip: true,
-                                    maxTicksLimit: 12
+                                    maxTicksLimit: 10 // Reduced from 12 to 10
                                 },
                                 grid: { 
                                     color: gridColor,
@@ -3653,7 +3732,7 @@ function renderScatterPlots() {
                                     display: index === datasets.length - 1,
                                     text: 'Time',
                                     color: textColor,
-                                    font: { size: 11, family: 'JetBrains Mono', weight: 'bold' }
+                                    font: { size: 10, family: 'JetBrains Mono', weight: 'bold' } // Reduced from 11 to 10
                                 }
                             },
                             y: {
@@ -3663,10 +3742,10 @@ function renderScatterPlots() {
                                 max: yMax,
                                 ticks: { 
                                     color: tickColor,
-                                    font: { family: 'JetBrains Mono', size: 9 },
+                                    font: { family: 'JetBrains Mono', size: 8 }, // Reduced from 9 to 8
                                     autoSkip: true,
-                                    maxTicksLimit: 8,
-                                    padding: 10,
+                                    maxTicksLimit: 6, // Reduced from 8 to 6
+                                    padding: 8, // Reduced from 10 to 8
                                     align: 'end'
                                 },
                                 grid: { 
@@ -3736,26 +3815,10 @@ function renderScatterPlots() {
             const checkboxes = document.querySelectorAll('.kpi-selector');
             const compareBtn = document.getElementById('compareKpisBtn');
             const countSpan = document.getElementById('selectedKpiCount');
-            const eventMarkersToggle = document.getElementById('showEventMarkersToggle');
             
             if (!compareBtn || !countSpan) {
                 console.warn('Multi-KPI comparison UI not found');
                 return;
-            }
-            
-            // Event markers toggle handler
-            if (eventMarkersToggle) {
-                eventMarkersToggle.addEventListener('change', function() {
-                    showEventMarkers = this.checked;
-                    
-                    // Refresh all multi-KPI charts if they exist
-                    if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
-                        window.multiKpiCharts.forEach(chart => {
-                            chart.update('none'); // Update without animation
-                        });
-                        console.log(`📍 Event markers ${showEventMarkers ? 'enabled' : 'disabled'}`);
-                    }
-                });
             }
             
             // Update selected KPIs array
@@ -3811,12 +3874,6 @@ function renderScatterPlots() {
                 if (selectedKpis.length > 6) {
                     alert('⚠️ Maximum 6 KPIs allowed. Please deselect ' + (selectedKpis.length - 6) + ' KPI(s) to continue.');
                     return;
-                }
-                
-                // Show event markers control when chart is rendered
-                const eventMarkersControl = document.getElementById('eventMarkersControl');
-                if (eventMarkersControl) {
-                    eventMarkersControl.classList.remove('hidden');
                 }
                 
                 renderMultiKpiChart(selectedKpis);
