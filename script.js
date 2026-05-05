@@ -3571,17 +3571,17 @@ function renderScatterPlots() {
                         }
                     }
                 } else if (kpiName === 'bler') {
-                    // BLER: 0 to 100% (all technologies)
+                    // BLER: 0 to 120% (can exceed 100% in poor conditions)
                     yMin = 0;
-                    yMax = 100;
+                    yMax = 120;
                 } else if (kpiName === 'cqi') {
                     // CQI: 0 to 15 (LTE/NR standard)
                     yMin = 0;
                     yMax = 15;
                 } else if (kpiName === 'mcs') {
-                    // MCS: 0 to 28 (LTE standard, NR can go higher but 28 is common)
+                    // MCS: 0 to 33 (covers both LTE 0-28 and 5G NR up to 33)
                     yMin = 0;
-                    yMax = 28;
+                    yMax = 33;
                 } else if (kpiName === 'throughput_dl_mbps' || kpiName === 'throughput_ul_mbps') {
                     // Auto-scale for throughput (high variability: 0-500+ Mbps)
                     if (validData.length > 0) {
