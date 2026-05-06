@@ -1691,6 +1691,83 @@ function renderScatterPlots() {
         }
 
         /**
+         * FILTER ACTIVE DATA POINTS FOR CORRELATION ANALYSIS
+         * Removes idle UE samples (throughput=0 with no active session) to show realistic network correlation
+         * 
+         * @param {Array} xVals - X-axis values (e.g., SINR, RSRP)
+         * @param {Array} yVals - Y-axis values (throughput)
+         * @param {Array} cqiVals - CQI values (optional, for activity detection)
+         * @param {Array} mcsVals - MCS values (optional, for activity detection)
+         * @param {Array} blerVals - BLER values (optional, for activity detection)
+         * @param {boolean} includeIdle - If true, includes all samples; if false, filters idle samples
+         * @returns {Object} - { dataPoints: [{x, y}], filteredX: [], filteredY: [] }
+         */
+        function filterActiveDataPoints(xVals, yVals, cqiVals, mcsVals, blerVals, includeIdle = false) {
+            if (includeIdle) {
+                // Return all data without filtering
+                const dataPoints = xVals.map((x, i) => ({ x: x, y: yVals[i] }));
+                console.log('🔵 FILTERING OFF: Showing all ' + xVals.length + ' samples (including idle UE states)');
+                return {
+                    dataPoints: dataPoints,
+                    filteredX: xVals,
+                    filteredY: yVals
+                };
+            }
+            
+            // Filter out idle samples (UE not in active data session)
+            const dataPoints = [];
+            const filteredX = [];
+            const filteredY = [];
+            let idleCount = 0;
+            let zeroTputActiveCount = 0;
+            
+            for (let i = 0; i < xVals.length; i++) {
+                const tput = yVals[i];
+                const cqi = cqiVals ? cqiVals[i] : null;
+                const mcs = mcsVals ? mcsVals[i] : null;
+                const bler = blerVals ? blerVals[i] : null;
+                
+                // Determine if sample represents idle UE state
+                // Idle indicators: throughput=0 AND (BLER=0 or 100) AND (CQI=0 or MCS=0)
+                const isIdle = (
+                    tput === 0 &&
+                    (bler === 0 || bler === 100 || bler === null) &&
+                    (cqi === 0 || cqi === null) &&
+                    (mcs === 0 || mcs === null)
+                );
+                
+                if (isIdle) {
+                    idleCount++;
+                } else if (tput === 0) {
+                    // Throughput = 0 but NOT idle (active session with poor performance)
+                    zeroTputActiveCount++;
+                }
+                
+                // Include only active samples
+                if (!isIdle) {
+                    dataPoints.push({ x: xVals[i], y: tput });
+                    filteredX.push(xVals[i]);
+                    filteredY.push(tput);
+                }
+            }
+            
+            // Debug logging
+            console.log('🟢 FILTERING ON: Active sessions only');
+            console.log('   📊 Total samples: ' + xVals.length);
+            console.log('   ✅ Active samples kept: ' + filteredX.length + ' (' + Math.round(filteredX.length/xVals.length*100) + '%)');
+            console.log('   ❌ Idle samples removed: ' + idleCount + ' (' + Math.round(idleCount/xVals.length*100) + '%)');
+            if (zeroTputActiveCount > 0) {
+                console.log('   ⚠️  Zero-throughput ACTIVE samples: ' + zeroTputActiveCount + ' (kept - real network issues)');
+            }
+            
+            return {
+                dataPoints: dataPoints,
+                filteredX: filteredX,
+                filteredY: filteredY
+            };
+        }
+
+        /**
          * EXTRACT EVENT TIMELINE FROM PARSED DATA
          * Identifies network events, PCI changes, and connection releases
          * @param {Array} data - Parsed CSV data
@@ -2074,6 +2151,9 @@ function renderScatterPlots() {
 
             const tech = detectedTechnology || 'LTE';
             
+            // Get user preference for including idle samples
+            const includeIdle = document.getElementById('includeIdleSamples')?.checked || false;
+            
             // Extract technology-specific KPIs
             let rsrpVals, sinrVals;
             
@@ -2105,14 +2185,21 @@ function renderScatterPlots() {
                 if (scatterTputSinrContainer) scatterTputSinrContainer.style.display = 'block';
                 const xAxisVals = sinrVals || rsrpVals;
                 const xAxisLabel = sinrVals ? sinrLabel : rsrpLabel;
-                const tputXData = xAxisVals.map((x, i) => ({ x: x, y: tputDlVals[i] }));
-                const tputXP90 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 90);
-                const tputXP50 = calculateBinnedPercentiles(xAxisVals, tputDlVals, 50);
-                const tputXAvg = calculateBinnedAverage(xAxisVals, tputDlVals);
                 
-                // Calculate polynomial trendline
-                const polyCoeffs = polynomialRegression(xAxisVals, tputDlVals, polynomialDegree);
-                const polyTrendline = polyCoeffs ? generatePolynomialTrendline(xAxisVals, polyCoeffs, 100) : [];
+                // Apply filtering to remove idle samples
+                const filtered = filterActiveDataPoints(xAxisVals, tputDlVals, cqiVals, mcsVals, blerVals, includeIdle);
+                const tputXData = filtered.dataPoints;
+                const filteredX = filtered.filteredX;
+                const filteredY = filtered.filteredY;
+                
+                // Calculate statistics on filtered data
+                const tputXP90 = calculateBinnedPercentiles(filteredX, filteredY, 90);
+                const tputXP50 = calculateBinnedPercentiles(filteredX, filteredY, 50);
+                const tputXAvg = calculateBinnedAverage(filteredX, filteredY);
+                
+                // Calculate polynomial trendline on filtered data
+                const polyCoeffs = polynomialRegression(filteredX, filteredY, polynomialDegree);
+                const polyTrendline = polyCoeffs ? generatePolynomialTrendline(filteredX, polyCoeffs, 100) : [];
 
                 if (scatterTputSinr) scatterTputSinr.destroy();
                 scatterTputSinr = new Chart(document.getElementById('scatterTputSinr'), {
@@ -2130,7 +2217,7 @@ function renderScatterPlots() {
                         responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                            title: { display: true, text: 'Throughput vs ' + xAxisLabel.split(' ')[0], color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                            title: { display: true, text: `Throughput vs ${xAxisLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                             tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                         },
                         scales: {
@@ -2143,15 +2230,19 @@ function renderScatterPlots() {
                 if (scatterTputSinrContainer) scatterTputSinrContainer.style.display = 'none';
             }
 
-            // Throughput vs RSRP
-            const rsrpTputData = rsrpVals.map((rsrp, i) => ({ x: rsrp, y: tputDlVals[i] }));
-            const rsrpTputP90 = calculateBinnedPercentiles(rsrpVals, tputDlVals, 90);
-            const rsrpTputP50 = calculateBinnedPercentiles(rsrpVals, tputDlVals, 50);
-            const rsrpTputAvg = calculateBinnedAverage(rsrpVals, tputDlVals);
+            // Throughput vs RSRP - Apply same filtering
+            const filteredRsrp = filterActiveDataPoints(rsrpVals, tputDlVals, cqiVals, mcsVals, blerVals, includeIdle);
+            const rsrpTputData = filteredRsrp.dataPoints;
+            const rsrpFilteredX = filteredRsrp.filteredX;
+            const rsrpFilteredY = filteredRsrp.filteredY;
             
-            // Calculate polynomial trendline
-            const rsrpPolyCoeffs = polynomialRegression(rsrpVals, tputDlVals, polynomialDegree);
-            const rsrpPolyTrendline = rsrpPolyCoeffs ? generatePolynomialTrendline(rsrpVals, rsrpPolyCoeffs, 100) : [];
+            const rsrpTputP90 = calculateBinnedPercentiles(rsrpFilteredX, rsrpFilteredY, 90);
+            const rsrpTputP50 = calculateBinnedPercentiles(rsrpFilteredX, rsrpFilteredY, 50);
+            const rsrpTputAvg = calculateBinnedAverage(rsrpFilteredX, rsrpFilteredY);
+            
+            // Calculate polynomial trendline on filtered data
+            const rsrpPolyCoeffs = polynomialRegression(rsrpFilteredX, rsrpFilteredY, polynomialDegree);
+            const rsrpPolyTrendline = rsrpPolyCoeffs ? generatePolynomialTrendline(rsrpFilteredX, rsrpPolyCoeffs, 100) : [];
 
             if (scatterTputRsrp) scatterTputRsrp.destroy();
             scatterTputRsrp = new Chart(document.getElementById('scatterTputRsrp'), {
@@ -2169,7 +2260,7 @@ function renderScatterPlots() {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs ' + rsrpLabel.split(' ')[0], color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                        title: { display: true, text: `Throughput vs ${rsrpLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
@@ -3006,6 +3097,17 @@ function renderScatterPlots() {
             }
             
             // Re-render scatter plots with new polynomial degree
+            if (parsedData.length > 0) {
+                renderCorrelationScatters();
+            }
+        });
+
+        // Include idle samples toggle handler
+        document.getElementById('includeIdleSamples')?.addEventListener('change', function(e) {
+            const includeIdle = e.target.checked;
+            console.log('Include idle samples:', includeIdle ? 'ON (showing all data)' : 'OFF (filtering idle UE states)');
+            
+            // Re-render scatter plots with new filtering setting
             if (parsedData.length > 0) {
                 renderCorrelationScatters();
             }

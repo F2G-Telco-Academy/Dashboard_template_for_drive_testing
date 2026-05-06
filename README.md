@@ -67,12 +67,19 @@ A professional telecom network validation dashboard for creating **customizable 
   - CQI - Hidden for UMTS/GSM
   - MCS - Hidden for UMTS/GSM
 - **Correlation Analysis Section** (scatter plots)
+  - **Smart Idle Sample Filtering** (NEW) - Removes idle UE states for accurate correlation
+    - Toggle: "Include idle samples (Tput=0)" checkbox
+    - Default: OFF (filters idle samples for realistic analysis)
+    - Filtering logic: Excludes throughput=0 when BLER=0/100, CQI=0, MCS=0 (idle UE)
+    - Preserves real low-throughput scenarios (active sessions with poor performance)
+    - Debug logging shows filtering statistics in browser console
   - Smart fallback: Uses RSRP when SINR unavailable (UMTS/GSM)
   - Hides redundant scatter plots for 3G/2G
   - Throughput vs SINR/RSCP/RxLev with percentile trend lines
   - Throughput vs RSRP/RSCP/RxLev with percentile trend lines
   - MCS vs CQI (LTE/NR only)
   - Throughput vs BLER (LTE/NR only)
+  - Polynomial trendline (degree 1-6, default: quadratic)
 - **Click-to-Zoom Modal**
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
   - All charts support fullscreen view with correct labels
@@ -248,6 +255,8 @@ Client sees dashboard with embedded data (no CSV upload needed)
 3. Fill in 4 analysis sections with your findings
 4. View KPI charts and comparison section for data validation
 5. Analyze KPI relationships in 4 professional scatter plots
+   - Use filtering toggle to exclude idle UE samples (recommended)
+   - Compare filtered vs unfiltered to understand data quality
 6. Save configuration for future reference
 7. Share with client using 🔗 SHARE button
 8. Present to client or team
@@ -370,6 +379,21 @@ Client: Open URL → View dashboard (read-only)
 - Try opening in different browser
 - Check if URL was truncated in email/chat
 
+**Q: Filtering doesn't seem to work (charts look identical)**
+- Open browser console (F12) to see filtering statistics
+- Toggle the "Include idle samples" checkbox and check console logs
+- If you see "Idle samples removed: 3%", filtering is working (impact is small)
+- Your data may have very few true idle samples (this is good!)
+- Most throughput=0 samples with CQI>0 or MCS>0 are real network issues (kept by filtering)
+
+**Q: How do I know if filtering is working?**
+- Open browser console (F12)
+- Toggle the checkbox ON/OFF
+- Look for messages like:
+  - `🟢 FILTERING ON: Removed 15 idle samples`
+  - `🔵 FILTERING OFF: Showing all 565 samples`
+- Console shows exact count of filtered samples and percentage
+
 ---
 
 ## 📖 Standards Compliance
@@ -382,7 +406,18 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.6 (Current - Observation Panel UX)**
+**v3.7 (Current - Idle Sample Filtering)**
+- ✅ Smart idle sample filtering for correlation analysis
+- ✅ Activity-based filtering using multiple indicators (BLER, CQI, MCS)
+- ✅ User-configurable toggle: "Include idle samples (Tput=0)"
+- ✅ Default filtering enabled (shows active sessions only)
+- ✅ Preserves real low-throughput scenarios (active sessions with poor performance)
+- ✅ Debug logging in browser console showing filtering statistics
+- ✅ Dynamic chart titles indicating filtering status
+- ✅ Applies to all throughput correlation scatter plots
+- ✅ Industry-standard approach for telecom KPI analysis
+
+**v3.6 (Observation Panel UX)**
 - ✅ Fixed observation panel for multi-KPI comparison (replaces tooltip overlays)
 - ✅ Synchronized vertical crosshair across all stacked charts
 - ✅ Real-time observation panel showing timestamp, KPI values, metadata, events
