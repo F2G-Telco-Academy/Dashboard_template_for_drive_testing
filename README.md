@@ -72,11 +72,17 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
 - **Technology-Adaptive KPI Tabs**
   - Auto-hide unavailable KPIs (e.g., SINR for UMTS, CQI for GSM)
   - Dynamic tab labels (RSRP→RSCP for UMTS, RSRP→RxLev for GSM)
-- **Multi-KPI Synchronized Comparison**
+- **Multi-KPI Synchronized Comparison** (NEW: Enhanced UX)
   - Select 2-8 KPIs simultaneously for correlation analysis
   - Stacked charts with individual Y-axis per KPI (professional telecom tool style)
-  - Synchronized time axis across all charts for perfect alignment
-  - Each KPI has optimal scaling (no unit conflicts)
+  - Synchronized vertical crosshair across all charts for precise time alignment
+  - **Fixed Observation Panel** - Clean, non-intrusive side panel showing:
+    - Timestamp at crosshair position
+    - All KPI values at that point (color-coded)
+    - Technology and PCI/PSC/BSIC metadata
+    - Event detection (handovers, attaches, etc.)
+  - No tooltip overlays blocking chart data
+  - Smooth 60fps performance with throttled updates
   - Technology-aware labels (auto-updates for LTE/NR/UMTS/GSM)
   - Scrollable layout for many KPIs
   - Professional appearance matching Ericsson TEMS/Nemo Outdoor
@@ -92,12 +98,20 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
   - CQI - Hidden for UMTS/GSM
   - MCS - Hidden for UMTS/GSM
 - **Correlation Analysis Section** (scatter plots)
+  - **Smart Idle Sample Filtering** (NEW) - Removes idle UE states for accurate correlation
+    - Toggle: "Include idle samples (Tput=0)" checkbox
+    - Default: OFF (filters idle samples for realistic analysis)
+    - Filtering logic: Excludes throughput=0 when BLER=0/100, CQI=0, MCS=0 (idle UE)
+    - Preserves real low-throughput scenarios (active sessions with poor performance)
+    - Debug logging shows filtering statistics in browser console
   - Smart fallback: Uses RSRP when SINR unavailable (UMTS/GSM)
   - Hides redundant scatter plots for 3G/2G
-  - Throughput vs SINR/RSCP/RxLev with percentile trend lines
-  - Throughput vs RSRP/RSCP/RxLev with percentile trend lines
+  - **DL Throughput vs SINR/RSCP/RxLev** with percentile trend lines (DL only - UE-side measurement)
+  - **DL Throughput vs RSRP/RSCP/RxLev** with percentile trend lines (DL only - UE-side measurement)
   - MCS vs CQI (LTE/NR only)
-  - Throughput vs BLER (LTE/NR only)
+  - **DL Throughput vs BLER** (LTE/NR only - DL only)
+  - Polynomial trendline (degree 1-6, default: quadratic)
+  - **Note**: All throughput correlations use DL throughput only (UL SINR not available in UE logs)
 - **Click-to-Zoom Modal**
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
   - All charts support fullscreen view with correct labels
@@ -149,13 +163,20 @@ All editable fields will show orange dashed outlines
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
 
-Multi-KPI Comparison (NEW):
+Multi-KPI Comparison (ENHANCED):
 1. Scroll to "🔬 MULTI-KPI COMPARISON" section
 2. Select 2-8 KPIs (e.g., RSRP, SINR, DL Throughput)
 3. Click "📊 COMPARE SELECTED KPIs"
 4. View stacked synchronized charts with individual Y-axes
-5. Each KPI has optimal scaling - no unit conflicts
-6. Perfect for correlation analysis (e.g., signal vs throughput)
+5. Hover over any chart to see:
+   - Synchronized vertical crosshair across ALL charts
+   - Fixed observation panel on the right showing:
+     * Timestamp at crosshair position
+     * All KPI values (color-coded)
+     * Technology and PCI/PSC/BSIC
+     * Event info (if present)
+6. Clean, unobstructed chart view (no tooltip overlays)
+7. Perfect for correlation analysis (e.g., signal vs throughput)
 ```
 
 ### 5. **Save Configuration**
@@ -266,6 +287,8 @@ Client sees dashboard with embedded data (no CSV upload needed)
 3. Fill in 4 analysis sections with your findings
 4. View KPI charts and comparison section for data validation
 5. Analyze KPI relationships in 4 professional scatter plots
+   - Use filtering toggle to exclude idle UE samples (recommended)
+   - Compare filtered vs unfiltered to understand data quality
 6. Save configuration for future reference
 7. Share with client using 🔗 SHARE button
 8. Present to client or team
@@ -408,6 +431,21 @@ Client: Open URL → View dashboard (read-only)
 - Try opening in different browser
 - Check if URL was truncated in email/chat
 
+**Q: Filtering doesn't seem to work (charts look identical)**
+- Open browser console (F12) to see filtering statistics
+- Toggle the "Include idle samples" checkbox and check console logs
+- If you see "Idle samples removed: 3%", filtering is working (impact is small)
+- Your data may have very few true idle samples (this is good!)
+- Most throughput=0 samples with CQI>0 or MCS>0 are real network issues (kept by filtering)
+
+**Q: How do I know if filtering is working?**
+- Open browser console (F12)
+- Toggle the checkbox ON/OFF
+- Look for messages like:
+  - `🟢 FILTERING ON: Removed 15 idle samples`
+  - `🔵 FILTERING OFF: Showing all 565 samples`
+- Console shows exact count of filtered samples and percentage
+
 ---
 
 ## 📖 Standards Compliance
@@ -420,7 +458,30 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.5 (Current - Multi-RAT Support)**
+**v3.7 (Current - Idle Sample Filtering)**
+- ✅ Smart idle sample filtering for correlation analysis
+- ✅ Activity-based filtering using multiple indicators (BLER, CQI, MCS)
+- ✅ User-configurable toggle: "Include idle samples (Tput=0)"
+- ✅ Default filtering enabled (shows active sessions only)
+- ✅ Preserves real low-throughput scenarios (active sessions with poor performance)
+- ✅ Debug logging in browser console showing filtering statistics
+- ✅ Dynamic chart titles indicating filtering status
+- ✅ Applies to all throughput correlation scatter plots
+- ✅ Industry-standard approach for telecom KPI analysis
+
+**v3.6 (Observation Panel UX)**
+- ✅ Fixed observation panel for multi-KPI comparison (replaces tooltip overlays)
+- ✅ Synchronized vertical crosshair across all stacked charts
+- ✅ Real-time observation panel showing timestamp, KPI values, metadata, events
+- ✅ Clean, unobstructed chart visualization (no tooltips blocking data)
+- ✅ Throttled performance optimization (~60fps) for smooth interaction
+- ✅ Color-coded KPI values matching chart line colors
+- ✅ Technology-aware metadata display (PCI/PSC/BSIC)
+- ✅ Event highlighting in observation panel
+- ✅ Light/dark theme support for observation panel
+- ✅ Custom scrollbar styling for professional appearance
+
+**v3.5 (Multi-RAT Support)**
 - ✅ Multi-RAT support for 2G/3G/4G/5G networks
 - ✅ Technology filter dropdown (All/NR/LTE/UMTS/GSM)
 - ✅ Auto-detection of technology from CSV headers

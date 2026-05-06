@@ -251,12 +251,10 @@
                     <div class="flex gap-2">
                         <div class="flex gap-1 bg-gray-100 rounded border border-gray-300 overflow-hidden">
                             <button class="chart-type-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-type="line">📈 Line</button>
-                            <button class="chart-type-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-type="area">📊 Area</button>
                             <button class="chart-type-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-type="bar">📊 Bar</button>
                         </div>
                         <div class="flex gap-1 bg-gray-100 rounded border border-gray-300 overflow-hidden">
-                            <button class="view-mode-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-mode="grid">🔲 Grid</button>
-                            <button class="view-mode-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-mode="table">📋 Table</button>
+                            <button class="view-mode-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-mode="table">📋 Table</button>
                         </div>
                     </div>
                 </div>
@@ -364,18 +362,26 @@
 
                 <!-- Correlation Analysis Section - Scatter Plots -->
                 <div class="border-4 border-black bg-white p-4">
-                    <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-2">
+                    <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-2 flex-wrap gap-3">
                         <h3 class="text-gray-900 font-bold text-base">🔬 CORRELATION ANALYSIS (Scatter Plots)</h3>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-gray-700">TRENDLINE:</label>
-                            <select id="polynomialDegreeSelector" class="bg-gray-100 border-2 border-gray-300 text-gray-900 px-3 py-1 text-xs font-bold font-mono cursor-pointer hover:bg-gray-200 transition-all" title="Select polynomial degree for trendline fitting. Higher degrees may overfit data.">
-                                <option value="1">Linear (Degree 1)</option>
-                                <option value="2" selected>Quadratic (Degree 2)</option>
-                                <option value="3">Cubic (Degree 3)</option>
-                                <option value="4">Quartic (Degree 4)</option>
-                                <option value="5">Quintic (Degree 5)</option>
-                                <option value="6">Sextic (Degree 6) ⚠️</option>
-                            </select>
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-gray-700">TRENDLINE:</label>
+                                <select id="polynomialDegreeSelector" class="bg-gray-100 border-2 border-gray-300 text-gray-900 px-3 py-1 text-xs font-bold font-mono cursor-pointer hover:bg-gray-200 transition-all" title="Select polynomial degree for trendline fitting. Higher degrees may overfit data.">
+                                    <option value="1">Linear (Degree 1)</option>
+                                    <option value="2" selected>Quadratic (Degree 2)</option>
+                                    <option value="3">Cubic (Degree 3)</option>
+                                    <option value="4">Quartic (Degree 4)</option>
+                                    <option value="5">Quintic (Degree 5)</option>
+                                    <option value="6">Sextic (Degree 6) ⚠️</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2 bg-yellow-50 border-2 border-yellow-400 px-3 py-1 rounded" title="When unchecked, excludes idle UE samples (throughput=0 with no active session) to show realistic network correlation">
+                                <label class="flex items-center gap-2 text-xs font-bold text-gray-900 cursor-pointer">
+                                    <input type="checkbox" id="includeIdleSamples" class="w-4 h-4 cursor-pointer">
+                                    <span>Include idle samples (Tput=0)</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 gap-4">
@@ -575,8 +581,23 @@
                 <h2 id="chartZoomTitle" style="margin:0; font-size:20px; font-weight:800;">📊 Chart View</h2>
                 <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:16px; border-radius:4px;">✕ CLOSE</button>
             </div>
-            <div id="chartZoomContainer" style="flex:1; border:3px solid white; padding:20px; overflow:hidden;">
-                <canvas id="chartZoomCanvas"></canvas>
+            <!-- Main content area with charts and observation panel -->
+            <div style="flex:1; display:flex; gap:15px; overflow:hidden;">
+                <!-- Charts container (left side) -->
+                <div id="chartZoomContainer" style="flex:1; border:3px solid white; padding:20px; overflow:hidden;">
+                    <canvas id="chartZoomCanvas"></canvas>
+                </div>
+                <!-- Observation panel (right side) -->
+                <div id="observationPanel" style="width:320px; border:3px solid white; padding:15px; overflow-y:auto; display:none; flex-shrink:0;">
+                    <div style="border-bottom:2px solid; padding-bottom:8px; margin-bottom:12px;">
+                        <h3 style="margin:0; font-size:14px; font-weight:800; letter-spacing:0.5px;">OBSERVATION</h3>
+                    </div>
+                    <div id="observationContent">
+                        <div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px;">
+                            Hover over the charts to view detailed observations
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

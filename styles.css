@@ -88,6 +88,38 @@ body {
     border-color: #3b82f6 !important;
 }
 
+/* Observation Panel Scrollbar Styling */
+#observationPanel::-webkit-scrollbar {
+    width: 8px;
+}
+
+#observationPanel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+#observationPanel::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+#observationPanel::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Dark mode scrollbar for observation panel */
+.dark-theme #observationPanel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-theme #observationPanel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.dark-theme #observationPanel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
 /* Fade in animation */
 @keyframes fadeIn {
     from { opacity: 0; }
