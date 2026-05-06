@@ -75,11 +75,12 @@ A professional telecom network validation dashboard for creating **customizable 
     - Debug logging shows filtering statistics in browser console
   - Smart fallback: Uses RSRP when SINR unavailable (UMTS/GSM)
   - Hides redundant scatter plots for 3G/2G
-  - Throughput vs SINR/RSCP/RxLev with percentile trend lines
-  - Throughput vs RSRP/RSCP/RxLev with percentile trend lines
+  - **DL Throughput vs SINR/RSCP/RxLev** with percentile trend lines (DL only - UE-side measurement)
+  - **DL Throughput vs RSRP/RSCP/RxLev** with percentile trend lines (DL only - UE-side measurement)
   - MCS vs CQI (LTE/NR only)
-  - Throughput vs BLER (LTE/NR only)
+  - **DL Throughput vs BLER** (LTE/NR only - DL only)
   - Polynomial trendline (degree 1-6, default: quadratic)
+  - **Note**: All throughput correlations use DL throughput only (UL SINR not available in UE logs)
 - **Click-to-Zoom Modal**
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
   - All charts support fullscreen view with correct labels

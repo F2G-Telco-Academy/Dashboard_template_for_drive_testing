@@ -2217,12 +2217,12 @@ function renderScatterPlots() {
                         responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                            title: { display: true, text: `Throughput vs ${xAxisLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                            title: { display: true, text: `DL Throughput vs ${xAxisLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                             tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                         },
                         scales: {
                             x: { title: { display: true, text: xAxisLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                            y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
+                            y: { title: { display: true, text: 'DL Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                         }
                     }
                 });
@@ -2260,12 +2260,12 @@ function renderScatterPlots() {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: `Throughput vs ${rsrpLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                        title: { display: true, text: `DL Throughput vs ${rsrpLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
                         x: { title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
+                        y: { title: { display: true, text: 'DL Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
@@ -2341,12 +2341,12 @@ function renderScatterPlots() {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: { display: true, text: 'Throughput vs BLER', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                        title: { display: true, text: 'DL Throughput vs BLER', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
                         tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
                     },
                     scales: {
                         x: { title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
+                        y: { title: { display: true, text: 'DL Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
                     }
                 }
             });
