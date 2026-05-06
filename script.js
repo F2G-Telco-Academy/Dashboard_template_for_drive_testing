@@ -19,12 +19,14 @@
         let compRsrqOnly = null;
         let compBlerTput = null;
         let compTputOnly = null;
+        let compTputUlOnly = null;
         let compBlerOnly = null;
         let scatterTputSinr = null;
         let scatterTputRsrp = null;
         let scatterMcsCqi = null;
         let scatterBlerTput = null;
         let kpiHistogramChart = null;
+        let zoomedChart = null; // Zoom modal chart instance
         let polynomialDegree = 2; // Default: Quadratic (degree 2)
         let showingKPIs = false;
         let currentChartType = 'line';
@@ -148,6 +150,7 @@
                     if (compRsrqOnly) { compRsrqOnly.destroy(); compRsrqOnly = null; }
                     if (compBlerTput) { compBlerTput.destroy(); compBlerTput = null; }
                     if (compTputOnly) { compTputOnly.destroy(); compTputOnly = null; }
+                    if (compTputUlOnly) { compTputUlOnly.destroy(); compTputUlOnly = null; }
                     if (compBlerOnly) { compBlerOnly.destroy(); compBlerOnly = null; }
                     if (scatterTputSinr) { scatterTputSinr.destroy(); scatterTputSinr = null; }
                     if (scatterTputRsrp) { scatterTputRsrp.destroy(); scatterTputRsrp = null; }
@@ -157,6 +160,23 @@
                         window.multiKpiCharts.forEach(c => c.destroy());
                         window.multiKpiCharts = [];
                     }
+
+                    // Clear all canvas elements to remove any residual rendering
+                    const canvasIds = [
+                        'kpiChart', 'kpiHistogram', 'chartZoomCanvas',
+                        'compRsrpOnly', 'compRsrqOnly', 'compSinrOnly', 
+                        'compTputOnly', 'compTputUlOnly', 'compBlerOnly', 'compCqiOnly', 'compMcsOnly',
+                        'scatterTputSinr', 'scatterTputRsrp', 'scatterMcsCqi', 'scatterBlerTput'
+                    ];
+                    canvasIds.forEach(id => {
+                        const canvas = document.getElementById(id);
+                        if (canvas) {
+                            const ctx = canvas.getContext('2d');
+                            if (ctx) {
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            }
+                        }
+                    });
                 } catch (e) {
                     console.warn('Error destroying charts during reset:', e);
                 }
@@ -240,6 +260,83 @@
                 // Reset CSV file input
                 const csvInput = document.getElementById('csvFile');
                 if (csvInput) csvInput.value = '';
+
+                // Reset KPI state variables
+                currentKpiType = 'rsrp';
+                currentChartType = 'line';
+                showingKPIs = false;
+                kpiTheme = 'light';
+
+                // Apply light mode styling to KPI panel
+                const kpiPanelForTheme = document.getElementById('kpiPanel');
+                if (kpiPanelForTheme) {
+                    kpiPanelForTheme.classList.remove('bg-gray-900');
+                    kpiPanelForTheme.classList.add('bg-white');
+                    
+                    // Update all KPI panel elements to light mode
+                    document.querySelectorAll('#kpiPanel .bg-gray-800').forEach(el => {
+                        el.classList.remove('bg-gray-800');
+                        el.classList.add('bg-gray-100');
+                    });
+                    document.querySelectorAll('#kpiPanel .bg-gray-900').forEach(el => {
+                        el.classList.remove('bg-gray-900');
+                        el.classList.add('bg-white');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-white').forEach(el => {
+                        el.classList.remove('text-white');
+                        el.classList.add('text-gray-900');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-gray-400').forEach(el => {
+                        el.classList.remove('text-gray-400');
+                        el.classList.add('text-gray-600');
+                    });
+                    
+                    // Fix KPI tab and button borders for light mode
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                        el.classList.remove('border-white');
+                        el.classList.add('border-gray-400');
+                        // Switch inactive button background to light
+                        if (!el.classList.contains('bg-blue-600')) {
+                            el.classList.remove('bg-gray-700');
+                            el.classList.add('bg-gray-200');
+                        }
+                    });
+                    
+                    // Fix theme toggle button for light mode
+                    const themeToggleBtn = document.getElementById('kpiThemeToggle');
+                    if (themeToggleBtn) {
+                        themeToggleBtn.innerHTML = '☀️ Light';
+                        themeToggleBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        themeToggleBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                    }
+                    
+                    // Update multi-KPI checkbox hover states for light mode
+                    document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                        const label = checkbox.parentElement;
+                        label.classList.remove('hover:bg-gray-700');
+                        label.classList.add('hover:bg-gray-100');
+                    });
+                }
+
+                // Reset KPI tabs to default (RSRP active)
+                document.querySelectorAll('.kpi-tab').forEach(tab => {
+                    tab.classList.remove('active', 'bg-blue-600');
+                    tab.classList.add('bg-gray-700');
+                    if (tab.dataset.kpi === 'rsrp') {
+                        tab.classList.add('active', 'bg-blue-600');
+                        tab.classList.remove('bg-gray-700');
+                    }
+                });
+
+                // Reset chart type buttons to default (line active)
+                document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                    btn.classList.remove('active', 'bg-blue-600');
+                    btn.classList.add('bg-gray-700');
+                    if (btn.dataset.type === 'line') {
+                        btn.classList.add('active', 'bg-blue-600');
+                        btn.classList.remove('bg-gray-700');
+                    }
+                });
 
                 alert('Dashboard reset to default successfully!');
             }
@@ -575,6 +672,56 @@
                 this.classList.remove('bg-purple-600');
                 this.classList.add('bg-green-600');
                 this.innerHTML = '📋 <span class="hidden sm:inline">DASHBOARD</span>';
+                
+                // Apply light mode if kpiTheme is 'light' (ensures proper styling after reset)
+                if (kpiTheme === 'light') {
+                    kpiPanel.classList.remove('bg-gray-900');
+                    kpiPanel.classList.add('bg-white');
+                    
+                    // Update all KPI panel elements to light mode
+                    document.querySelectorAll('#kpiPanel .bg-gray-800').forEach(el => {
+                        el.classList.remove('bg-gray-800');
+                        el.classList.add('bg-gray-100');
+                    });
+                    document.querySelectorAll('#kpiPanel .bg-gray-900').forEach(el => {
+                        el.classList.remove('bg-gray-900');
+                        el.classList.add('bg-white');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-white').forEach(el => {
+                        el.classList.remove('text-white');
+                        el.classList.add('text-gray-900');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-gray-400').forEach(el => {
+                        el.classList.remove('text-gray-400');
+                        el.classList.add('text-gray-600');
+                    });
+                    
+                    // Fix KPI tab and button borders for light mode
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                        el.classList.remove('border-white');
+                        el.classList.add('border-gray-400');
+                        // Switch inactive button background to light
+                        if (!el.classList.contains('bg-blue-600')) {
+                            el.classList.remove('bg-gray-700');
+                            el.classList.add('bg-gray-200');
+                        }
+                    });
+                    
+                    // Fix theme toggle button for light mode
+                    const themeToggleBtn = document.getElementById('kpiThemeToggle');
+                    if (themeToggleBtn) {
+                        themeToggleBtn.innerHTML = '☀️ Light';
+                        themeToggleBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        themeToggleBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                    }
+                    
+                    // Update multi-KPI checkbox hover states for light mode
+                    document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                        const label = checkbox.parentElement;
+                        label.classList.remove('hover:bg-gray-700');
+                        label.classList.add('hover:bg-gray-100');
+                    });
+                }
                 
                 if (parsedData.length > 0) {
                     // Update KPI panel title based on technology
@@ -1158,6 +1305,7 @@ function renderScatterPlots() {
             const mcsVals = parsedData.map(d => parseFloat(d.mcs) || 0);
             const blerVals = parsedData.map(d => parseFloat(d.bler) || 0);
             const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
+            const tputUlVals = parsedData.map(d => parseFloat(d.throughput_ul_mbps) || 0);
             
             // Chart labels based on technology
             const rsrpLabel = tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)';
@@ -1419,6 +1567,44 @@ function renderScatterPlots() {
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
                         y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                    }
+                }
+            });
+
+            // Throughput UL (Separate Chart)
+            if (compTputUlOnly) compTputUlOnly.destroy();
+            const maxTputUl = Math.max(...tputUlVals);
+            compTputUlOnly = new Chart(document.getElementById('compTputUlOnly'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'UL Throughput (Mbps)', data: tputUlVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'JetBrains Mono', size: 11 },
+                            bodyFont: { family: 'JetBrains Mono', size: 10 },
+                            padding: 10,
+                            borderColor: '#fff',
+                            borderWidth: 1,
+                            callbacks: {
+                                title: function(context) { return 'Time: ' + context[0].label; },
+                                label: function(context) {
+                                    return 'UL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTputUl * 1.1) }
                     }
                 }
             });
@@ -3082,7 +3268,6 @@ function renderScatterPlots() {
         // =====================================================
         // CHART ZOOM MODAL FUNCTIONALITY
         // =====================================================
-        let zoomedChart = null;
 
         function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
@@ -3257,23 +3442,24 @@ function renderScatterPlots() {
                         else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; }
                         else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; }
                         else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; }
-                        else if (index === 4 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
-                        else if (index === 5 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
-                        else if (index === 6 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
+                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; }
+                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
+                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
+                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
                         
                         // Scatter plots
-                        else if (index === 7 && scatterTputSinr) { 
+                        else if (index === 8 && scatterTputSinr) { 
                             chart = scatterTputSinr; 
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
                             title = `Throughput vs ${xLabel}`; 
                         }
-                        else if (index === 8 && scatterTputRsrp) { 
+                        else if (index === 9 && scatterTputRsrp) { 
                             chart = scatterTputRsrp; 
                             const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
                         }
-                        else if (index === 9 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 10 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
+                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
