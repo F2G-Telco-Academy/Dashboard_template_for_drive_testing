@@ -42,11 +42,17 @@ A professional telecom network validation dashboard for creating **customizable 
 - **Technology-Adaptive KPI Tabs**
   - Auto-hide unavailable KPIs (e.g., SINR for UMTS, CQI for GSM)
   - Dynamic tab labels (RSRP→RSCP for UMTS, RSRP→RxLev for GSM)
-- **Multi-KPI Synchronized Comparison**
+- **Multi-KPI Synchronized Comparison** (NEW: Enhanced UX)
   - Select 2-8 KPIs simultaneously for correlation analysis
   - Stacked charts with individual Y-axis per KPI (professional telecom tool style)
-  - Synchronized time axis across all charts for perfect alignment
-  - Each KPI has optimal scaling (no unit conflicts)
+  - Synchronized vertical crosshair across all charts for precise time alignment
+  - **Fixed Observation Panel** - Clean, non-intrusive side panel showing:
+    - Timestamp at crosshair position
+    - All KPI values at that point (color-coded)
+    - Technology and PCI/PSC/BSIC metadata
+    - Event detection (handovers, attaches, etc.)
+  - No tooltip overlays blocking chart data
+  - Smooth 60fps performance with throttled updates
   - Technology-aware labels (auto-updates for LTE/NR/UMTS/GSM)
   - Scrollable layout for many KPIs
   - Professional appearance matching Ericsson TEMS/Nemo Outdoor
@@ -118,13 +124,20 @@ All editable fields will show orange dashed outlines
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
 
-Multi-KPI Comparison (NEW):
+Multi-KPI Comparison (ENHANCED):
 1. Scroll to "🔬 MULTI-KPI COMPARISON" section
 2. Select 2-8 KPIs (e.g., RSRP, SINR, DL Throughput)
 3. Click "📊 COMPARE SELECTED KPIs"
 4. View stacked synchronized charts with individual Y-axes
-5. Each KPI has optimal scaling - no unit conflicts
-6. Perfect for correlation analysis (e.g., signal vs throughput)
+5. Hover over any chart to see:
+   - Synchronized vertical crosshair across ALL charts
+   - Fixed observation panel on the right showing:
+     * Timestamp at crosshair position
+     * All KPI values (color-coded)
+     * Technology and PCI/PSC/BSIC
+     * Event info (if present)
+6. Clean, unobstructed chart view (no tooltip overlays)
+7. Perfect for correlation analysis (e.g., signal vs throughput)
 ```
 
 ### 5. **Save Configuration**
@@ -369,7 +382,19 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.5 (Current - Multi-RAT Support)**
+**v3.6 (Current - Observation Panel UX)**
+- ✅ Fixed observation panel for multi-KPI comparison (replaces tooltip overlays)
+- ✅ Synchronized vertical crosshair across all stacked charts
+- ✅ Real-time observation panel showing timestamp, KPI values, metadata, events
+- ✅ Clean, unobstructed chart visualization (no tooltips blocking data)
+- ✅ Throttled performance optimization (~60fps) for smooth interaction
+- ✅ Color-coded KPI values matching chart line colors
+- ✅ Technology-aware metadata display (PCI/PSC/BSIC)
+- ✅ Event highlighting in observation panel
+- ✅ Light/dark theme support for observation panel
+- ✅ Custom scrollbar styling for professional appearance
+
+**v3.5 (Multi-RAT Support)**
 - ✅ Multi-RAT support for 2G/3G/4G/5G networks
 - ✅ Technology filter dropdown (All/NR/LTE/UMTS/GSM)
 - ✅ Auto-detection of technology from CSV headers

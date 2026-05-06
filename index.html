@@ -575,8 +575,23 @@
                 <h2 id="chartZoomTitle" style="margin:0; font-size:20px; font-weight:800;">📊 Chart View</h2>
                 <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:16px; border-radius:4px;">✕ CLOSE</button>
             </div>
-            <div id="chartZoomContainer" style="flex:1; border:3px solid white; padding:20px; overflow:hidden;">
-                <canvas id="chartZoomCanvas"></canvas>
+            <!-- Main content area with charts and observation panel -->
+            <div style="flex:1; display:flex; gap:15px; overflow:hidden;">
+                <!-- Charts container (left side) -->
+                <div id="chartZoomContainer" style="flex:1; border:3px solid white; padding:20px; overflow:hidden;">
+                    <canvas id="chartZoomCanvas"></canvas>
+                </div>
+                <!-- Observation panel (right side) -->
+                <div id="observationPanel" style="width:320px; border:3px solid white; padding:15px; overflow-y:auto; display:none; flex-shrink:0;">
+                    <div style="border-bottom:2px solid; padding-bottom:8px; margin-bottom:12px;">
+                        <h3 style="margin:0; font-size:14px; font-weight:800; letter-spacing:0.5px;">OBSERVATION</h3>
+                    </div>
+                    <div id="observationContent">
+                        <div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px;">
+                            Hover over the charts to view detailed observations
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

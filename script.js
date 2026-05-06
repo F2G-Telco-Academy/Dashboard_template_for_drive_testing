@@ -1846,6 +1846,24 @@ function renderScatterPlots() {
         }
 
         /**
+         * THROTTLE UTILITY FOR PERFORMANCE OPTIMIZATION
+         * Limits function execution rate for mousemove events
+         * @param {Function} func - Function to throttle
+         * @param {Number} limit - Time limit in milliseconds
+         * @returns {Function} - Throttled function
+         */
+        function throttle(func, limit) {
+            let inThrottle;
+            return function(...args) {
+                if (!inThrottle) {
+                    func.apply(this, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            };
+        }
+
+        /**
          * GET EVENT COLOR FOR VISUAL REPRESENTATION
          * @param {String} type - Event type
          * @returns {String} - Color hex code
@@ -3355,6 +3373,17 @@ function renderScatterPlots() {
                 window.multiKpiCharts.forEach(chart => chart.destroy());
                 window.multiKpiCharts = [];
             }
+            // Hide observation panel and reset content
+            const observationPanel = document.getElementById('observationPanel');
+            const observationContent = document.getElementById('observationContent');
+            if (observationPanel) {
+                observationPanel.style.display = 'none';
+            }
+            if (observationContent) {
+                observationContent.innerHTML = `<div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px;">
+                    Hover over the charts to view detailed observations
+                </div>`;
+            }
         }
 
         // Close button
@@ -3699,6 +3728,120 @@ function renderScatterPlots() {
         }
         
         /**
+         * Update the observation panel with data at the given index
+         * @param {number} index - Data index
+         * @param {Array} labels - Time labels
+         * @param {Array} selectedKpis - Selected KPI objects
+         * @param {Array} datasets - Chart datasets
+         */
+        function updateObservationPanel(index, labels, selectedKpis, datasets) {
+            const panel = document.getElementById('observationPanel');
+            const content = document.getElementById('observationContent');
+            
+            if (!panel || !content) return;
+            
+            // Show panel if hidden
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+            }
+            
+            // Get data point
+            const point = parsedData[index];
+            const timestamp = labels[index];
+            
+            // Apply theme colors
+            const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
+            const mutedColor = kpiTheme === 'dark' ? '#9ca3af' : '#6b7280';
+            const bgColor = kpiTheme === 'dark' ? '#374151' : '#f9fafb';
+            const borderColor = kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb';
+            
+            panel.style.color = textColor;
+            panel.style.borderColor = kpiTheme === 'dark' ? '#fff' : '#000';
+            
+            // Build observation HTML
+            let html = '';
+            
+            // Timestamp section
+            html += `<div style="background:${bgColor}; padding:10px; border-radius:4px; margin-bottom:12px; border:1px solid ${borderColor};">`;
+            html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Timestamp</div>`;
+            html += `<div style="font-size:13px; font-weight:700; font-family:'JetBrains Mono';">${timestamp || 'N/A'}</div>`;
+            html += `</div>`;
+            
+            // KPI Values section
+            html += `<div style="margin-bottom:12px;">`;
+            html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:700;">KPI Values</div>`;
+            
+            datasets.forEach((dataset, idx) => {
+                const value = dataset.data[index];
+                const displayValue = (value !== null && value !== undefined && !isNaN(value)) 
+                    ? value.toFixed(2) 
+                    : 'N/A';
+                
+                html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:${bgColor}; border-left:3px solid ${dataset.borderColor}; margin-bottom:6px; border-radius:2px;">`;
+                html += `<span style="font-size:11px; font-weight:600;">${dataset.label.split('(')[0].trim()}</span>`;
+                html += `<span style="font-size:12px; font-weight:700; font-family:'JetBrains Mono';">${displayValue}</span>`;
+                html += `</div>`;
+            });
+            
+            html += `</div>`;
+            
+            // Metadata section (PCI, Technology, Events)
+            if (point) {
+                html += `<div style="border-top:1px solid ${borderColor}; padding-top:12px;">`;
+                html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:700;">Metadata</div>`;
+                
+                // Technology
+                const tech = point.technology || detectedTechnology || 'LTE';
+                html += `<div style="display:flex; justify-content:space-between; padding:6px 8px; background:${bgColor}; margin-bottom:4px; border-radius:2px; font-size:11px;">`;
+                html += `<span style="color:${mutedColor};">Technology</span>`;
+                html += `<span style="font-weight:600;">${tech}</span>`;
+                html += `</div>`;
+                
+                // PCI/PSC/BSIC
+                let pci = '';
+                let pciLabel = 'PCI';
+                if (tech === 'NR') {
+                    pci = point.nr_pci || '-';
+                    pciLabel = 'NR-PCI';
+                } else if (tech === 'UMTS') {
+                    pci = point.wcdma_psc || point.psc || '-';
+                    pciLabel = 'PSC';
+                } else if (tech === 'GSM') {
+                    pci = point.gsm_bsic || point.bsic || '-';
+                    pciLabel = 'BSIC';
+                } else {
+                    pci = point.pci || '-';
+                }
+                
+                html += `<div style="display:flex; justify-content:space-between; padding:6px 8px; background:${bgColor}; margin-bottom:4px; border-radius:2px; font-size:11px;">`;
+                html += `<span style="color:${mutedColor};">${pciLabel}</span>`;
+                html += `<span style="font-weight:600; font-family:'JetBrains Mono';">${pci}</span>`;
+                html += `</div>`;
+                
+                // Check for events at this index
+                const eventTimeline = extractEventTimeline(parsedData);
+                const event = eventTimeline.find(e => e.index === index);
+                
+                if (event) {
+                    const icon = getEventIcon(event.type);
+                    html += `<div style="background:#fef3c7; color:#92400e; padding:8px; border-radius:4px; margin-top:8px; border-left:3px solid #f59e0b; font-size:11px;">`;
+                    html += `<div style="font-weight:700; margin-bottom:2px;">${icon} Event Detected</div>`;
+                    html += `<div style="font-size:10px;">${event.details}</div>`;
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+            } else {
+                // No data available
+                html += `<div style="border-top:1px solid ${borderColor}; padding-top:12px; text-align:center; color:${mutedColor}; font-size:11px;">`;
+                html += `No metadata available`;
+                html += `</div>`;
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        /**
          * Render multi-KPI comparison chart in zoom modal (STACKED CHARTS VERSION)
          * Each KPI gets its own chart with its own Y-axis, all sharing the same X-axis
          * @param {Array} selectedKpis - Array of selected KPI objects
@@ -4009,60 +4152,7 @@ function renderScatterPlots() {
                                 display: false
                             },
                             tooltip: {
-                                enabled: true,
-                                backgroundColor: 'rgba(0,0,0,0.9)',
-                                titleFont: { family: 'JetBrains Mono', size: 11 },
-                                bodyFont: { family: 'JetBrains Mono', size: 10 },
-                                padding: 10,
-                                borderColor: dataset.borderColor,
-                                borderWidth: 2,
-                                displayColors: false,
-                                callbacks: {
-                                    title: function(context) {
-                                        return context[0].label || '';
-                                    },
-                                    label: function(context) {
-                                        if (context.parsed.y !== null) {
-                                            return `${dataset.label}: ${context.parsed.y.toFixed(2)}`;
-                                        }
-                                        return 'N/A';
-                                    },
-                                    afterLabel: function(context) {
-                                        // Add PCI and event info to tooltip
-                                        const dataIndex = context.dataIndex;
-                                        const point = parsedData[dataIndex];
-                                        
-                                        if (!point) return '';
-                                        
-                                        const lines = [];
-                                        
-                                        // Add PCI information
-                                        const tech = point.technology || 'LTE';
-                                        let pci = '';
-                                        if (tech === 'NR') {
-                                            pci = point.nr_pci || '-';
-                                        } else if (tech === 'UMTS') {
-                                            pci = point.wcdma_psc || point.psc || '-';
-                                        } else if (tech === 'GSM') {
-                                            pci = point.gsm_bsic || point.bsic || '-';
-                                        } else {
-                                            pci = point.pci || '-';
-                                        }
-                                        
-                                        if (pci !== '-') {
-                                            lines.push(`📡 PCI: ${pci}`);
-                                        }
-                                        
-                                        // Check if there's an event at this index
-                                        const event = eventTimeline.find(e => e.index === dataIndex);
-                                        if (event) {
-                                            const icon = getEventIcon(event.type);
-                                            lines.push(`📍 Event: ${icon} ${event.details}`);
-                                        }
-                                        
-                                        return lines.join('\n');
-                                    }
-                                }
+                                enabled: false // Disable default tooltip overlay
                             },
                             multiKpiEventMarkers: {
                                 events: eventTimeline // Pass event data to plugin
@@ -4118,7 +4208,8 @@ function renderScatterPlots() {
                 });
                 
                 // Add mouse event listeners for synchronization
-                canvas.addEventListener('mousemove', (e) => {
+                // Throttle mousemove for better performance with large datasets
+                const throttledMouseMove = throttle((e) => {
                     const rect = canvas.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const y = e.clientY - rect.top;
@@ -4131,20 +4222,17 @@ function renderScatterPlots() {
                         syncState.activeIndex = Math.round(xValue);
                         syncState.isHovering = true;
                         
-                        // Update all charts
+                        // Update observation panel
+                        updateObservationPanel(syncState.activeIndex, labels, selectedKpis, datasets);
+                        
+                        // Update all charts (crosshair only, no tooltips)
                         window.multiKpiCharts.forEach(c => {
-                            // Show tooltip at the synced position
-                            const meta = c.getDatasetMeta(0);
-                            if (meta && meta.data[syncState.activeIndex]) {
-                                c.tooltip.setActiveElements([{
-                                    datasetIndex: 0,
-                                    index: syncState.activeIndex
-                                }]);
-                            }
                             c.update('none'); // Update without animation
                         });
                     }
-                });
+                }, 16); // ~60fps throttle
+                
+                canvas.addEventListener('mousemove', throttledMouseMove);
                 
                 canvas.addEventListener('mouseleave', () => {
                     syncState.isHovering = false;
@@ -4155,6 +4243,15 @@ function renderScatterPlots() {
                         c.tooltip.setActiveElements([]);
                         c.update('none');
                     });
+                    
+                    // Reset observation panel to default state
+                    const observationContent = document.getElementById('observationContent');
+                    if (observationContent) {
+                        const textColor = kpiTheme === 'dark' ? '#9ca3af' : '#6b7280';
+                        observationContent.innerHTML = `<div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px; color:${textColor};">
+                            Hover over the charts to view detailed observations
+                        </div>`;
+                    }
                 });
                 
                 // Store chart instance
