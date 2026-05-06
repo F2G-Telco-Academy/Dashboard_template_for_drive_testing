@@ -31,7 +31,7 @@
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
-        let currentViewMode = 'grid';
+        let currentViewMode = 'table';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
         let kpiTheme = 'light'; // Track KPI panel theme (light/dark)
         let map = null; // Map instance
@@ -805,13 +805,9 @@
         function toggleViewMode() {
             const gridView = document.getElementById('statsGridView');
             const tableView = document.getElementById('statsTableView');
-            if (currentViewMode === 'grid') {
-                gridView.classList.remove('hidden');
-                tableView.classList.add('hidden');
-            } else {
-                gridView.classList.add('hidden');
-                tableView.classList.remove('hidden');
-            }
+            // Only table mode is available now
+            gridView.classList.add('hidden');
+            tableView.classList.remove('hidden');
         }
 
         function getColorForValue(value, kpiType) {
@@ -862,19 +858,6 @@
             const ctx = document.getElementById('kpiChart').getContext('2d');
             if (kpiChart) kpiChart.destroy();
 
-            let rsrpGradient = null, rsrqGradient = null, sinrGradient = null;
-            if (currentChartType === 'area') {
-                rsrpGradient = ctx.createLinearGradient(0, 0, 0, 300);
-                rsrpGradient.addColorStop(0, '#3b82f680');
-                rsrpGradient.addColorStop(1, '#3b82f610');
-                rsrqGradient = ctx.createLinearGradient(0, 0, 0, 300);
-                rsrqGradient.addColorStop(0, '#10b98180');
-                rsrqGradient.addColorStop(1, '#10b98110');
-                sinrGradient = ctx.createLinearGradient(0, 0, 0, 300);
-                sinrGradient.addColorStop(0, '#f59e0b80');
-                sinrGradient.addColorStop(1, '#f59e0b10');
-            }
-
             kpiChart = new Chart(ctx, {
                 type: currentChartType === 'bar' ? 'bar' : 'line',
                 data: {
@@ -884,9 +867,9 @@
                             label: 'RSRP (dBm)',
                             data: rsrpValues,
                             borderColor: '#3b82f6',
-                            backgroundColor: currentChartType === 'area' ? rsrpGradient : '#3b82f6',
+                            backgroundColor: '#3b82f6',
                             borderWidth: 2,
-                            fill: currentChartType === 'area',
+                            fill: false,
                             tension: 0.3,
                             yAxisID: 'y',
                             pointRadius: 1
@@ -895,9 +878,9 @@
                             label: 'RSRQ (dB)',
                             data: rsrqValues,
                             borderColor: '#10b981',
-                            backgroundColor: currentChartType === 'area' ? rsrqGradient : '#10b981',
+                            backgroundColor: '#10b981',
                             borderWidth: 2,
-                            fill: currentChartType === 'area',
+                            fill: false,
                             tension: 0.3,
                             yAxisID: 'y1',
                             pointRadius: 1
@@ -906,9 +889,9 @@
                             label: 'SINR (dB)',
                             data: sinrValues,
                             borderColor: '#f59e0b',
-                            backgroundColor: currentChartType === 'area' ? sinrGradient : '#f59e0b',
+                            backgroundColor: '#f59e0b',
                             borderWidth: 2,
-                            fill: currentChartType === 'area',
+                            fill: false,
                             tension: 0.3,
                             yAxisID: 'y2',
                             pointRadius: 1
@@ -1182,7 +1165,7 @@
                         backgroundColor: currentChartType === 'bar' ? colors[kpiType].line : 'transparent',
                         borderWidth: 2,
                         fill: false,
-                        tension: currentChartType === 'line' || currentChartType === 'area' ? 0.3 : 0,
+                        tension: currentChartType === 'line' ? 0.3 : 0,
                         pointRadius: currentChartType === 'bar' ? 0 : 2,
                         pointHoverRadius: currentChartType === 'bar' ? 0 : 5
                     }]
