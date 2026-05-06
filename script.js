@@ -26,6 +26,7 @@
         let scatterMcsCqi = null;
         let scatterBlerTput = null;
         let kpiHistogramChart = null;
+        let zoomedChart = null; // Zoom modal chart instance
         let polynomialDegree = 2; // Default: Quadratic (degree 2)
         let showingKPIs = false;
         let currentChartType = 'line';
@@ -149,6 +150,7 @@
                     if (compRsrqOnly) { compRsrqOnly.destroy(); compRsrqOnly = null; }
                     if (compBlerTput) { compBlerTput.destroy(); compBlerTput = null; }
                     if (compTputOnly) { compTputOnly.destroy(); compTputOnly = null; }
+                    if (compTputUlOnly) { compTputUlOnly.destroy(); compTputUlOnly = null; }
                     if (compBlerOnly) { compBlerOnly.destroy(); compBlerOnly = null; }
                     if (scatterTputSinr) { scatterTputSinr.destroy(); scatterTputSinr = null; }
                     if (scatterTputRsrp) { scatterTputRsrp.destroy(); scatterTputRsrp = null; }
@@ -158,6 +160,23 @@
                         window.multiKpiCharts.forEach(c => c.destroy());
                         window.multiKpiCharts = [];
                     }
+
+                    // Clear all canvas elements to remove any residual rendering
+                    const canvasIds = [
+                        'kpiChart', 'kpiHistogram', 'chartZoomCanvas',
+                        'compRsrpOnly', 'compRsrqOnly', 'compSinrOnly', 
+                        'compTputOnly', 'compTputUlOnly', 'compBlerOnly', 'compCqiOnly', 'compMcsOnly',
+                        'scatterTputSinr', 'scatterTputRsrp', 'scatterMcsCqi', 'scatterBlerTput'
+                    ];
+                    canvasIds.forEach(id => {
+                        const canvas = document.getElementById(id);
+                        if (canvas) {
+                            const ctx = canvas.getContext('2d');
+                            if (ctx) {
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            }
+                        }
+                    });
                 } catch (e) {
                     console.warn('Error destroying charts during reset:', e);
                 }
@@ -241,6 +260,83 @@
                 // Reset CSV file input
                 const csvInput = document.getElementById('csvFile');
                 if (csvInput) csvInput.value = '';
+
+                // Reset KPI state variables
+                currentKpiType = 'rsrp';
+                currentChartType = 'line';
+                showingKPIs = false;
+                kpiTheme = 'light';
+
+                // Apply light mode styling to KPI panel
+                const kpiPanelForTheme = document.getElementById('kpiPanel');
+                if (kpiPanelForTheme) {
+                    kpiPanelForTheme.classList.remove('bg-gray-900');
+                    kpiPanelForTheme.classList.add('bg-white');
+                    
+                    // Update all KPI panel elements to light mode
+                    document.querySelectorAll('#kpiPanel .bg-gray-800').forEach(el => {
+                        el.classList.remove('bg-gray-800');
+                        el.classList.add('bg-gray-100');
+                    });
+                    document.querySelectorAll('#kpiPanel .bg-gray-900').forEach(el => {
+                        el.classList.remove('bg-gray-900');
+                        el.classList.add('bg-white');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-white').forEach(el => {
+                        el.classList.remove('text-white');
+                        el.classList.add('text-gray-900');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-gray-400').forEach(el => {
+                        el.classList.remove('text-gray-400');
+                        el.classList.add('text-gray-600');
+                    });
+                    
+                    // Fix KPI tab and button borders for light mode
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                        el.classList.remove('border-white');
+                        el.classList.add('border-gray-400');
+                        // Switch inactive button background to light
+                        if (!el.classList.contains('bg-blue-600')) {
+                            el.classList.remove('bg-gray-700');
+                            el.classList.add('bg-gray-200');
+                        }
+                    });
+                    
+                    // Fix theme toggle button for light mode
+                    const themeToggleBtn = document.getElementById('kpiThemeToggle');
+                    if (themeToggleBtn) {
+                        themeToggleBtn.innerHTML = '☀️ Light';
+                        themeToggleBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        themeToggleBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                    }
+                    
+                    // Update multi-KPI checkbox hover states for light mode
+                    document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                        const label = checkbox.parentElement;
+                        label.classList.remove('hover:bg-gray-700');
+                        label.classList.add('hover:bg-gray-100');
+                    });
+                }
+
+                // Reset KPI tabs to default (RSRP active)
+                document.querySelectorAll('.kpi-tab').forEach(tab => {
+                    tab.classList.remove('active', 'bg-blue-600');
+                    tab.classList.add('bg-gray-700');
+                    if (tab.dataset.kpi === 'rsrp') {
+                        tab.classList.add('active', 'bg-blue-600');
+                        tab.classList.remove('bg-gray-700');
+                    }
+                });
+
+                // Reset chart type buttons to default (line active)
+                document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                    btn.classList.remove('active', 'bg-blue-600');
+                    btn.classList.add('bg-gray-700');
+                    if (btn.dataset.type === 'line') {
+                        btn.classList.add('active', 'bg-blue-600');
+                        btn.classList.remove('bg-gray-700');
+                    }
+                });
 
                 alert('Dashboard reset to default successfully!');
             }
@@ -576,6 +672,56 @@
                 this.classList.remove('bg-purple-600');
                 this.classList.add('bg-green-600');
                 this.innerHTML = '📋 <span class="hidden sm:inline">DASHBOARD</span>';
+                
+                // Apply light mode if kpiTheme is 'light' (ensures proper styling after reset)
+                if (kpiTheme === 'light') {
+                    kpiPanel.classList.remove('bg-gray-900');
+                    kpiPanel.classList.add('bg-white');
+                    
+                    // Update all KPI panel elements to light mode
+                    document.querySelectorAll('#kpiPanel .bg-gray-800').forEach(el => {
+                        el.classList.remove('bg-gray-800');
+                        el.classList.add('bg-gray-100');
+                    });
+                    document.querySelectorAll('#kpiPanel .bg-gray-900').forEach(el => {
+                        el.classList.remove('bg-gray-900');
+                        el.classList.add('bg-white');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-white').forEach(el => {
+                        el.classList.remove('text-white');
+                        el.classList.add('text-gray-900');
+                    });
+                    document.querySelectorAll('#kpiPanel .text-gray-400').forEach(el => {
+                        el.classList.remove('text-gray-400');
+                        el.classList.add('text-gray-600');
+                    });
+                    
+                    // Fix KPI tab and button borders for light mode
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                        el.classList.remove('border-white');
+                        el.classList.add('border-gray-400');
+                        // Switch inactive button background to light
+                        if (!el.classList.contains('bg-blue-600')) {
+                            el.classList.remove('bg-gray-700');
+                            el.classList.add('bg-gray-200');
+                        }
+                    });
+                    
+                    // Fix theme toggle button for light mode
+                    const themeToggleBtn = document.getElementById('kpiThemeToggle');
+                    if (themeToggleBtn) {
+                        themeToggleBtn.innerHTML = '☀️ Light';
+                        themeToggleBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                        themeToggleBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                    }
+                    
+                    // Update multi-KPI checkbox hover states for light mode
+                    document.querySelectorAll('.kpi-selector').forEach(checkbox => {
+                        const label = checkbox.parentElement;
+                        label.classList.remove('hover:bg-gray-700');
+                        label.classList.add('hover:bg-gray-100');
+                    });
+                }
                 
                 if (parsedData.length > 0) {
                     // Update KPI panel title based on technology
@@ -3181,7 +3327,6 @@ function renderScatterPlots() {
         // =====================================================
         // CHART ZOOM MODAL FUNCTIONALITY
         // =====================================================
-        let zoomedChart = null;
 
         function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
