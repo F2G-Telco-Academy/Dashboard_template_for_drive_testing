@@ -32,7 +32,6 @@
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
-        let currentViewMode = 'table';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
         let kpiTheme = 'light'; // Track KPI panel theme (light/dark)
         let map = null; // Map instance
@@ -212,14 +211,6 @@
                     if (el) { el.textContent = '-'; el.style.color = ''; }
                 });
 
-                // Reset table values
-                ['tableMin', 'tableMinQuality', 'tableP10', 'tableP10Quality',
-                 'tableP50', 'tableP50Quality', 'tableP90', 'tableP90Quality',
-                 'tableAvg', 'tableAvgQuality', 'tableMax', 'tableMaxQuality'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) { el.textContent = '-'; el.style.color = ''; }
-                });
-
                 // Reset signal quality counts
                 ['qualExcellent', 'qualExcellentPct', 'qualGood', 'qualGoodPct',
                  'qualFair', 'qualFairPct', 'qualPoor', 'qualPoorPct'].forEach(id => {
@@ -294,7 +285,7 @@
                     });
                     
                     // Fix KPI tab and button borders for light mode
-                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                         el.classList.remove('border-white');
                         el.classList.add('border-gray-400');
                         // Switch inactive button background to light
@@ -703,7 +694,7 @@
                     });
                     
                     // Fix KPI tab and button borders for light mode
-                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                         el.classList.remove('border-white');
                         el.classList.add('border-gray-400');
                         // Switch inactive button background to light
@@ -792,29 +783,6 @@
                 renderKPIChart(currentKpiType);
             });
         });
-
-        // View Mode switching
-        document.querySelectorAll('.view-mode-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
-                document.querySelectorAll('.view-mode-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
-                    b.classList.add(inactiveBg);
-                });
-                this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700', 'bg-gray-200');
-                currentViewMode = this.dataset.mode;
-                toggleViewMode();
-            });
-        });
-
-        function toggleViewMode() {
-            const gridView = document.getElementById('statsGridView');
-            const tableView = document.getElementById('statsTableView');
-            // Only table mode is available now
-            gridView.classList.add('hidden');
-            tableView.classList.remove('hidden');
-        }
 
         function getColorForValue(value, kpiType) {
             if (kpiType === 'rsrp') {
@@ -1081,31 +1049,6 @@
             document.getElementById('summaryMax').textContent = max.toFixed(2);
             document.getElementById('summaryMax').style.color = getColorForValue(max, kpiType);
 
-            // Update table view
-            document.getElementById('tableMin').textContent = min.toFixed(2);
-            document.getElementById('tableMin').style.color = getColorForValue(min, kpiType);
-            document.getElementById('tableMinQuality').textContent = getQualityLabel(min, kpiType);
-            
-            document.getElementById('tableP10').textContent = percentiles.p10.toFixed(2);
-            document.getElementById('tableP10').style.color = getColorForValue(percentiles.p10, kpiType);
-            document.getElementById('tableP10Quality').textContent = getQualityLabel(percentiles.p10, kpiType);
-            
-            document.getElementById('tableP50').textContent = percentiles.p50.toFixed(2);
-            document.getElementById('tableP50').style.color = getColorForValue(percentiles.p50, kpiType);
-            document.getElementById('tableP50Quality').textContent = getQualityLabel(percentiles.p50, kpiType);
-            
-            document.getElementById('tableP90').textContent = percentiles.p90.toFixed(2);
-            document.getElementById('tableP90').style.color = getColorForValue(percentiles.p90, kpiType);
-            document.getElementById('tableP90Quality').textContent = getQualityLabel(percentiles.p90, kpiType);
-            
-            document.getElementById('tableAvg').textContent = avg.toFixed(2);
-            document.getElementById('tableAvg').style.color = getColorForValue(avg, kpiType);
-            document.getElementById('tableAvgQuality').textContent = getQualityLabel(avg, kpiType);
-            
-            document.getElementById('tableMax').textContent = max.toFixed(2);
-            document.getElementById('tableMax').style.color = getColorForValue(max, kpiType);
-            document.getElementById('tableMaxQuality').textContent = getQualityLabel(max, kpiType);
-
             // Calculate signal quality distribution (for RSRP)
             if (kpiType === 'rsrp') {
                 const excellent = values.filter(v => v >= -80).length;
@@ -1153,6 +1096,132 @@
                 throughput_dl_mbps: { line: '#3b82f6', fill: 'transparent' },
                 throughput_ul_mbps: { line: '#3b82f6', fill: 'transparent' }
             };
+
+            // Helper function to get quality indicator for KPIs (technology-aware)
+            function getKpiQuality(kpiType, value, technology) {
+                const val = parseFloat(value);
+                if (isNaN(val)) return null;
+                
+                const tech = technology || dominantTech || 'LTE';
+                
+                switch(kpiType) {
+                    case 'rsrp':
+                        // Technology-specific thresholds for RSRP/RSCP/RxLev
+                        if (tech === 'UMTS') {
+                            // RSCP thresholds (UMTS)
+                            if (val >= -70) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= -85) return { text: 'Good', emoji: '🔵' };
+                            if (val >= -95) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else if (tech === 'GSM') {
+                            // RxLev thresholds (GSM)
+                            if (val >= -70) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= -85) return { text: 'Good', emoji: '🔵' };
+                            if (val >= -95) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else {
+                            // RSRP thresholds (LTE/NR)
+                            if (val >= -80) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= -90) return { text: 'Good', emoji: '🔵' };
+                            if (val >= -100) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        }
+                    
+                    case 'rsrq':
+                        // Technology-specific thresholds for RSRQ/Ec/No/RxQual
+                        if (tech === 'UMTS') {
+                            // Ec/No thresholds (UMTS)
+                            if (val >= -6) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= -10) return { text: 'Good', emoji: '🔵' };
+                            if (val >= -14) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else if (tech === 'GSM') {
+                            // RxQual thresholds (GSM) - 0-7 scale, lower is better
+                            if (val <= 2) return { text: 'Excellent', emoji: '🟢' };
+                            if (val <= 4) return { text: 'Good', emoji: '🔵' };
+                            if (val <= 6) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else {
+                            // RSRQ thresholds (LTE/NR)
+                            if (val >= -10) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= -15) return { text: 'Good', emoji: '🔵' };
+                            if (val >= -20) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        }
+                    
+                    case 'sinr':
+                        // SINR only applies to LTE/NR
+                        if (val >= 20) return { text: 'Excellent', emoji: '🟢' };
+                        if (val >= 13) return { text: 'Good', emoji: '🔵' };
+                        if (val >= 0) return { text: 'Fair', emoji: '🟡' };
+                        return { text: 'Poor', emoji: '🔴' };
+                    
+                    case 'cqi':
+                        if (val >= 12) return { text: 'Excellent', emoji: '🟢' };
+                        if (val >= 9) return { text: 'Good', emoji: '🔵' };
+                        if (val >= 6) return { text: 'Fair', emoji: '🟡' };
+                        return { text: 'Poor', emoji: '🔴' };
+                    
+                    case 'mcs':
+                        if (val >= 20) return { text: 'Excellent', emoji: '🟢' };
+                        if (val >= 15) return { text: 'Good', emoji: '🔵' };
+                        if (val >= 10) return { text: 'Fair', emoji: '🟡' };
+                        return { text: 'Poor', emoji: '🔴' };
+                    
+                    case 'bler':
+                        if (val <= 2) return { text: 'Excellent', emoji: '🟢' };
+                        if (val <= 10) return { text: 'Good', emoji: '🔵' };
+                        if (val <= 30) return { text: 'Fair', emoji: '🟡' };
+                        return { text: 'Poor', emoji: '🔴' };
+                    
+                    case 'throughput_dl_mbps':
+                        // Technology-specific throughput thresholds
+                        if (tech === 'UMTS') {
+                            // UMTS/HSPA+ throughput (lower expectations)
+                            if (val >= 10) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= 5) return { text: 'Good', emoji: '🔵' };
+                            if (val >= 2) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else if (tech === 'GSM') {
+                            // GSM/EDGE throughput (very low expectations)
+                            if (val >= 0.2) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= 0.1) return { text: 'Good', emoji: '🔵' };
+                            if (val >= 0.05) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else {
+                            // LTE/NR throughput
+                            if (val >= 50) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= 25) return { text: 'Good', emoji: '🔵' };
+                            if (val >= 10) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        }
+                    
+                    case 'throughput_ul_mbps':
+                        // Technology-specific throughput thresholds
+                        if (tech === 'UMTS') {
+                            // UMTS/HSPA+ uplink throughput
+                            if (val >= 5) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= 2) return { text: 'Good', emoji: '🔵' };
+                            if (val >= 1) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else if (tech === 'GSM') {
+                            // GSM/EDGE uplink throughput
+                            if (val >= 0.1) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= 0.05) return { text: 'Good', emoji: '🔵' };
+                            if (val >= 0.02) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        } else {
+                            // LTE/NR uplink throughput
+                            if (val >= 20) return { text: 'Excellent', emoji: '🟢' };
+                            if (val >= 10) return { text: 'Good', emoji: '🔵' };
+                            if (val >= 5) return { text: 'Fair', emoji: '🟡' };
+                            return { text: 'Poor', emoji: '🔴' };
+                        }
+                    
+                    default:
+                        return null;
+                }
+            }
 
             const ctx = document.getElementById('kpiChart').getContext('2d');
             
@@ -1204,33 +1273,65 @@
                                     const point = parsedData[idx];
                                     if (!point) return [];
                                     
-                                    const rsrp = parseFloat(point.rsrp) || 0;
-                                    const rsrq = parseFloat(point.rsrq) || 0;
-                                    const sinr = parseFloat(point.sinr) || 0;
-                                    const pci = point.pci || '-';
-                                    const cqi = point.cqi || '-';
-                                    const mcs = point.mcs || '-';
-                                    const bler = point.bler || '-';
-                                    const dl = point.throughput_dl_mbps || '-';
-                                    const ul = point.throughput_ul_mbps || '-';
+                                    // Context-aware tooltip: Show only the current KPI being viewed
+                                    const lines = ['━━━━━━━━━━━━━━━━━━━'];
                                     
-                                    const quality = rsrp >= -80 ? '🟢 Excellent' : 
-                                                   rsrp >= -90 ? '🔵 Good' : 
-                                                   rsrp >= -100 ? '🟡 Fair' : '🔴 Poor';
+                                    if (kpiType === 'rsrp') {
+                                        const rsrp = parseFloat(point.rsrp) || 0;
+                                        const quality = getKpiQuality('rsrp', rsrp, dominantTech);
+                                        lines.push('RSRP: ' + rsrp.toFixed(2) + ' dBm');
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'rsrq') {
+                                        const rsrq = parseFloat(point.rsrq) || 0;
+                                        const quality = getKpiQuality('rsrq', rsrq, dominantTech);
+                                        lines.push('RSRQ: ' + rsrq.toFixed(2) + ' dB');
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'sinr') {
+                                        const sinr = parseFloat(point.sinr) || 0;
+                                        const quality = getKpiQuality('sinr', sinr, dominantTech);
+                                        lines.push('SINR: ' + sinr.toFixed(2) + ' dB');
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'cqi') {
+                                        const cqi = parseFloat(point.cqi) || 0;
+                                        const quality = getKpiQuality('cqi', cqi, dominantTech);
+                                        lines.push('CQI: ' + cqi);
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'mcs') {
+                                        const mcs = parseFloat(point.mcs) || 0;
+                                        const quality = getKpiQuality('mcs', mcs, dominantTech);
+                                        lines.push('MCS: ' + mcs);
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'bler') {
+                                        const bler = parseFloat(point.bler) || 0;
+                                        const quality = getKpiQuality('bler', bler, dominantTech);
+                                        lines.push('BLER: ' + bler + '%');
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'throughput_dl_mbps') {
+                                        const dl = parseFloat(point.throughput_dl_mbps) || 0;
+                                        const quality = getKpiQuality('throughput_dl_mbps', dl, dominantTech);
+                                        lines.push('DL Throughput: ' + dl + ' Mbps');
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else if (kpiType === 'throughput_ul_mbps') {
+                                        const ul = parseFloat(point.throughput_ul_mbps) || 0;
+                                        const quality = getKpiQuality('throughput_ul_mbps', ul, dominantTech);
+                                        lines.push('UL Throughput: ' + ul + ' Mbps');
+                                        if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
+                                        lines.push('PCI: ' + (point.pci || '-'));
+                                    } else {
+                                        // Fallback: show the current KPI value
+                                        const value = parseFloat(point[kpiType]) || 0;
+                                        lines.push(kpiLabel + ': ' + value.toFixed(2));
+                                    }
                                     
-
-                                    return [
-                                        '━━━━━━━━━━━━━━━━━━━',
-                                        'RSRP: ' + rsrp.toFixed(2) + ' dBm',
-                                        'RSRQ: ' + rsrq.toFixed(2) + ' dB',
-                                        'SINR: ' + sinr.toFixed(2) + ' dB',
-                                        'PCI: ' + pci,
-                                        'CQI: ' + cqi + ' | MCS: ' + mcs,
-                                        'BLER: ' + bler + '%',
-                                        'DL: ' + dl + ' Mbps | UL: ' + ul + ' Mbps',
-                                        '━━━━━━━━━━━━━━━━━━━',
-                                        'Quality: ' + quality
-                                    ];
+                                    lines.push('━━━━━━━━━━━━━━━━━━━');
+                                    return lines;
                                 }
                             }
                         }
@@ -3782,7 +3883,7 @@ function renderScatterPlots() {
                     el.classList.add('text-gray-600');
                 });
                 // Fix KPI tab and button borders for light mode
-                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                     el.classList.remove('border-white');
                     el.classList.add('border-gray-400');
                     // Switch inactive button background to light
@@ -3838,7 +3939,7 @@ function renderScatterPlots() {
                     el.classList.add('text-gray-400');
                 });
                 // Fix KPI tab and button borders for dark mode
-                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                     el.classList.remove('border-gray-400');
                     el.classList.add('border-white');
                     // Switch inactive button background to dark
