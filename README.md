@@ -73,7 +73,8 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
   - Auto-hide unavailable KPIs (e.g., SINR for UMTS, CQI for GSM)
   - Dynamic tab labels (RSRP→RSCP for UMTS, RSRP→RxLev for GSM)
 - **Multi-KPI Synchronized Comparison** (NEW: Enhanced UX)
-  - Select 2-8 KPIs simultaneously for correlation analysis
+  - Select 2-9 KPIs simultaneously for correlation analysis (increased from 6)
+  - **TxPower (Transmit Power)** now available for selection
   - Stacked charts with individual Y-axis per KPI (professional telecom tool style)
   - Synchronized vertical crosshair across all charts for precise time alignment
   - **Fixed Observation Panel** - Clean, non-intrusive side panel showing:
@@ -86,7 +87,7 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
   - Technology-aware labels (auto-updates for LTE/NR/UMTS/GSM)
   - Scrollable layout for many KPIs
   - Professional appearance matching Ericsson TEMS/Nemo Outdoor
-- **KPI Comparison Section** (7 separate time-series charts)
+- **KPI Comparison Section** (9 separate time-series charts)
   - Technology-specific chart titles and labels
   - Section title shows detected technology (e.g., "UMTS KPI COMPARISON ANALYSIS")
   - RSRP/RSCP/RxLev (dBm) - Independent optimized scale
@@ -97,9 +98,10 @@ Map Visualization + KPI Charts + Statistics → Configuration Management → Cli
   - BLER (%) - Hidden for UMTS/GSM
   - CQI - Hidden for UMTS/GSM
   - MCS - Hidden for UMTS/GSM
+  - **TxPower (dBm)** - NEW! Transmit power visualization
 - **Correlation Analysis Section** (scatter plots)
   - **Smart Idle Sample Filtering** (NEW) - Removes idle UE states for accurate correlation
-    - Toggle: "Include idle samples (Tput=0)" checkbox
+    - Toggle: "Include idle samples (Tput=0)" checkbox with dark mode support
     - Default: OFF (filters idle samples for realistic analysis)
     - Filtering logic: Excludes throughput=0 when BLER=0/100, CQI=0, MCS=0 (idle UE)
     - Preserves real low-throughput scenarios (active sessions with poor performance)
@@ -204,12 +206,12 @@ Client sees dashboard with embedded data (no CSV upload needed)
 
 ### Multi-RAT CSV Format (ECA kpi_export compatible):
 ```csv
-#,time,latitude,longitude,Technology,rsrp,rsrq,sinr,pci,nr_rsrp,nr_rsrq,nr_sinr,wcdma_rscp,wcdma_ecno,gsm_rxlev,gsm_rxqual,...
+#,time,latitude,longitude,Technology,rsrp,rsrq,sinr,pci,TxPower,nr_rsrp,nr_rsrq,nr_sinr,wcdma_rscp,wcdma_ecno,gsm_rxlev,gsm_rxqual,...
 ```
 
 ### LTE-Only CSV Format (Legacy - Backward Compatible):
 ```csv
-#,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event,cqi,mcs,bler,throughput_dl_mbps,throughput_ul_mbps
+#,time,latitude,longitude,rsrp,rsrq,sinr,pci,band,event,TxPower,cqi,mcs,bler,throughput_dl_mbps,throughput_ul_mbps
 ```
 
 ### Technology-Specific Columns:
@@ -227,6 +229,7 @@ Client sees dashboard with embedded data (no CSV upload needed)
 - `sinr` - Signal-to-Interference-plus-Noise Ratio (dB)
 - `pci` - Physical Cell ID
 - `earfcn` - E-UTRA Absolute Radio Frequency Channel Number
+- `TxPower` or `txpower` - Transmit Power (dBm) - NEW!
 - `cqi`, `mcs`, `bler` - Link quality indicators
 
 **3G UMTS:**
@@ -248,10 +251,11 @@ Client sees dashboard with embedded data (no CSV upload needed)
 
 ### Example Rows:
 ```csv
-1,2024-01-15T10:30:45,3.8480,11.5021,-85,-10,15,123,1800,handover
-2,2024-01-15T10:30:50,3.8485,11.5025,-87,-11,14,124,1800,
-3,2024-01-15T10:30:55,3.8490,11.5030,-90,-12,12,125,1800,attach
+1,2024-01-15T10:30:45,3.8480,11.5021,-85,-10,15,123,23,1800,handover
+2,2024-01-15T10:30:50,3.8485,11.5025,-87,-11,14,124,22,1800,
+3,2024-01-15T10:30:55,3.8490,11.5030,-90,-12,12,125,20,1800,attach
 ```
+*Note: TxPower column (23, 22, 20 dBm) added after PCI*
 
 ### Event Types Supported:
 | Event | Icon | Description |
@@ -458,7 +462,20 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.7 (Current - Idle Sample Filtering)**
+**v3.8 (Current - TxPower Integration)**
+- ✅ Added TxPower (Transmit Power) KPI visualization
+- ✅ TxPower time-series chart in KPI Comparison section
+- ✅ TxPower available in Multi-KPI Comparison (9 KPIs total, up from 8)
+- ✅ Supports multiple CSV field name variations: TxPower, txpower, TXPOWER, tx_power
+- ✅ Blue color scheme consistent with other KPIs
+- ✅ Left Y-axis assignment (dBm unit, grouped with RSRP/RSRQ/SINR)
+- ✅ Click-to-zoom modal support for TxPower chart
+- ✅ Technology-agnostic (works for NR, LTE, UMTS, GSM)
+- ✅ Handles missing data gracefully with spanGaps
+- ✅ Fixed dark mode text visibility for "Include idle samples" checkbox
+- ✅ Proper theme toggle support (light/dark mode)
+
+**v3.7 (Idle Sample Filtering)**
 - ✅ Smart idle sample filtering for correlation analysis
 - ✅ Activity-based filtering using multiple indicators (BLER, CQI, MCS)
 - ✅ User-configurable toggle: "Include idle samples (Tput=0)"

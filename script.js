@@ -21,6 +21,7 @@
         let compTputOnly = null;
         let compTputUlOnly = null;
         let compBlerOnly = null;
+        let compTxPowerOnly = null; // TxPower chart instance
         let scatterTputSinr = null;
         let scatterTputRsrp = null;
         let scatterMcsCqi = null;
@@ -152,6 +153,7 @@
                     if (compTputOnly) { compTputOnly.destroy(); compTputOnly = null; }
                     if (compTputUlOnly) { compTputUlOnly.destroy(); compTputUlOnly = null; }
                     if (compBlerOnly) { compBlerOnly.destroy(); compBlerOnly = null; }
+                    if (compTxPowerOnly) { compTxPowerOnly.destroy(); compTxPowerOnly = null; }
                     if (scatterTputSinr) { scatterTputSinr.destroy(); scatterTputSinr = null; }
                     if (scatterTputRsrp) { scatterTputRsrp.destroy(); scatterTputRsrp = null; }
                     if (scatterMcsCqi) { scatterMcsCqi.destroy(); scatterMcsCqi = null; }
@@ -165,7 +167,7 @@
                     const canvasIds = [
                         'kpiChart', 'kpiHistogram', 'chartZoomCanvas',
                         'compRsrpOnly', 'compRsrqOnly', 'compSinrOnly', 
-                        'compTputOnly', 'compTputUlOnly', 'compBlerOnly', 'compCqiOnly', 'compMcsOnly',
+                        'compTputOnly', 'compTputUlOnly', 'compBlerOnly', 'compCqiOnly', 'compMcsOnly', 'compTxPowerOnly',
                         'scatterTputSinr', 'scatterTputRsrp', 'scatterMcsCqi', 'scatterBlerTput'
                     ];
                     canvasIds.forEach(id => {
@@ -588,10 +590,10 @@
             
             // Define checkbox visibility per technology
             const checkboxVisibility = {
-                'NR': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
-                'LTE': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps'],
-                'UMTS': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps'],
-                'GSM': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps']
+                'NR': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps', 'txpower'],
+                'LTE': ['rsrp', 'rsrq', 'sinr', 'cqi', 'mcs', 'bler', 'throughput_dl_mbps', 'throughput_ul_mbps', 'txpower'],
+                'UMTS': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps', 'txpower'],
+                'GSM': ['rsrp', 'rsrq', 'throughput_dl_mbps', 'throughput_ul_mbps', 'txpower']
             };
             
             // Define checkbox labels per technology
@@ -604,7 +606,8 @@
                     mcs: 'MCS', 
                     bler: 'BLER', 
                     throughput_dl_mbps: 'DL Throughput', 
-                    throughput_ul_mbps: 'UL Throughput' 
+                    throughput_ul_mbps: 'UL Throughput',
+                    txpower: 'Tx Power'
                 },
                 'LTE': { 
                     rsrp: 'RSRP', 
@@ -614,19 +617,22 @@
                     mcs: 'MCS', 
                     bler: 'BLER', 
                     throughput_dl_mbps: 'DL Throughput', 
-                    throughput_ul_mbps: 'UL Throughput' 
+                    throughput_ul_mbps: 'UL Throughput',
+                    txpower: 'Tx Power'
                 },
                 'UMTS': { 
                     rsrp: 'RSCP', 
                     rsrq: 'Ec/No', 
                     throughput_dl_mbps: 'DL Throughput', 
-                    throughput_ul_mbps: 'UL Throughput' 
+                    throughput_ul_mbps: 'UL Throughput',
+                    txpower: 'Tx Power'
                 },
                 'GSM': { 
                     rsrp: 'RxLev', 
                     rsrq: 'RxQual', 
                     throughput_dl_mbps: 'DL Throughput', 
-                    throughput_ul_mbps: 'UL Throughput' 
+                    throughput_ul_mbps: 'UL Throughput',
+                    txpower: 'Tx Power'
                 }
             };
             
@@ -1290,6 +1296,12 @@ function renderScatterPlots() {
             const tputDlVals = parsedData.map(d => parseFloat(d.throughput_dl_mbps) || 0);
             const tputUlVals = parsedData.map(d => parseFloat(d.throughput_ul_mbps) || 0);
             
+            // TxPower extraction - handle case variations (TxPower, txpower, TXPOWER)
+            const txPowerVals = parsedData.map(d => {
+                const val = parseFloat(d.TxPower || d.txpower || d.TXPOWER || d.tx_power);
+                return isNaN(val) ? null : val; // Use null for missing values to enable spanGaps
+            });
+            
             // Chart labels based on technology
             const rsrpLabel = tech === 'NR' ? 'NR-RSRP (dBm)' : tech === 'UMTS' ? 'RSCP (dBm)' : tech === 'GSM' ? 'RxLev (dBm)' : 'RSRP (dBm)';
             const rsrqLabel = tech === 'NR' ? 'NR-RSRQ (dB)' : tech === 'UMTS' ? 'Ec/No (dB)' : tech === 'GSM' ? 'RxQual' : 'RSRQ (dB)';
@@ -1635,6 +1647,97 @@ function renderScatterPlots() {
             });
             } else {
                 if (blerContainer) blerContainer.style.display = 'none';
+            }
+
+            // TxPower (Separate Chart) - Available for all technologies
+            const txPowerContainer = document.getElementById('compTxPowerOnly')?.parentElement;
+            if (txPowerContainer) {
+                // Check if we have valid TxPower data
+                const validTxPowerVals = txPowerVals.filter(v => v !== null && !isNaN(v));
+                
+                if (validTxPowerVals.length > 0) {
+                    txPowerContainer.style.display = 'block';
+                    if (compTxPowerOnly) compTxPowerOnly.destroy();
+                    
+                    const minTxPower = Math.min(...validTxPowerVals);
+                    const maxTxPower = Math.max(...validTxPowerVals);
+                    
+                    compTxPowerOnly = new Chart(document.getElementById('compTxPowerOnly'), {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { 
+                                    label: 'Tx Power (dBm)', 
+                                    data: txPowerVals, 
+                                    borderColor: '#3b82f6', // Blue color consistent with other KPIs
+                                    backgroundColor: 'transparent', 
+                                    borderWidth: 2, 
+                                    pointRadius: 0, 
+                                    fill: false, 
+                                    tension: 0.4,
+                                    spanGaps: true // Handle missing values gracefully
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: { 
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0,0,0,0.9)',
+                                    titleFont: { family: 'JetBrains Mono', size: 11 },
+                                    bodyFont: { family: 'JetBrains Mono', size: 10 },
+                                    padding: 10,
+                                    borderColor: '#fff',
+                                    borderWidth: 1,
+                                    callbacks: {
+                                        title: function(context) { return 'Time: ' + context[0].label; },
+                                        label: function(context) {
+                                            if (context.parsed.y === null) return 'Tx Power: N/A';
+                                            return 'Tx Power: ' + context.parsed.y.toFixed(2) + ' dBm';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { 
+                                    ticks: { 
+                                        color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', 
+                                        font: { size: 9 }, 
+                                        maxRotation: 0, 
+                                        minRotation: 0, 
+                                        autoSkip: true, 
+                                        maxTicksLimit: 5, 
+                                        padding: 8 
+                                    }, 
+                                    grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } 
+                                },
+                                y: { 
+                                    type: 'linear', 
+                                    title: { 
+                                        display: true, 
+                                        text: 'Tx Power (dBm)', 
+                                        color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', 
+                                        font: { size: 11, weight: 'bold' } 
+                                    }, 
+                                    ticks: { 
+                                        color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', 
+                                        font: { size: 10 } 
+                                    }, 
+                                    grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, 
+                                    min: Math.floor(minTxPower - 2), 
+                                    max: Math.ceil(maxTxPower + 2) 
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    // No valid TxPower data, hide the container
+                    txPowerContainer.style.display = 'none';
+                }
             }
         }
 
@@ -3619,20 +3722,21 @@ function renderScatterPlots() {
                         else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
                         else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
                         else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
+                        else if (index === 8 && compTxPowerOnly) { chart = compTxPowerOnly; title = 'Tx Power'; }
                         
-                        // Scatter plots
-                        else if (index === 8 && scatterTputSinr) { 
+                        // Scatter plots (indices shifted by 1 due to TxPower addition)
+                        else if (index === 9 && scatterTputSinr) { 
                             chart = scatterTputSinr; 
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
                             title = `Throughput vs ${xLabel}`; 
                         }
-                        else if (index === 9 && scatterTputRsrp) { 
+                        else if (index === 10 && scatterTputRsrp) { 
                             chart = scatterTputRsrp; 
                             const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
                         }
-                        else if (index === 10 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 11 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (index === 11 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
+                        else if (index === 12 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
@@ -3696,6 +3800,17 @@ function renderScatterPlots() {
                     label.classList.remove('hover:bg-gray-700');
                     label.classList.add('hover:bg-gray-100');
                 });
+                
+                // Fix "Include idle samples" checkbox styling for light mode
+                const idleSamplesContainer = document.getElementById('includeIdleSamples')?.parentElement?.parentElement;
+                const idleSamplesLabel = document.getElementById('idleSamplesLabel');
+                if (idleSamplesContainer) {
+                    idleSamplesContainer.classList.remove('bg-yellow-900', 'border-yellow-600');
+                    idleSamplesContainer.classList.add('bg-yellow-50', 'border-yellow-400');
+                }
+                if (idleSamplesLabel) {
+                    idleSamplesLabel.style.color = '#92400e'; // Dark brown text for light mode (original)
+                }
             } else {
                 panel.classList.remove('bg-white');
                 panel.classList.add('bg-gray-900');
@@ -3742,6 +3857,17 @@ function renderScatterPlots() {
                     label.classList.remove('hover:bg-gray-100');
                     label.classList.add('hover:bg-gray-700');
                 });
+                
+                // Fix "Include idle samples" checkbox styling for dark mode
+                const idleSamplesContainer = document.getElementById('includeIdleSamples')?.parentElement?.parentElement;
+                const idleSamplesLabel = document.getElementById('idleSamplesLabel');
+                if (idleSamplesContainer) {
+                    idleSamplesContainer.classList.remove('bg-yellow-50', 'border-yellow-400');
+                    idleSamplesContainer.classList.add('bg-yellow-900', 'border-yellow-600');
+                }
+                if (idleSamplesLabel) {
+                    idleSamplesLabel.style.color = '#fef3c7'; // Light yellow text for dark mode
+                }
             }
             
             if (parsedData.length > 0) {
@@ -3829,6 +3955,13 @@ function renderScatterPlots() {
                         values = parsedData.map(d => parseFloat(d.sinr) || 0);
                         label = 'SINR';
                     }
+                } else if (kpi === 'txpower') {
+                    // TxPower extraction - handle case variations
+                    values = parsedData.map(d => {
+                        const val = parseFloat(d.TxPower || d.txpower || d.TXPOWER || d.tx_power);
+                        return isNaN(val) ? 0 : val; // Use 0 for consistency with other KPIs in multi-KPI mode
+                    });
+                    label = 'Tx Power';
                 } else {
                     // Generic KPI extraction
                     values = parsedData.map(d => parseFloat(d[kpi]) || 0);
@@ -4433,10 +4566,10 @@ function renderScatterPlots() {
                 
                 // Update button state
                 countSpan.textContent = selectedKpis.length;
-                compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 6;
+                compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 9;
                 
                 // Update button appearance
-                if (selectedKpis.length < 2 || selectedKpis.length > 6) {
+                if (selectedKpis.length < 2 || selectedKpis.length > 9) {
                     compareBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     compareBtn.classList.remove('hover:bg-blue-700');
                 } else {
@@ -4444,8 +4577,8 @@ function renderScatterPlots() {
                     compareBtn.classList.add('hover:bg-blue-700');
                 }
                 
-                // Warn user visually when exceeding 6
-                if (selectedKpis.length > 6) {
+                // Warn user visually when exceeding 9
+                if (selectedKpis.length > 9) {
                     countSpan.style.color = '#ef4444'; // Red
                 } else {
                     countSpan.style.color = '';
@@ -4468,8 +4601,8 @@ function renderScatterPlots() {
                     alert('⚠️ Please select at least 2 KPIs to compare');
                     return;
                 }
-                if (selectedKpis.length > 6) {
-                    alert('⚠️ Maximum 6 KPIs allowed. Please deselect ' + (selectedKpis.length - 6) + ' KPI(s) to continue.');
+                if (selectedKpis.length > 9) {
+                    alert('⚠️ Maximum 9 KPIs allowed. Please deselect ' + (selectedKpis.length - 9) + ' KPI(s) to continue.');
                     return;
                 }
                 
