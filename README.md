@@ -522,7 +522,14 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.8 (Current - TxPower Integration + Technology-Aware Quality Indicators)**
+**v3.9 (Current - UI Cleanup)**
+- ✅ **Removed non-functional Table view mode button**
+  - Simplified KPI visualization controls (Line and Bar only)
+  - Removed ~110 lines of unused table view code
+  - Cleaner, more intuitive interface
+  - Better user experience with only functional buttons displayed
+
+**v3.8 (TxPower Integration + Technology-Aware Quality Indicators)**
 - ✅ Added TxPower (Transmit Power) KPI visualization
 - ✅ TxPower time-series chart in KPI Comparison section
 - ✅ TxPower available in Multi-KPI Comparison (9 KPIs total, up from 8)
@@ -534,7 +541,7 @@ Client: Open URL → View dashboard (read-only)
 - ✅ Handles missing data gracefully with spanGaps
 - ✅ Fixed dark mode text visibility for "Include idle samples" checkbox
 - ✅ Proper theme toggle support (light/dark mode)
-- ✅ **Technology-aware quality indicators for all KPIs** (NEW)
+- ✅ **Technology-aware quality indicators for all KPIs**
   - **LTE/NR**: RSRP, RSRQ, SINR, CQI, MCS, BLER, DL/UL Throughput
   - **UMTS**: RSCP, Ec/No, HSPA+ Throughput (technology-specific thresholds)
   - **GSM**: RxLev, RxQual (0-7 scale), EDGE Throughput (technology-specific thresholds)

@@ -32,7 +32,6 @@
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
-        let currentViewMode = 'table';
         let currentMapStyle = 'light'; // Track current map style (light/dark)
         let kpiTheme = 'light'; // Track KPI panel theme (light/dark)
         let map = null; // Map instance
@@ -212,14 +211,6 @@
                     if (el) { el.textContent = '-'; el.style.color = ''; }
                 });
 
-                // Reset table values
-                ['tableMin', 'tableMinQuality', 'tableP10', 'tableP10Quality',
-                 'tableP50', 'tableP50Quality', 'tableP90', 'tableP90Quality',
-                 'tableAvg', 'tableAvgQuality', 'tableMax', 'tableMaxQuality'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) { el.textContent = '-'; el.style.color = ''; }
-                });
-
                 // Reset signal quality counts
                 ['qualExcellent', 'qualExcellentPct', 'qualGood', 'qualGoodPct',
                  'qualFair', 'qualFairPct', 'qualPoor', 'qualPoorPct'].forEach(id => {
@@ -294,7 +285,7 @@
                     });
                     
                     // Fix KPI tab and button borders for light mode
-                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                         el.classList.remove('border-white');
                         el.classList.add('border-gray-400');
                         // Switch inactive button background to light
@@ -703,7 +694,7 @@
                     });
                     
                     // Fix KPI tab and button borders for light mode
-                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                    document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                         el.classList.remove('border-white');
                         el.classList.add('border-gray-400');
                         // Switch inactive button background to light
@@ -792,29 +783,6 @@
                 renderKPIChart(currentKpiType);
             });
         });
-
-        // View Mode switching
-        document.querySelectorAll('.view-mode-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const inactiveBg = kpiTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-200';
-                document.querySelectorAll('.view-mode-btn').forEach(b => {
-                    b.classList.remove('active', 'bg-blue-600', 'bg-gray-700', 'bg-gray-200');
-                    b.classList.add(inactiveBg);
-                });
-                this.classList.add('active', 'bg-blue-600');
-                this.classList.remove('bg-gray-700', 'bg-gray-200');
-                currentViewMode = this.dataset.mode;
-                toggleViewMode();
-            });
-        });
-
-        function toggleViewMode() {
-            const gridView = document.getElementById('statsGridView');
-            const tableView = document.getElementById('statsTableView');
-            // Only table mode is available now
-            gridView.classList.add('hidden');
-            tableView.classList.remove('hidden');
-        }
 
         function getColorForValue(value, kpiType) {
             if (kpiType === 'rsrp') {
@@ -1080,31 +1048,6 @@
             
             document.getElementById('summaryMax').textContent = max.toFixed(2);
             document.getElementById('summaryMax').style.color = getColorForValue(max, kpiType);
-
-            // Update table view
-            document.getElementById('tableMin').textContent = min.toFixed(2);
-            document.getElementById('tableMin').style.color = getColorForValue(min, kpiType);
-            document.getElementById('tableMinQuality').textContent = getQualityLabel(min, kpiType);
-            
-            document.getElementById('tableP10').textContent = percentiles.p10.toFixed(2);
-            document.getElementById('tableP10').style.color = getColorForValue(percentiles.p10, kpiType);
-            document.getElementById('tableP10Quality').textContent = getQualityLabel(percentiles.p10, kpiType);
-            
-            document.getElementById('tableP50').textContent = percentiles.p50.toFixed(2);
-            document.getElementById('tableP50').style.color = getColorForValue(percentiles.p50, kpiType);
-            document.getElementById('tableP50Quality').textContent = getQualityLabel(percentiles.p50, kpiType);
-            
-            document.getElementById('tableP90').textContent = percentiles.p90.toFixed(2);
-            document.getElementById('tableP90').style.color = getColorForValue(percentiles.p90, kpiType);
-            document.getElementById('tableP90Quality').textContent = getQualityLabel(percentiles.p90, kpiType);
-            
-            document.getElementById('tableAvg').textContent = avg.toFixed(2);
-            document.getElementById('tableAvg').style.color = getColorForValue(avg, kpiType);
-            document.getElementById('tableAvgQuality').textContent = getQualityLabel(avg, kpiType);
-            
-            document.getElementById('tableMax').textContent = max.toFixed(2);
-            document.getElementById('tableMax').style.color = getColorForValue(max, kpiType);
-            document.getElementById('tableMaxQuality').textContent = getQualityLabel(max, kpiType);
 
             // Calculate signal quality distribution (for RSRP)
             if (kpiType === 'rsrp') {
@@ -3881,7 +3824,7 @@ function renderScatterPlots() {
                     el.classList.add('text-gray-600');
                 });
                 // Fix KPI tab and button borders for light mode
-                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                     el.classList.remove('border-white');
                     el.classList.add('border-gray-400');
                     // Switch inactive button background to light
@@ -3937,7 +3880,7 @@ function renderScatterPlots() {
                     el.classList.add('text-gray-400');
                 });
                 // Fix KPI tab and button borders for dark mode
-                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel .view-mode-btn').forEach(el => {
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
                     el.classList.remove('border-gray-400');
                     el.classList.add('border-white');
                     // Switch inactive button background to dark
