@@ -324,13 +324,123 @@ Client: Open URL → View dashboard (read-only)
 
 ## 📊 Signal Quality Thresholds (Industry Standard)
 
-| Quality | RSRP Range | Color | Typical Use Case |
-|---------|-----------|-------|------------------|
+### LTE/NR Thresholds
+
+#### RSRP (Reference Signal Received Power)
+| Quality | Range | Color | Typical Use Case |
+|---------|-------|-------|------------------|
 | Excellent | ≥ -80 dBm | 🟢 Green | Dense urban areas |
 | Good | -80 to -90 dBm | 🔵 Blue | Suburban coverage |
 | Fair | -90 to -100 dBm | 🟡 Yellow | Cell edge, acceptable |
-| Poor | -100 to -110 dBm | 🟠 Orange | Coverage holes |
-| Very Poor | < -110 dBm | 🔴 Red | Critical weak spots |
+| Poor | < -100 dBm | 🔴 Red | Coverage holes |
+
+#### RSRQ (Reference Signal Received Quality)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ -10 dB | 🟢 Green |
+| Good | -10 to -15 dB | 🔵 Blue |
+| Fair | -15 to -20 dB | 🟡 Yellow |
+| Poor | < -20 dB | 🔴 Red |
+
+#### SINR (Signal-to-Interference-plus-Noise Ratio)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ 20 dB | 🟢 Green |
+| Good | 13 to 20 dB | 🔵 Blue |
+| Fair | 0 to 13 dB | 🟡 Yellow |
+| Poor | < 0 dB | 🔴 Red |
+
+#### CQI (Channel Quality Indicator)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ 12 | 🟢 Green |
+| Good | 9 to 11 | 🔵 Blue |
+| Fair | 6 to 8 | 🟡 Yellow |
+| Poor | < 6 | 🔴 Red |
+
+#### MCS (Modulation and Coding Scheme)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ 20 | 🟢 Green |
+| Good | 15 to 19 | 🔵 Blue |
+| Fair | 10 to 14 | 🟡 Yellow |
+| Poor | < 10 | 🔴 Red |
+
+#### BLER (Block Error Rate)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≤ 2% | 🟢 Green |
+| Good | 2 to 10% | 🔵 Blue |
+| Fair | 10 to 30% | 🟡 Yellow |
+| Poor | > 30% | 🔴 Red |
+
+#### Throughput (DL/UL) - LTE/NR
+| Quality | DL Range | UL Range | Color |
+|---------|----------|----------|-------|
+| Excellent | ≥ 50 Mbps | ≥ 20 Mbps | 🟢 Green |
+| Good | 25-50 Mbps | 10-20 Mbps | 🔵 Blue |
+| Fair | 10-25 Mbps | 5-10 Mbps | 🟡 Yellow |
+| Poor | < 10 Mbps | < 5 Mbps | 🔴 Red |
+
+---
+
+### UMTS (3G) Thresholds
+
+#### RSCP (Received Signal Code Power)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ -70 dBm | 🟢 Green |
+| Good | -70 to -85 dBm | 🔵 Blue |
+| Fair | -85 to -95 dBm | 🟡 Yellow |
+| Poor | < -95 dBm | 🔴 Red |
+
+#### Ec/No (Energy per Chip / Noise)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ -6 dB | 🟢 Green |
+| Good | -6 to -10 dB | 🔵 Blue |
+| Fair | -10 to -14 dB | 🟡 Yellow |
+| Poor | < -14 dB | 🔴 Red |
+
+#### Throughput (DL/UL) - UMTS/HSPA+
+| Quality | DL Range | UL Range | Color |
+|---------|----------|----------|-------|
+| Excellent | ≥ 10 Mbps | ≥ 5 Mbps | 🟢 Green |
+| Good | 5-10 Mbps | 2-5 Mbps | 🔵 Blue |
+| Fair | 2-5 Mbps | 1-2 Mbps | 🟡 Yellow |
+| Poor | < 2 Mbps | < 1 Mbps | 🔴 Red |
+
+---
+
+### GSM (2G) Thresholds
+
+#### RxLev (Received Signal Level)
+| Quality | Range | Color |
+|---------|-------|-------|
+| Excellent | ≥ -70 dBm | 🟢 Green |
+| Good | -70 to -85 dBm | 🔵 Blue |
+| Fair | -85 to -95 dBm | 🟡 Yellow |
+| Poor | < -95 dBm | 🔴 Red |
+
+#### RxQual (Received Signal Quality)
+| Quality | Range (0-7 scale) | Color |
+|---------|-------------------|-------|
+| Excellent | 0-2 | 🟢 Green |
+| Good | 3-4 | 🔵 Blue |
+| Fair | 5-6 | 🟡 Yellow |
+| Poor | 7 | 🔴 Red |
+
+#### Throughput (DL/UL) - GSM/EDGE
+| Quality | DL Range | UL Range | Color |
+|---------|----------|----------|-------|
+| Excellent | ≥ 0.2 Mbps | ≥ 0.1 Mbps | 🟢 Green |
+| Good | 0.1-0.2 Mbps | 0.05-0.1 Mbps | 🔵 Blue |
+| Fair | 0.05-0.1 Mbps | 0.02-0.05 Mbps | 🟡 Yellow |
+| Poor | < 0.05 Mbps | < 0.02 Mbps | 🔴 Red |
+
+---
+
+**Note:** Quality indicators appear in KPI chart tooltips for instant performance assessment. Thresholds automatically adapt based on detected technology (NR/LTE/UMTS/GSM).
 
 ---
 
@@ -462,7 +572,14 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.8 (Current - TxPower Integration)**
+**v3.9 (Current - UI Cleanup)**
+- ✅ **Removed non-functional Table view mode button**
+  - Simplified KPI visualization controls (Line and Bar only)
+  - Removed ~110 lines of unused table view code
+  - Cleaner, more intuitive interface
+  - Better user experience with only functional buttons displayed
+
+**v3.8 (TxPower Integration + Technology-Aware Quality Indicators)**
 - ✅ Added TxPower (Transmit Power) KPI visualization
 - ✅ TxPower time-series chart in KPI Comparison section
 - ✅ TxPower available in Multi-KPI Comparison (9 KPIs total, up from 8)
@@ -474,6 +591,14 @@ Client: Open URL → View dashboard (read-only)
 - ✅ Handles missing data gracefully with spanGaps
 - ✅ Fixed dark mode text visibility for "Include idle samples" checkbox
 - ✅ Proper theme toggle support (light/dark mode)
+- ✅ **Technology-aware quality indicators for all KPIs**
+  - **LTE/NR**: RSRP, RSRQ, SINR, CQI, MCS, BLER, DL/UL Throughput
+  - **UMTS**: RSCP, Ec/No, HSPA+ Throughput (technology-specific thresholds)
+  - **GSM**: RxLev, RxQual (0-7 scale), EDGE Throughput (technology-specific thresholds)
+  - Industry-standard thresholds with color-coded emojis (🟢🔵🟡🔴)
+  - Automatic threshold adaptation based on detected technology
+  - Instant performance assessment in chart tooltips
+  - Consistent with professional telecom tools (TEMS, Nemo)
 
 **v3.7 (Idle Sample Filtering)**
 - ✅ Smart idle sample filtering for correlation analysis

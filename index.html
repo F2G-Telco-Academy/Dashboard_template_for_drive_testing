@@ -253,9 +253,6 @@
                             <button class="chart-type-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-type="line">📈 Line</button>
                             <button class="chart-type-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-type="bar">📊 Bar</button>
                         </div>
-                        <div class="flex gap-1 bg-gray-100 rounded border border-gray-300 overflow-hidden">
-                            <button class="view-mode-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-mode="table">📋 Table</button>
-                        </div>
                     </div>
                 </div>
 
@@ -432,7 +429,7 @@
                     </div>
                 </div>
 
-                <!-- Statistics Cards - Grid/Table View -->
+                <!-- Statistics Cards -->
                 <div id="statsGridView" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="border-4 border-black bg-white p-4">
                         <h3 class="text-gray-900 font-bold mb-2 text-sm">Statistics</h3>
@@ -462,51 +459,6 @@
                             <div class="text-gray-600">No events</div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Statistics Table View -->
-                <div id="statsTableView" class="hidden border-4 border-black bg-white overflow-hidden">
-                    <table class="w-full text-gray-900 text-xs">
-                        <thead class="bg-gray-200">
-                            <tr>
-                                <th class="py-2 px-3 text-left font-bold">Metric</th>
-                                <th class="py-2 px-3 text-right font-bold">Value</th>
-                                <th class="py-2 px-3 text-right font-bold">Quality</th>
-                            </tr>
-                        </thead>
-                        <tbody id="statsTableBody">
-                            <tr class="border-t border-gray-300">
-                                <td class="py-2 px-3">Minimum</td>
-                                <td class="py-2 px-3 text-right font-mono" id="tableMin">-</td>
-                                <td class="py-2 px-3 text-right" id="tableMinQuality">-</td>
-                            </tr>
-                            <tr class="border-t border-gray-300">
-                                <td class="py-2 px-3">10th Percentile (P10)</td>
-                                <td class="py-2 px-3 text-right font-mono" id="tableP10">-</td>
-                                <td class="py-2 px-3 text-right" id="tableP10Quality">-</td>
-                            </tr>
-                            <tr class="border-t border-gray-300">
-                                <td class="py-2 px-3">Median (P50)</td>
-                                <td class="py-2 px-3 text-right font-mono" id="tableP50">-</td>
-                                <td class="py-2 px-3 text-right" id="tableP50Quality">-</td>
-                            </tr>
-                            <tr class="border-t border-gray-300">
-                                <td class="py-2 px-3">90th Percentile (P90)</td>
-                                <td class="py-2 px-3 text-right font-mono" id="tableP90">-</td>
-                                <td class="py-2 px-3 text-right" id="tableP90Quality">-</td>
-                            </tr>
-                            <tr class="border-t border-gray-300">
-                                <td class="py-2 px-3">Average</td>
-                                <td class="py-2 px-3 text-right font-mono" id="tableAvg">-</td>
-                                <td class="py-2 px-3 text-right" id="tableAvgQuality">-</td>
-                            </tr>
-                            <tr class="border-t border-gray-300">
-                                <td class="py-2 px-3">Maximum</td>
-                                <td class="py-2 px-3 text-right font-mono" id="tableMax">-</td>
-                                <td class="py-2 px-3 text-right" id="tableMaxQuality">-</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
 
             </div>
