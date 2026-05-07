@@ -305,13 +305,17 @@
                             <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="mcs" data-unit="" data-axis="right">
                             <span class="kpi-label font-mono text-gray-900">MCS</span>
                         </label>
+                        <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-100 p-2 rounded border border-gray-200 transition-all">
+                            <input type="checkbox" class="kpi-selector w-4 h-4" data-kpi="txpower" data-unit="dBm" data-axis="left">
+                            <span class="kpi-label font-mono text-gray-900">Tx Power</span>
+                        </label>
                     </div>
                     
                     <!-- Compare Button -->
                     <button id="compareKpisBtn" 
                         class="w-full bg-blue-600 text-white px-4 py-3 text-sm font-bold border-2 border-black hover:bg-blue-700 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                         disabled>
-                        📊 COMPARE SELECTED KPIs (<span id="selectedKpiCount">0</span>/6)
+                        📊 COMPARE SELECTED KPIs (<span id="selectedKpiCount">0</span>/9)
                     </button>
                 </div>
 
@@ -357,6 +361,10 @@
                             <h4 class="text-gray-900 text-xs font-bold mb-2">MCS</h4>
                             <canvas id="compMcsOnly" style="height: 150px;"></canvas>
                         </div>
+                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
+                            <h4 class="text-gray-900 text-xs font-bold mb-2">Tx Power (dBm)</h4>
+                            <canvas id="compTxPowerOnly" style="height: 150px;"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -377,7 +385,7 @@
                                 </select>
                             </div>
                             <div class="flex items-center gap-2 bg-yellow-50 border-2 border-yellow-400 px-3 py-1 rounded" title="When unchecked, excludes idle UE samples (throughput=0 with no active session) to show realistic network correlation">
-                                <label class="flex items-center gap-2 text-xs font-bold text-gray-900 cursor-pointer">
+                                <label class="flex items-center gap-2 text-xs font-bold cursor-pointer" id="idleSamplesLabel" style="color: #92400e;">
                                     <input type="checkbox" id="includeIdleSamples" class="w-4 h-4 cursor-pointer">
                                     <span>Include idle samples (Tput=0)</span>
                                 </label>
