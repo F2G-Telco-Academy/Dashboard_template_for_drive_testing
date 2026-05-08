@@ -39,6 +39,11 @@ A professional telecom network validation dashboard for creating **customizable 
 ### 📊 **KPI Visualization**
 - Real-time signal quality charts with technology-specific labels
 - Multiple chart types: Line, Area, Bar
+- **Enhanced Tooltips with GPS Coordinates**
+  - Latitude and longitude displayed in all chart tooltips (6 decimal precision)
+  - Technology indicator in tooltip title (e.g., "Time: 12:34:56 [UMTS]")
+  - Available in main KPI charts, comparison charts, and multi-KPI analysis
+  - Helps correlate performance with exact geographic location
 - **Technology-Adaptive KPI Tabs**
   - Auto-hide unavailable KPIs (e.g., SINR for UMTS, CQI for GSM)
   - Dynamic tab labels (RSRP→RSCP for UMTS, RSRP→RxLev for GSM)
@@ -522,7 +527,23 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.9 (Current - UI Cleanup)**
+**v3.10 (Current - GPS Coordinates & Technology Indicators)**
+- ✅ **Latitude and longitude in all chart tooltips**
+  - Main KPI charts (RSRP, RSRQ, SINR, CQI, MCS, BLER, DL/UL Throughput)
+  - KPI Comparison Analysis charts (all 9 time-series charts)
+  - Multi-KPI Comparison observation panel
+  - Map popups (regular markers and event markers)
+  - 6 decimal precision for accurate GPS positioning
+- ✅ **Technology indicator in tooltip titles**
+  - Shows cellular generation in brackets (e.g., "[UMTS]", "[GSM]", "[NR]", "[LTE]")
+  - Helps identify technology when viewing mixed-generation datasets
+  - Displayed in main KPI chart tooltips
+- ✅ **Improved data correlation**
+  - Easy to correlate KPI performance with exact geographic location
+  - Useful for identifying coverage issues at specific coordinates
+  - Supports drive test analysis and troubleshooting
+
+**v3.9 (UI Cleanup)**
 - ✅ **Removed non-functional Table view mode button**
   - Simplified KPI visualization controls (Line and Bar only)
   - Removed ~110 lines of unused table view code

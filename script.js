@@ -1263,7 +1263,9 @@
                             callbacks: {
                                 title: function(context) {
                                     const idx = context[0].dataIndex;
-                                    return 'Time: ' + context[0].label;
+                                    const point = parsedData[idx];
+                                    const tech = point?.technology || detectedTechnology || 'LTE';
+                                    return 'Time: ' + context[0].label + ' [' + tech + ']';
                                 },
                                 label: function(context) {
                                     return null;
@@ -1273,57 +1275,164 @@
                                     const point = parsedData[idx];
                                     if (!point) return [];
                                     
+                                    // Get technology for this specific point
+                                    const tech = point.technology || detectedTechnology || 'LTE';
+                                    
                                     // Context-aware tooltip: Show only the current KPI being viewed
                                     const lines = ['━━━━━━━━━━━━━━━━━━━'];
                                     
+                                    // Add Latitude and Longitude
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (!isNaN(lat) && !isNaN(lon)) {
+                                        lines.push('Latitude: ' + lat.toFixed(6));
+                                        lines.push('Longitude: ' + lon.toFixed(6));
+                                        lines.push('━━━━━━━━━━━━━━━━━━━');
+                                    }
+                                    
                                     if (kpiType === 'rsrp') {
-                                        const rsrp = parseFloat(point.rsrp) || 0;
-                                        const quality = getKpiQuality('rsrp', rsrp, dominantTech);
-                                        lines.push('RSRP: ' + rsrp.toFixed(2) + ' dBm');
+                                        let rsrpValue, rsrpLabel, cellIdLabel, cellId;
+                                        
+                                        if (tech === 'NR') {
+                                            rsrpValue = parseFloat(point.nr_rsrp) || 0;
+                                            rsrpLabel = 'NR-RSRP';
+                                            cellIdLabel = 'NR-PCI';
+                                            cellId = point.nr_pci || '-';
+                                        } else if (tech === 'UMTS') {
+                                            rsrpValue = parseFloat(point.wcdma_rscp) || 0;
+                                            rsrpLabel = 'RSCP';
+                                            cellIdLabel = 'PSC';
+                                            cellId = point.wcdma_psc || point.psc || '-';
+                                        } else if (tech === 'GSM') {
+                                            rsrpValue = parseFloat(point.gsm_rxlev || point.rxlev) || 0;
+                                            rsrpLabel = 'RxLev';
+                                            cellIdLabel = 'BSIC';
+                                            cellId = point.gsm_bsic || point.bsic || '-';
+                                        } else {
+                                            rsrpValue = parseFloat(point.rsrp) || 0;
+                                            rsrpLabel = 'RSRP';
+                                            cellIdLabel = 'PCI';
+                                            cellId = point.pci || '-';
+                                        }
+                                        
+                                        const quality = getKpiQuality('rsrp', rsrpValue, tech);
+                                        lines.push(rsrpLabel + ': ' + rsrpValue.toFixed(2) + ' dBm');
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'rsrq') {
-                                        const rsrq = parseFloat(point.rsrq) || 0;
-                                        const quality = getKpiQuality('rsrq', rsrq, dominantTech);
-                                        lines.push('RSRQ: ' + rsrq.toFixed(2) + ' dB');
+                                        let rsrqValue, rsrqLabel, cellIdLabel, cellId;
+                                        
+                                        if (tech === 'NR') {
+                                            rsrqValue = parseFloat(point.nr_rsrq) || 0;
+                                            rsrqLabel = 'NR-RSRQ';
+                                            cellIdLabel = 'NR-PCI';
+                                            cellId = point.nr_pci || '-';
+                                        } else if (tech === 'UMTS') {
+                                            rsrqValue = parseFloat(point.wcdma_ecno) || 0;
+                                            rsrqLabel = 'Ec/No';
+                                            cellIdLabel = 'PSC';
+                                            cellId = point.wcdma_psc || point.psc || '-';
+                                        } else if (tech === 'GSM') {
+                                            rsrqValue = parseFloat(point.gsm_rxqual || point.rxqual) || 0;
+                                            rsrqLabel = 'RxQual';
+                                            cellIdLabel = 'BSIC';
+                                            cellId = point.gsm_bsic || point.bsic || '-';
+                                        } else {
+                                            rsrqValue = parseFloat(point.rsrq) || 0;
+                                            rsrqLabel = 'RSRQ';
+                                            cellIdLabel = 'PCI';
+                                            cellId = point.pci || '-';
+                                        }
+                                        
+                                        const quality = getKpiQuality('rsrq', rsrqValue, tech);
+                                        lines.push(rsrqLabel + ': ' + rsrqValue.toFixed(2) + (tech === 'GSM' ? '' : ' dB'));
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'sinr') {
-                                        const sinr = parseFloat(point.sinr) || 0;
-                                        const quality = getKpiQuality('sinr', sinr, dominantTech);
-                                        lines.push('SINR: ' + sinr.toFixed(2) + ' dB');
+                                        let sinrValue, sinrLabel, cellIdLabel, cellId;
+                                        
+                                        if (tech === 'NR') {
+                                            sinrValue = parseFloat(point.nr_sinr) || 0;
+                                            sinrLabel = 'NR-SINR';
+                                            cellIdLabel = 'NR-PCI';
+                                            cellId = point.nr_pci || '-';
+                                        } else {
+                                            sinrValue = parseFloat(point.sinr) || 0;
+                                            sinrLabel = 'SINR';
+                                            cellIdLabel = 'PCI';
+                                            cellId = point.pci || '-';
+                                        }
+                                        
+                                        const quality = getKpiQuality('sinr', sinrValue, tech);
+                                        lines.push(sinrLabel + ': ' + sinrValue.toFixed(2) + ' dB');
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'cqi') {
                                         const cqi = parseFloat(point.cqi) || 0;
-                                        const quality = getKpiQuality('cqi', cqi, dominantTech);
+                                        const quality = getKpiQuality('cqi', cqi, tech);
                                         lines.push('CQI: ' + cqi);
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        const cellId = tech === 'NR' ? (point.nr_pci || '-') : (point.pci || '-');
+                                        const cellIdLabel = tech === 'NR' ? 'NR-PCI' : 'PCI';
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'mcs') {
                                         const mcs = parseFloat(point.mcs) || 0;
-                                        const quality = getKpiQuality('mcs', mcs, dominantTech);
+                                        const quality = getKpiQuality('mcs', mcs, tech);
                                         lines.push('MCS: ' + mcs);
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        const cellId = tech === 'NR' ? (point.nr_pci || '-') : (point.pci || '-');
+                                        const cellIdLabel = tech === 'NR' ? 'NR-PCI' : 'PCI';
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'bler') {
                                         const bler = parseFloat(point.bler) || 0;
-                                        const quality = getKpiQuality('bler', bler, dominantTech);
+                                        const quality = getKpiQuality('bler', bler, tech);
                                         lines.push('BLER: ' + bler + '%');
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        const cellId = tech === 'NR' ? (point.nr_pci || '-') : (point.pci || '-');
+                                        const cellIdLabel = tech === 'NR' ? 'NR-PCI' : 'PCI';
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'throughput_dl_mbps') {
                                         const dl = parseFloat(point.throughput_dl_mbps) || 0;
-                                        const quality = getKpiQuality('throughput_dl_mbps', dl, dominantTech);
+                                        const quality = getKpiQuality('throughput_dl_mbps', dl, tech);
                                         lines.push('DL Throughput: ' + dl + ' Mbps');
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        
+                                        let cellId, cellIdLabel;
+                                        if (tech === 'NR') {
+                                            cellId = point.nr_pci || '-';
+                                            cellIdLabel = 'NR-PCI';
+                                        } else if (tech === 'UMTS') {
+                                            cellId = point.wcdma_psc || point.psc || '-';
+                                            cellIdLabel = 'PSC';
+                                        } else if (tech === 'GSM') {
+                                            cellId = point.gsm_bsic || point.bsic || '-';
+                                            cellIdLabel = 'BSIC';
+                                        } else {
+                                            cellId = point.pci || '-';
+                                            cellIdLabel = 'PCI';
+                                        }
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else if (kpiType === 'throughput_ul_mbps') {
                                         const ul = parseFloat(point.throughput_ul_mbps) || 0;
-                                        const quality = getKpiQuality('throughput_ul_mbps', ul, dominantTech);
+                                        const quality = getKpiQuality('throughput_ul_mbps', ul, tech);
                                         lines.push('UL Throughput: ' + ul + ' Mbps');
                                         if (quality) lines.push('Quality: ' + quality.emoji + ' ' + quality.text);
-                                        lines.push('PCI: ' + (point.pci || '-'));
+                                        
+                                        let cellId, cellIdLabel;
+                                        if (tech === 'NR') {
+                                            cellId = point.nr_pci || '-';
+                                            cellIdLabel = 'NR-PCI';
+                                        } else if (tech === 'UMTS') {
+                                            cellId = point.wcdma_psc || point.psc || '-';
+                                            cellIdLabel = 'PSC';
+                                        } else if (tech === 'GSM') {
+                                            cellId = point.gsm_bsic || point.bsic || '-';
+                                            cellIdLabel = 'BSIC';
+                                        } else {
+                                            cellId = point.pci || '-';
+                                            cellIdLabel = 'PCI';
+                                        }
+                                        lines.push(cellIdLabel + ': ' + cellId);
                                     } else {
                                         // Fallback: show the current KPI value
                                         const value = parseFloat(point[kpiType]) || 0;
@@ -1446,6 +1555,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return 'CQI: ' + context.parsed.y.toFixed(0);
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1490,6 +1608,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return 'MCS: ' + context.parsed.y.toFixed(0);
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1535,6 +1662,15 @@ function renderScatterPlots() {
                                     title: function(context) { return 'Time: ' + context[0].label; },
                                     label: function(context) {
                                         return sinrLabel + ': ' + context.parsed.y.toFixed(2);
+                                    },
+                                    afterLabel: function(context) {
+                                        const idx = context.dataIndex;
+                                        const point = parsedData[idx];
+                                        if (!point) return [];
+                                        const lat = parseFloat(point.latitude || point.lat);
+                                        const lon = parseFloat(point.longitude || point.lon);
+                                        if (isNaN(lat) || isNaN(lon)) return [];
+                                        return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                     }
                                 }
                             }
@@ -1578,6 +1714,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return rsrpLabel + ': ' + context.parsed.y.toFixed(2);
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1618,6 +1763,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return rsrqLabel + ': ' + context.parsed.y.toFixed(2);
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1656,6 +1810,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return 'DL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1694,6 +1857,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return 'UL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1736,6 +1908,15 @@ function renderScatterPlots() {
                                 title: function(context) { return 'Time: ' + context[0].label; },
                                 label: function(context) {
                                     return 'BLER: ' + context.parsed.y.toFixed(2) + ' %';
+                                },
+                                afterLabel: function(context) {
+                                    const idx = context.dataIndex;
+                                    const point = parsedData[idx];
+                                    if (!point) return [];
+                                    const lat = parseFloat(point.latitude || point.lat);
+                                    const lon = parseFloat(point.longitude || point.lon);
+                                    if (isNaN(lat) || isNaN(lon)) return [];
+                                    return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                 }
                             }
                         }
@@ -1799,6 +1980,15 @@ function renderScatterPlots() {
                                         label: function(context) {
                                             if (context.parsed.y === null) return 'Tx Power: N/A';
                                             return 'Tx Power: ' + context.parsed.y.toFixed(2) + ' dBm';
+                                        },
+                                        afterLabel: function(context) {
+                                            const idx = context.dataIndex;
+                                            const point = parsedData[idx];
+                                            if (!point) return [];
+                                            const lat = parseFloat(point.latitude || point.lat);
+                                            const lon = parseFloat(point.longitude || point.lon);
+                                            if (isNaN(lat) || isNaN(lon)) return [];
+                                            return ['Lat: ' + lat.toFixed(6), 'Lon: ' + lon.toFixed(6)];
                                         }
                                     }
                                 }
@@ -2999,6 +3189,8 @@ function renderScatterPlots() {
                         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                             <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div>
                             <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                            <div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div>
+                            <div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>
                             ${kpiContent}
                             ${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}
                         </div>
@@ -3053,6 +3245,8 @@ function renderScatterPlots() {
                     <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                         <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label} (${tech})</div>
                         <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                        <div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div>
+                        <div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>
                         ${kpiContent}
                     </div>
                 `);
@@ -4085,6 +4279,19 @@ function renderScatterPlots() {
             html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Timestamp</div>`;
             html += `<div style="font-size:13px; font-weight:700; font-family:'JetBrains Mono';">${timestamp || 'N/A'}</div>`;
             html += `</div>`;
+            
+            // GPS Coordinates section
+            if (point) {
+                const lat = parseFloat(point.latitude || point.lat);
+                const lon = parseFloat(point.longitude || point.lon);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    html += `<div style="background:${bgColor}; padding:10px; border-radius:4px; margin-bottom:12px; border:1px solid ${borderColor};">`;
+                    html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">GPS Coordinates</div>`;
+                    html += `<div style="font-size:11px; font-family:'JetBrains Mono'; margin-bottom:2px;"><span style="color:${mutedColor};">Lat:</span> <span style="font-weight:700;">${lat.toFixed(6)}</span></div>`;
+                    html += `<div style="font-size:11px; font-family:'JetBrains Mono';"><span style="color:${mutedColor};">Lon:</span> <span style="font-weight:700;">${lon.toFixed(6)}</span></div>`;
+                    html += `</div>`;
+                }
+            }
             
             // KPI Values section
             html += `<div style="margin-bottom:12px;">`;
