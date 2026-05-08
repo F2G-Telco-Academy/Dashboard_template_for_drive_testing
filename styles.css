@@ -125,3 +125,58 @@ body {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* =====================================================
+   CHART VISIBILITY CONTROLS
+   ===================================================== */
+
+/* Chart toggle button hover effects */
+.chart-toggle-btn {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.chart-toggle-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Hidden chart state - smooth collapse */
+.chart-container.hidden,
+.chart-section.hidden {
+    display: none !important;
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Customize panel animations */
+#customizePanel {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Checkbox styling in customize panel */
+.chart-visibility-checkbox {
+    cursor: pointer;
+    accent-color: #2563eb;
+}
+
+.chart-visibility-checkbox:hover {
+    transform: scale(1.1);
+}
+
+/* Chart count badge */
+#visibleChartCount {
+    font-weight: bold;
+    color: #2563eb;
+}

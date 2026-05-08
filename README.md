@@ -39,6 +39,13 @@ A professional telecom network validation dashboard for creating **customizable 
 ### 📊 **KPI Visualization**
 - Real-time signal quality charts with technology-specific labels
 - Multiple chart types: Line, Area, Bar
+- **Customizable Chart Visibility**
+  - Individual hide/show buttons (✕) on each chart for quick control
+  - Centralized "⚙️ Customize Charts" panel for bulk management
+  - Select which charts to display (hide irrelevant KPIs for specific test scenarios)
+  - State persists across sessions (saved in localStorage)
+  - Technology-aware: only shows applicable charts per RAT
+  - Reduces scrolling and clutter for focused analysis
 - **Enhanced Tooltips with GPS Coordinates**
   - Latitude and longitude displayed in all chart tooltips (6 decimal precision)
   - Technology indicator in tooltip title (e.g., "Time: 12:34:56 [UMTS]")
@@ -527,7 +534,29 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.10 (Current - GPS Coordinates & Technology Indicators)**
+**v3.11 (Current - Customizable Chart Visibility)**
+- ✅ **Customizable chart visibility system**
+  - Individual ✕ (close) buttons on each chart for quick hide/show
+  - Centralized "⚙️ Customize Charts" panel for bulk management
+  - Technology-aware: adapts labels and availability based on RAT (2G/3G/4G/5G)
+  - Light/Dark mode support for customize panel
+  - State persistence via localStorage (survives page reloads)
+  - 13 controllable charts (9 time-series + 4 scatter plots)
+  - Distribution Histogram always visible (not controllable)
+- ✅ **Customize panel features**
+  - Organized by categories (Time Series Charts, Correlation Charts)
+  - Real-time chart count display (e.g., "Showing: 8 of 13 charts")
+  - Bulk operations: Select All, Deselect All, Reset to Default
+  - Technology-specific labels (RSCP for UMTS, RxLev for GSM, etc.)
+  - Disabled checkboxes for unavailable KPIs (SINR/BLER/CQI/MCS for 3G/2G)
+  - Unique scatter plot labels per technology (e.g., "DL Tput vs Ec/No" for UMTS)
+- ✅ **User experience improvements**
+  - Reduces scrolling through 10+ charts
+  - Focus on 2-3 relevant KPIs for specific test cases
+  - Cleaner presentations for clients
+  - Flexible workflow: quick toggles or bulk management
+
+**v3.10 (GPS Coordinates & Technology Indicators)**
 - ✅ **Latitude and longitude in all chart tooltips**
   - Main KPI charts (RSRP, RSRQ, SINR, CQI, MCS, BLER, DL/UL Throughput)
   - KPI Comparison Analysis charts (all 9 time-series charts)

@@ -78,6 +78,470 @@
             isClientView = !!(encodedConfig || modeParam === 'view');
         }
 
+        // =====================================================
+        // CHART VISIBILITY STATE
+        // =====================================================
+        let chartVisibility = {
+            'rsrp': true,
+            'rsrq': true,
+            'sinr': true,
+            'dl-throughput': true,
+            'ul-throughput': true,
+            'bler': true,
+            'cqi': true,
+            'mcs': true,
+            'txpower': true,
+            'scatter-tput-sinr': true,
+            'scatter-tput-rsrp': true,
+            'scatter-mcs-cqi': true,
+            'scatter-bler-tput': true
+        };
+
+        // Load chart visibility from localStorage
+        function loadChartVisibility() {
+            const saved = localStorage.getItem('chartVisibility');
+            if (saved) {
+                try {
+                    chartVisibility = JSON.parse(saved);
+                    console.log('Loaded chart visibility from localStorage:', chartVisibility);
+                } catch (e) {
+                    console.error('Failed to load chart visibility:', e);
+                }
+            }
+        }
+
+        // Save chart visibility to localStorage
+        function saveChartVisibility() {
+            localStorage.setItem('chartVisibility', JSON.stringify(chartVisibility));
+        }
+
+        // Apply chart visibility to DOM
+        function applyChartVisibility() {
+            console.log('Applying chart visibility:', chartVisibility);
+            
+            // Always ensure sections and histogram are visible
+            const kpiComparisonSection = document.getElementById('kpiComparisonSection');
+            const correlationSection = document.getElementById('correlationSection');
+            const histogramContainer = document.getElementById('kpiHistogramContainer');
+            
+            if (kpiComparisonSection) {
+                kpiComparisonSection.style.display = '';
+                kpiComparisonSection.classList.remove('hidden');
+            }
+            if (correlationSection) {
+                correlationSection.style.display = '';
+                correlationSection.classList.remove('hidden');
+            }
+            // Histogram visibility is controlled by renderKPIChart function, not by user
+            // Just ensure it's not affected by our visibility system
+            
+            Object.keys(chartVisibility).forEach(chartId => {
+                const isVisible = chartVisibility[chartId];
+                const chartElement = document.getElementById(`chart-${chartId}`);
+                
+                console.log(`Chart ${chartId}: visible=${isVisible}, element found=${!!chartElement}`);
+                
+                if (chartElement) {
+                    if (isVisible) {
+                        chartElement.style.display = '';
+                        chartElement.classList.remove('hidden');
+                    } else {
+                        chartElement.style.display = 'none';
+                        chartElement.classList.add('hidden');
+                    }
+                }
+
+                // Update toggle button text
+                const toggleBtn = document.querySelector(`.chart-toggle-btn[data-chart-id="${chartId}"]`);
+                if (toggleBtn) {
+                    toggleBtn.innerHTML = '✕';
+                    toggleBtn.title = isVisible ? 'Hide this chart' : 'Show this chart';
+                }
+
+                // Update checkbox in customize panel
+                const checkbox = document.querySelector(`.chart-visibility-checkbox[data-chart-id="${chartId}"]`);
+                if (checkbox) {
+                    checkbox.checked = isVisible;
+                }
+            });
+
+            updateChartCount();
+        }
+
+        // Update chart count display
+        function updateChartCount() {
+            // Only count enabled (non-disabled) checkboxes
+            const checkboxes = document.querySelectorAll('.chart-visibility-checkbox:not([disabled])');
+            const total = checkboxes.length;
+            const visible = Array.from(checkboxes).filter(cb => cb.checked).length;
+            
+            const visibleCountEl = document.getElementById('visibleChartCount');
+            const totalCountEl = document.getElementById('totalChartCount');
+            
+            if (visibleCountEl) visibleCountEl.textContent = visible;
+            if (totalCountEl) totalCountEl.textContent = total;
+        }
+
+        // Toggle individual chart visibility
+        function toggleChartVisibility(chartId) {
+            chartVisibility[chartId] = !chartVisibility[chartId];
+            saveChartVisibility();
+            applyChartVisibility();
+        }
+
+        // Initialize chart visibility controls
+        function initializeChartVisibilityControls() {
+            // Apply initial visibility
+            applyChartVisibility();
+
+            // Customize Charts button
+            const customizeBtn = document.getElementById('customizeChartsBtn');
+            const customizePanel = document.getElementById('customizePanel');
+            const closePanelBtn = document.getElementById('closePanelBtn');
+            const applyChartsBtn = document.getElementById('applyChartsBtn');
+            const selectAllBtn = document.getElementById('selectAllChartsBtn');
+            const deselectAllBtn = document.getElementById('deselectAllChartsBtn');
+            const resetChartsBtn = document.getElementById('resetChartsBtn');
+
+            // Open customize panel
+            if (customizeBtn) {
+                customizeBtn.addEventListener('click', () => {
+                    customizePanel.classList.remove('hidden');
+                    
+                    // Apply current theme to customize panel
+                    applyThemeToCustomizePanel();
+                    
+                    // Update panel labels based on current technology
+                    updateCustomizePanelForTechnology();
+                    // Sync checkboxes with current state
+                    document.querySelectorAll('.chart-visibility-checkbox').forEach(checkbox => {
+                        const chartId = checkbox.dataset.chartId;
+                        checkbox.checked = chartVisibility[chartId] !== false;
+                    });
+                    updateChartCount();
+                });
+            }
+
+            // Close panel
+            if (closePanelBtn) {
+                closePanelBtn.addEventListener('click', () => {
+                    customizePanel.classList.add('hidden');
+                });
+            }
+
+            // Close panel when clicking outside
+            if (customizePanel) {
+                customizePanel.addEventListener('click', (e) => {
+                    if (e.target === customizePanel) {
+                        customizePanel.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Apply changes
+            if (applyChartsBtn) {
+                applyChartsBtn.addEventListener('click', () => {
+                    // Update visibility from checkboxes
+                    document.querySelectorAll('.chart-visibility-checkbox').forEach(checkbox => {
+                        const chartId = checkbox.dataset.chartId;
+                        chartVisibility[chartId] = checkbox.checked;
+                    });
+                    saveChartVisibility();
+                    applyChartVisibility();
+                    customizePanel.classList.add('hidden');
+                });
+            }
+
+            // Select all
+            if (selectAllBtn) {
+                selectAllBtn.addEventListener('click', () => {
+                    document.querySelectorAll('.chart-visibility-checkbox').forEach(checkbox => {
+                        // Only check if not disabled
+                        if (!checkbox.disabled) {
+                            checkbox.checked = true;
+                        }
+                    });
+                    updateChartCount();
+                });
+            }
+
+            // Deselect all
+            if (deselectAllBtn) {
+                deselectAllBtn.addEventListener('click', () => {
+                    document.querySelectorAll('.chart-visibility-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    updateChartCount();
+                });
+            }
+
+            // Reset to default
+            if (resetChartsBtn) {
+                resetChartsBtn.addEventListener('click', () => {
+                    document.querySelectorAll('.chart-visibility-checkbox').forEach(checkbox => {
+                        // Only check if not disabled
+                        if (!checkbox.disabled) {
+                            checkbox.checked = true;
+                        }
+                    });
+                    updateChartCount();
+                });
+            }
+
+            // Update count when checkboxes change
+            document.querySelectorAll('.chart-visibility-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateChartCount);
+            });
+
+            // Individual chart toggle buttons
+            document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const chartId = btn.dataset.chartId;
+                    toggleChartVisibility(chartId);
+                });
+            });
+        }
+
+        // Update customize panel labels based on detected technology
+        function updateCustomizePanelForTechnology() {
+            const tech = detectedTechnology || 'LTE';
+            
+            // Get all checkbox labels
+            const checkboxes = document.querySelectorAll('.chart-visibility-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                const chartId = checkbox.dataset.chartId;
+                const label = checkbox.parentElement.querySelector('.text-sm.font-mono');
+                
+                if (!label) return;
+                
+                // Update labels and disable unavailable charts based on technology
+                switch(chartId) {
+                    case 'rsrp':
+                        if (tech === 'UMTS') {
+                            label.textContent = 'RSCP (dBm)';
+                        } else if (tech === 'GSM') {
+                            label.textContent = 'RxLev (dBm)';
+                        } else if (tech === 'NR') {
+                            label.textContent = 'NR-RSRP (dBm)';
+                        } else {
+                            label.textContent = 'RSRP (dBm)';
+                        }
+                        checkbox.disabled = false;
+                        checkbox.parentElement.style.opacity = '1';
+                        break;
+                        
+                    case 'rsrq':
+                        if (tech === 'UMTS') {
+                            label.textContent = 'Ec/No (dB)';
+                        } else if (tech === 'GSM') {
+                            label.textContent = 'RxQual';
+                        } else if (tech === 'NR') {
+                            label.textContent = 'NR-RSRQ (dB)';
+                        } else {
+                            label.textContent = 'RSRQ (dB)';
+                        }
+                        checkbox.disabled = false;
+                        checkbox.parentElement.style.opacity = '1';
+                        break;
+                        
+                    case 'sinr':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'SINR (dB) - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else if (tech === 'NR') {
+                            label.textContent = 'NR-SINR (dB)';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        } else {
+                            label.textContent = 'SINR (dB)';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'bler':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'BLER (%) - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else {
+                            label.textContent = 'BLER (%)';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'cqi':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'CQI - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else {
+                            label.textContent = 'CQI';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'mcs':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'MCS - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else {
+                            label.textContent = 'MCS';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'scatter-mcs-cqi':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'MCS vs CQI - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else {
+                            label.textContent = 'MCS vs CQI';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'scatter-bler-tput':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'DL Throughput vs BLER - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else {
+                            label.textContent = 'DL Throughput vs BLER';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'scatter-tput-sinr':
+                        if (tech === 'UMTS') {
+                            label.textContent = 'DL Throughput vs RSCP';
+                        } else if (tech === 'GSM') {
+                            label.textContent = 'DL Throughput vs RxLev';
+                        } else {
+                            label.textContent = 'DL Throughput vs SINR';
+                        }
+                        checkbox.disabled = false;
+                        checkbox.parentElement.style.opacity = '1';
+                        break;
+                        
+                    case 'scatter-tput-rsrp':
+                        if (tech === 'UMTS') {
+                            label.textContent = 'DL Throughput vs Ec/No';
+                        } else if (tech === 'GSM') {
+                            label.textContent = 'DL Throughput vs RxQual';
+                        } else {
+                            label.textContent = 'DL Throughput vs RSRP';
+                        }
+                        checkbox.disabled = false;
+                        checkbox.parentElement.style.opacity = '1';
+                        break;
+                }
+            });
+        }
+
+        // Apply current theme to customize panel
+        function applyThemeToCustomizePanel() {
+            const panel = document.querySelector('#customizePanel > div');
+            const header = panel?.querySelector('.bg-gray-900');
+            const content = panel?.querySelector('.p-6');
+            const footer = panel?.querySelector('.bg-gray-100');
+            const infoBox = panel?.querySelector('.bg-blue-50');
+            const infoBoxText = infoBox?.querySelectorAll('span');
+            const sectionHeaders = panel?.querySelectorAll('.text-gray-900.mb-3');
+            const checkboxLabels = panel?.querySelectorAll('label');
+            
+            if (kpiTheme === 'dark') {
+                // Dark mode
+                if (panel) {
+                    panel.classList.remove('bg-white');
+                    panel.classList.add('bg-gray-800');
+                }
+                if (header) {
+                    // Header stays dark (already bg-gray-900)
+                }
+                if (content) {
+                    content.classList.remove('bg-white');
+                    content.classList.add('bg-gray-800');
+                }
+                if (footer) {
+                    footer.classList.remove('bg-gray-100');
+                    footer.classList.add('bg-gray-700');
+                }
+                if (infoBox) {
+                    infoBox.classList.remove('bg-blue-50', 'border-blue-300', 'text-sm');
+                    infoBox.classList.add('bg-blue-900', 'border-blue-600', 'text-sm', 'text-white');
+                }
+                // Make info box text white in dark mode
+                infoBoxText?.forEach(span => {
+                    span.classList.add('text-white');
+                });
+                sectionHeaders?.forEach(h => {
+                    h.classList.remove('text-gray-900', 'border-gray-300');
+                    h.classList.add('text-white', 'border-gray-600');
+                });
+                checkboxLabels?.forEach(label => {
+                    label.classList.remove('hover:bg-gray-50', 'border-gray-200');
+                    label.classList.add('hover:bg-gray-700', 'border-gray-600');
+                    const span = label.querySelector('span');
+                    if (span) {
+                        span.classList.remove('text-gray-900');
+                        span.classList.add('text-gray-200');
+                    }
+                });
+            } else {
+                // Light mode
+                if (panel) {
+                    panel.classList.remove('bg-gray-800');
+                    panel.classList.add('bg-white');
+                }
+                if (content) {
+                    content.classList.remove('bg-gray-800');
+                    content.classList.add('bg-white');
+                }
+                if (footer) {
+                    footer.classList.remove('bg-gray-700');
+                    footer.classList.add('bg-gray-100');
+                }
+                if (infoBox) {
+                    infoBox.classList.remove('bg-blue-900', 'border-blue-600', 'text-white');
+                    infoBox.classList.add('bg-blue-50', 'border-blue-300');
+                }
+                // Remove white text class in light mode
+                infoBoxText?.forEach(span => {
+                    span.classList.remove('text-white');
+                });
+                sectionHeaders?.forEach(h => {
+                    h.classList.remove('text-white', 'border-gray-600');
+                    h.classList.add('text-gray-900', 'border-gray-300');
+                });
+                checkboxLabels?.forEach(label => {
+                    label.classList.remove('hover:bg-gray-700', 'border-gray-600');
+                    label.classList.add('hover:bg-gray-50', 'border-gray-200');
+                    const span = label.querySelector('span');
+                    if (span) {
+                        span.classList.remove('text-gray-200');
+                        span.classList.add('text-gray-900');
+                    }
+                });
+            }
+        }
+
         // Store default config for reset functionality
         const defaultConfig = { ...currentConfig };
 
@@ -3679,6 +4143,8 @@ function renderScatterPlots() {
         // Load saved state on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadSavedState();
+            loadChartVisibility();
+            initializeChartVisibilityControls();
         });
 
         // Auto-save on input changes
@@ -4018,13 +4484,13 @@ function renderScatterPlots() {
                     el.classList.add('text-gray-600');
                 });
                 // Fix KPI tab and button borders for light mode
-                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel #customizeChartsBtn').forEach(el => {
                     el.classList.remove('border-white');
                     el.classList.add('border-gray-400');
                     // Switch inactive button background to light
                     if (!el.classList.contains('bg-blue-600')) {
-                        el.classList.remove('bg-gray-700');
-                        el.classList.add('bg-gray-200');
+                        el.classList.remove('bg-gray-700', 'text-white');
+                        el.classList.add('bg-gray-200', 'text-gray-900');
                     }
                 });
                 // Fix theme toggle button for light mode
@@ -4074,13 +4540,13 @@ function renderScatterPlots() {
                     el.classList.add('text-gray-400');
                 });
                 // Fix KPI tab and button borders for dark mode
-                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn').forEach(el => {
+                document.querySelectorAll('#kpiPanel .kpi-tab, #kpiPanel .chart-type-btn, #kpiPanel #customizeChartsBtn').forEach(el => {
                     el.classList.remove('border-gray-400');
                     el.classList.add('border-white');
                     // Switch inactive button background to dark
                     if (!el.classList.contains('bg-blue-600')) {
-                        el.classList.remove('bg-gray-200');
-                        el.classList.add('bg-gray-700');
+                        el.classList.remove('bg-gray-200', 'text-gray-900');
+                        el.classList.add('bg-gray-700', 'text-white');
                     }
                 });
                 // Fix theme toggle button for dark mode

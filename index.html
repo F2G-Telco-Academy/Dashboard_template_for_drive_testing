@@ -249,6 +249,11 @@
                         <button class="kpi-tab bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400" data-kpi="throughput_ul_mbps">UL Mbps</button>
                     </div>
                     <div class="flex gap-2">
+                        <button id="customizeChartsBtn" 
+                            class="bg-gray-200 text-gray-900 px-3 py-2 text-xs font-bold border-2 border-gray-400 hover:bg-gray-300 transition-all"
+                            title="Customize chart visibility">
+                            ⚙️ Customize Charts
+                        </button>
                         <div class="flex gap-1 bg-gray-100 rounded border border-gray-300 overflow-hidden">
                             <button class="chart-type-btn active bg-blue-600 text-white px-2 py-1 text-xs font-bold" data-type="line">📈 Line</button>
                             <button class="chart-type-btn bg-gray-200 text-gray-900 px-2 py-1 text-xs font-bold" data-type="bar">📊 Bar</button>
@@ -316,57 +321,104 @@
                     </button>
                 </div>
 
-<!-- KPI Distribution Histogram -->
-                <div id="kpiHistogramContainer" class="border-4 border-black bg-white p-4 pb-8" style="height: 300px; display: none;">
-                    <h3 class="text-gray-900 font-bold mb-2 text-sm" id="histogramTitle">Distribution Histogram</h3>
+                <!-- KPI Distribution Histogram -->
+                <div id="kpiHistogramContainer" class="chart-section border-4 border-black bg-white p-4 pb-8" style="height: 300px; display: none;" data-chart-id="histogram">
+                    <h3 class="text-gray-900 font-bold text-sm mb-2" id="histogramTitle">Distribution Histogram</h3>
                     <canvas id="kpiHistogram"></canvas>
                 </div>
 
                 <!-- KPI Comparison Section - Time Series -->
-                <div class="border-4 border-black bg-white p-4">
-                    <h3 id="kpiComparisonTitle" class="text-gray-900 font-bold mb-4 text-base border-b-2 border-gray-300 pb-2">📊 KPI COMPARISON ANALYSIS (Time Series)</h3>
+                <div id="kpiComparisonSection" class="chart-section border-4 border-black bg-white p-4" data-chart-id="comparison-section">
+                    <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-2">
+                        <h3 id="kpiComparisonTitle" class="text-gray-900 font-bold text-base">📊 KPI COMPARISON ANALYSIS (Time Series)</h3>
+                    </div>
                     <div class="grid grid-cols-1 gap-4">
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;">
-                            <h4 id="rsrpChartHeader" class="text-gray-900 text-xs font-bold mb-2">RSRP (dBm)</h4>
+                        <div id="chart-rsrp" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;" data-chart-id="rsrp">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 id="rsrpChartHeader" class="text-gray-900 text-xs font-bold">RSRP (dBm)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="rsrp" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compRsrpOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
-                            <h4 id="rsrqChartHeader" class="text-gray-900 text-xs font-bold mb-2">RSRQ (dB)</h4>
+                        <div id="chart-rsrq" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;" data-chart-id="rsrq">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 id="rsrqChartHeader" class="text-gray-900 text-xs font-bold">RSRQ (dB)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="rsrq" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compRsrqOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
-                            <h4 id="sinrChartHeader" class="text-gray-900 text-xs font-bold mb-2">SINR (dB)</h4>
+                        <div id="chart-sinr" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;" data-chart-id="sinr">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 id="sinrChartHeader" class="text-gray-900 text-xs font-bold">SINR (dB)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="sinr" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compSinrOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;">
-                            <h4 class="text-gray-900 text-xs font-bold mb-2">DL Throughput (Mbps)</h4>
+                        <div id="chart-dl-throughput" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;" data-chart-id="dl-throughput">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-gray-900 text-xs font-bold">DL Throughput (Mbps)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="dl-throughput" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compTputOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;">
-                            <h4 class="text-gray-900 text-xs font-bold mb-2">UL Throughput (Mbps)</h4>
+                        <div id="chart-ul-throughput" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 250px;" data-chart-id="ul-throughput">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-gray-900 text-xs font-bold">UL Throughput (Mbps)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="ul-throughput" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compTputUlOnly" style="height: 200px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
-                            <h4 class="text-gray-900 text-xs font-bold mb-2">BLER (%)</h4>
+                        <div id="chart-bler" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;" data-chart-id="bler">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-gray-900 text-xs font-bold">BLER (%)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="bler" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compBlerOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
-                            <h4 class="text-gray-900 text-xs font-bold mb-2">CQI</h4>
+                        <div id="chart-cqi" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;" data-chart-id="cqi">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-gray-900 text-xs font-bold">CQI</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="cqi" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compCqiOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
-                            <h4 class="text-gray-900 text-xs font-bold mb-2">MCS</h4>
+                        <div id="chart-mcs" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;" data-chart-id="mcs">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-gray-900 text-xs font-bold">MCS</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="mcs" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compMcsOnly" style="height: 150px;"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;">
-                            <h4 class="text-gray-900 text-xs font-bold mb-2">Tx Power (dBm)</h4>
+                        <div id="chart-txpower" class="chart-container border-2 border-gray-300 bg-gray-50 p-3 pb-6" style="height: 200px;" data-chart-id="txpower">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-gray-900 text-xs font-bold">Tx Power (dBm)</h4>
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="txpower" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="compTxPowerOnly" style="height: 150px;"></canvas>
                         </div>
                     </div>
                 </div>
 
                 <!-- Correlation Analysis Section - Scatter Plots -->
-                <div class="border-4 border-black bg-white p-4">
+                <div id="correlationSection" class="chart-section border-4 border-black bg-white p-4" data-chart-id="correlation-section">
                     <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-2 flex-wrap gap-3">
                         <h3 class="text-gray-900 font-bold text-base">🔬 CORRELATION ANALYSIS (Scatter Plots)</h3>
                         <div class="flex items-center gap-4 flex-wrap">
@@ -390,16 +442,36 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 gap-4">
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                        <div id="chart-scatter-tput-sinr" class="chart-container border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;" data-chart-id="scatter-tput-sinr">
+                            <div class="flex justify-end mb-2">
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="scatter-tput-sinr" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="scatterTputSinr"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                        <div id="chart-scatter-tput-rsrp" class="chart-container border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;" data-chart-id="scatter-tput-rsrp">
+                            <div class="flex justify-end mb-2">
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="scatter-tput-rsrp" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="scatterTputRsrp"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                        <div id="chart-scatter-mcs-cqi" class="chart-container border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;" data-chart-id="scatter-mcs-cqi">
+                            <div class="flex justify-end mb-2">
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="scatter-mcs-cqi" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="scatterMcsCqi"></canvas>
                         </div>
-                        <div class="border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;">
+                        <div id="chart-scatter-bler-tput" class="chart-container border-2 border-gray-300 bg-gray-50 p-3" style="height: 400px;" data-chart-id="scatter-bler-tput">
+                            <div class="flex justify-end mb-2">
+                                <button class="chart-toggle-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 text-[10px] font-bold border border-gray-300 rounded transition-all" data-chart-id="scatter-bler-tput" title="Hide this chart">
+                                    ✕
+                                </button>
+                            </div>
                             <canvas id="scatterBlerTput"></canvas>
                         </div>
                     </div>
@@ -561,6 +633,118 @@
             </div>
         </div>
     </div>
+
+    <!-- Chart Visibility Customize Panel Modal -->
+    <div id="customizePanel" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border-4 border-black">
+            <!-- Header -->
+            <div class="bg-gray-900 text-white px-6 py-4 flex justify-between items-center border-b-4 border-black">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    ⚙️ CUSTOMIZE CHART VISIBILITY
+                </h2>
+                <button id="closePanelBtn" class="text-white hover:text-gray-300 text-2xl font-bold leading-none" title="Close">
+                    ×
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                <!-- Chart Count Info -->
+                <div class="bg-blue-50 border-2 border-blue-300 rounded p-3 mb-4 text-sm">
+                    <span class="font-bold">Showing:</span> 
+                    <span id="visibleChartCount" class="font-mono text-blue-700">0</span> of 
+                    <span id="totalChartCount" class="font-mono text-blue-700">0</span> charts
+                </div>
+
+                <!-- Time Series Charts -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-bold text-gray-900 mb-3 pb-2 border-b-2 border-gray-300 flex items-center gap-2">
+                        📊 TIME SERIES CHARTS
+                    </h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="rsrp" checked>
+                            <span class="text-sm font-mono">RSRP (dBm)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="rsrq" checked>
+                            <span class="text-sm font-mono">RSRQ (dB)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="sinr" checked>
+                            <span class="text-sm font-mono">SINR (dB)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="dl-throughput" checked>
+                            <span class="text-sm font-mono">DL Throughput (Mbps)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="ul-throughput" checked>
+                            <span class="text-sm font-mono">UL Throughput (Mbps)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="bler" checked>
+                            <span class="text-sm font-mono">BLER (%)</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="cqi" checked>
+                            <span class="text-sm font-mono">CQI</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="mcs" checked>
+                            <span class="text-sm font-mono">MCS</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="txpower" checked>
+                            <span class="text-sm font-mono">Tx Power (dBm)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Correlation Charts -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-bold text-gray-900 mb-3 pb-2 border-b-2 border-gray-300 flex items-center gap-2">
+                        🔬 CORRELATION CHARTS (Scatter Plots)
+                    </h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="scatter-tput-sinr" checked>
+                            <span class="text-sm font-mono">DL Throughput vs SINR</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="scatter-tput-rsrp" checked>
+                            <span class="text-sm font-mono">DL Throughput vs RSRP</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="scatter-mcs-cqi" checked>
+                            <span class="text-sm font-mono">MCS vs CQI</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded border border-gray-200 cursor-pointer transition-all">
+                            <input type="checkbox" class="chart-visibility-checkbox w-5 h-5" data-chart-id="scatter-bler-tput" checked>
+                            <span class="text-sm font-mono">DL Throughput vs BLER</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="bg-gray-100 px-6 py-4 border-t-2 border-gray-300 flex gap-3 flex-wrap">
+                <button id="selectAllChartsBtn" class="bg-green-600 text-white px-4 py-2 text-sm font-bold border-2 border-black hover:bg-green-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    ✓ Select All
+                </button>
+                <button id="deselectAllChartsBtn" class="bg-red-600 text-white px-4 py-2 text-sm font-bold border-2 border-black hover:bg-red-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    ✗ Deselect All
+                </button>
+                <button id="resetChartsBtn" class="bg-blue-600 text-white px-4 py-2 text-sm font-bold border-2 border-black hover:bg-blue-700 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    🔄 Reset to Default
+                </button>
+                <button id="applyChartsBtn" class="ml-auto bg-gray-900 text-white px-6 py-2 text-sm font-bold border-2 border-black hover:bg-gray-800 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    Apply Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
