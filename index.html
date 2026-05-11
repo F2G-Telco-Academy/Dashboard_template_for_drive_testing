@@ -13,6 +13,7 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvg@4.0.2/lib/umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="script.js" defer></script>
@@ -628,6 +629,24 @@
                                 <input type="checkbox" id="showRawTrendlineZoom" style="width:16px; height:16px; cursor:pointer;">
                                 <span>Show overall trend </span>
                             </label>
+                        </div>
+                    </div>
+                    <!-- Download Button with Format Dropdown -->
+                    <div style="position:relative; display:inline-block;">
+                        <button id="downloadChartBtn" style="background:#3b82f6; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:14px; border-radius:4px; display:flex; align-items:center; gap:8px;" title="Download chart as image">
+                            <span style="font-size:16px;">⬇</span>
+                            <span>DOWNLOAD</span>
+                            <span style="font-size:10px;">▼</span>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="downloadDropdown" style="display:none; position:absolute; top:100%; right:0; margin-top:5px; background:white; border:3px solid #3b82f6; border-radius:4px; box-shadow:0 4px 6px rgba(0,0,0,0.3); z-index:10001; min-width:120px;">
+                            <button class="download-option" data-format="png" style="width:100%; padding:12px 20px; text-align:center; background:white; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#1f2937; transition:background 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='white'">
+                                PNG
+                            </button>
+                            <div style="height:2px; background:#e5e7eb;"></div>
+                            <button class="download-option" data-format="svg" style="width:100%; padding:12px 20px; text-align:center; background:white; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#1f2937; transition:background 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='white'">
+                                SVG
+                            </button>
                         </div>
                     </div>
                     <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:16px; border-radius:4px;">✕ CLOSE</button>
