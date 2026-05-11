@@ -5279,12 +5279,12 @@ function renderScatterPlots() {
                     }
                 });
                 
-                // Update button state
+                // Update button state - Enable only for 2-6 KPIs
                 countSpan.textContent = selectedKpis.length;
-                compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 9;
+                compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 6;
                 
                 // Update button appearance
-                if (selectedKpis.length < 2 || selectedKpis.length > 9) {
+                if (selectedKpis.length < 2 || selectedKpis.length > 6) {
                     compareBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     compareBtn.classList.remove('hover:bg-blue-700');
                 } else {
@@ -5292,8 +5292,8 @@ function renderScatterPlots() {
                     compareBtn.classList.add('hover:bg-blue-700');
                 }
                 
-                // Warn user visually when exceeding 9
-                if (selectedKpis.length > 9) {
+                // Warn user visually when exceeding 6
+                if (selectedKpis.length > 6) {
                     countSpan.style.color = '#ef4444'; // Red
                 } else {
                     countSpan.style.color = '';
