@@ -180,6 +180,14 @@ Multi-KPI Comparison (ENHANCED):
      * Event info (if present)
 6. Clean, unobstructed chart view (no tooltip overlays)
 7. Perfect for correlation analysis (e.g., signal vs throughput)
+
+Download Charts (NEW):
+1. Click any chart to open zoom modal (fullscreen view)
+2. Click "⬇ DOWNLOAD" button in modal header
+3. Select format: PNG or SVG
+4. File downloads automatically with descriptive filename
+5. Theme preserved (dark/light mode)
+6. Perfect for presentations and reports
 ```
 
 ### 5. **Save Configuration**
@@ -553,7 +561,38 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.14 (Current - Complete 5-Chart Correlation Analysis)**
+**v3.15 (Current - Chart Export Feature)**
+- ✅ **Download charts as high-quality images**
+  - Export any KPI chart from zoom modal (fullscreen view)
+  - Format options: PNG (raster) or SVG (vector)
+  - Dropdown button in zoom modal header: "⬇ DOWNLOAD"
+  - Simple format selection: PNG or SVG (no clutter)
+  - Works for all chart types (time-series and scatter plots)
+- ✅ **Theme preservation in exports**
+  - Downloaded files preserve current theme (dark/light mode)
+  - Dark mode: Charts exported with dark background (#374151)
+  - Light mode: Charts exported with white background (#ffffff)
+  - What you see is what you get (WYSIWYG)
+  - Perfect for presentations, reports, and documentation
+- ✅ **Smart filename generation**
+  - Auto-generated descriptive filenames
+  - Format: `ChartTitle_YYYY-MM-DD_HH-MM.png/svg`
+  - Example: `Throughput_vs_SINR_2024-01-15_14-30.png`
+  - Removes emojis and special characters
+  - Includes timestamp for version tracking
+- ✅ **High-quality output**
+  - PNG: Full canvas resolution (typically 1200x600px or larger)
+  - SVG: Vector format with embedded PNG (scalable, perfect for reports)
+  - Suitable for professional presentations and publications
+  - File sizes: PNG ~200-500KB, SVG ~300-600KB
+- ✅ **User-friendly workflow**
+  - Click any chart to open zoom modal
+  - Click "⬇ DOWNLOAD" button
+  - Select PNG or SVG format
+  - File downloads automatically
+  - No configuration needed
+
+**v3.14 (Complete 5-Chart Correlation Analysis)**
 - ✅ **Added missing DL Throughput vs RSRQ/Ec/No/RxQual scatter plot**
   - Fifth scatter plot now fully implemented and functional
   - Technology-specific quality indicator correlation:
