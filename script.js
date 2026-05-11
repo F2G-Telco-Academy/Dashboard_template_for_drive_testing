@@ -4728,9 +4728,171 @@ function renderScatterPlots() {
             });
         }
 
+        // Download chart as PNG (high quality) - preserves theme (dark/light mode)
+        function downloadChartPNG() {
+            if (!zoomedChart) {
+                console.warn('No chart available to download');
+                return;
+            }
+            
+            try {
+                // Get chart title for filename
+                const chartTitle = document.getElementById('chartZoomTitle')?.textContent || 'Chart';
+                
+                // Clean filename: remove emojis, special chars, replace spaces with underscores
+                const cleanTitle = chartTitle
+                    .replace(/[📊📈📉🔬⚡🔌⚠📶📞↔]/g, '') // Remove emojis
+                    .replace(/[^a-z0-9\s]/gi, '') // Remove special chars
+                    .trim()
+                    .replace(/\s+/g, '_'); // Replace spaces with underscores
+                
+                // Add date and time
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+                const timeStr = now.toTimeString().slice(0, 5).replace(':', '-'); // HH-MM
+                
+                const filename = `${cleanTitle}_${dateStr}_${timeStr}.png`;
+                
+                // Get the original canvas
+                const originalCanvas = zoomedChart.canvas;
+                
+                // Create a new canvas with background color (preserves theme)
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = originalCanvas.width;
+                tempCanvas.height = originalCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Fill background based on current theme
+                const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
+                tempCtx.fillStyle = bgColor;
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Draw the chart on top of the background
+                tempCtx.drawImage(originalCanvas, 0, 0);
+                
+                // Get high-resolution image
+                const url = tempCanvas.toDataURL('image/png', 1.0);
+                
+                // Create temporary link and trigger download
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log(`✅ Chart downloaded as PNG (${kpiTheme} mode): ${filename}`);
+            } catch (error) {
+                console.error('❌ Error downloading chart as PNG:', error);
+                alert('Failed to download chart. Please try again.');
+            }
+        }
+
+        // Download chart as SVG (vector format) - preserves theme (dark/light mode)
+        async function downloadChartSVG() {
+            if (!zoomedChart) {
+                console.warn('No chart available to download');
+                return;
+            }
+            
+            try {
+                // Get chart title for filename
+                const chartTitle = document.getElementById('chartZoomTitle')?.textContent || 'Chart';
+                
+                // Clean filename
+                const cleanTitle = chartTitle
+                    .replace(/[📊📈📉🔬⚡🔌⚠📶📞↔]/g, '')
+                    .replace(/[^a-z0-9\s]/gi, '')
+                    .trim()
+                    .replace(/\s+/g, '_');
+                
+                // Add date and time
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+                
+                const filename = `${cleanTitle}_${dateStr}_${timeStr}.svg`;
+                
+                // Get the original canvas
+                const originalCanvas = zoomedChart.canvas;
+                
+                // Create a new canvas with background color (preserves theme)
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = originalCanvas.width;
+                tempCanvas.height = originalCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Fill background based on current theme
+                const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
+                tempCtx.fillStyle = bgColor;
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Draw the chart on top of the background
+                tempCtx.drawImage(originalCanvas, 0, 0);
+                
+                // Convert to PNG data URL
+                const imageData = tempCanvas.toDataURL('image/png');
+                
+                // Create SVG with embedded PNG and background
+                const width = tempCanvas.width;
+                const height = tempCanvas.height;
+                
+                const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+     width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <title>${chartTitle}</title>
+    <rect width="${width}" height="${height}" fill="${bgColor}"/>
+    <image width="${width}" height="${height}" xlink:href="${imageData}"/>
+</svg>`;
+                
+                // Create blob and download
+                const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Clean up
+                URL.revokeObjectURL(url);
+                
+                console.log(`✅ Chart downloaded as SVG (${kpiTheme} mode): ${filename}`);
+            } catch (error) {
+                console.error('❌ Error downloading chart as SVG:', error);
+                alert('Failed to download chart as SVG. Please try again.');
+            }
+        }
+
+        // Toggle download dropdown
+        function toggleDownloadDropdown() {
+            const dropdown = document.getElementById('downloadDropdown');
+            const isVisible = dropdown.style.display === 'block';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const downloadBtn = document.getElementById('downloadChartBtn');
+            const dropdown = document.getElementById('downloadDropdown');
+            
+            if (dropdown && !downloadBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
         function closeChartZoom() {
             const modal = document.getElementById('chartZoomModal');
             modal.style.display = 'none';
+            
+            // Hide download dropdown
+            const dropdown = document.getElementById('downloadDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+            
             if (zoomedChart) {
                 zoomedChart.destroy();
                 zoomedChart = null;
@@ -4755,6 +4917,30 @@ function renderScatterPlots() {
 
         // Close button
         document.getElementById('closeChartZoomBtn').addEventListener('click', closeChartZoom);
+
+        // Download button - toggle dropdown
+        document.getElementById('downloadChartBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleDownloadDropdown();
+        });
+
+        // Download format options
+        document.querySelectorAll('.download-option').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const format = this.getAttribute('data-format');
+                
+                // Hide dropdown
+                document.getElementById('downloadDropdown').style.display = 'none';
+                
+                // Download in selected format
+                if (format === 'png') {
+                    downloadChartPNG();
+                } else if (format === 'svg') {
+                    downloadChartSVG();
+                }
+            });
+        });
 
         // Close on ESC key
         document.addEventListener('keydown', function(e) {
