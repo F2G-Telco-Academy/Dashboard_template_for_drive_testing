@@ -82,7 +82,26 @@ A professional telecom network validation dashboard for creating **customizable 
   - MCS - Hidden for UMTS/GSM
   - **TxPower (dBm)** - NEW! Transmit power visualization
 - **Correlation Analysis Section** (scatter plots)
-  - **Smart Idle Sample Filtering** (NEW) - Removes idle UE states for accurate correlation
+  - **Polynomial Regression Trendlines** - Smooth statistical trend visualization
+    - Three polynomial curves per chart: 90th Percentile, Median, Average
+    - Configurable polynomial degree (1-6, default: quadratic)
+    - Dashed lines color-coded to match statistical measures (red, yellow, green)
+    - Computed from binned statistical data for smooth, clean visualization
+    - Single dropdown controls all polynomial curves simultaneously
+    - Degree selection: Linear, Quadratic, Cubic, Quartic, Quintic, Sextic
+    - Warning for high-degree polynomials (≥6) to prevent overfitting
+  - **Optional Overall Trend Line** - Advanced feature for raw data analysis
+    - Available in **zoom modal** (fullscreen view) of scatter plots
+    - Toggle: "Show overall trend (advanced)" checkbox in modal header
+    - When enabled, displays polynomial fit of ALL raw data points
+    - Light purple dashed line (#a78bfa) with distinct pattern [4, 4]
+    - Thinner line (2px) to distinguish from statistical curves
+    - Shows "center of mass" of scatter cloud for validation
+    - Useful for comparing statistical distribution vs raw trend
+    - Default: OFF (keeps visualization clean)
+    - Labeled as "Overall Trend (Deg N)" in legend
+    - Only appears for scatter plots (not time-series charts)
+  - **Smart Idle Sample Filtering** - Removes idle UE states for accurate correlation
     - Toggle: "Include idle samples (Tput=0)" checkbox with dark mode support
     - Default: OFF (filters idle samples for realistic analysis)
     - Filtering logic: Excludes throughput=0 when BLER=0/100, CQI=0, MCS=0 (idle UE)
@@ -90,11 +109,11 @@ A professional telecom network validation dashboard for creating **customizable 
     - Debug logging shows filtering statistics in browser console
   - Smart fallback: Uses RSRP when SINR unavailable (UMTS/GSM)
   - Hides redundant scatter plots for 3G/2G
-  - **DL Throughput vs SINR/RSCP/RxLev** with percentile trend lines (DL only - UE-side measurement)
-  - **DL Throughput vs RSRP/RSCP/RxLev** with percentile trend lines (DL only - UE-side measurement)
-  - MCS vs CQI (LTE/NR only)
-  - **DL Throughput vs BLER** (LTE/NR only - DL only)
-  - Polynomial trendline (degree 1-6, default: quadratic)
+  - **DL Throughput vs SINR/RSCP/RxLev** with polynomial trendlines (DL only - UE-side measurement)
+  - **DL Throughput vs RSRP/RSCP/RxLev** with polynomial trendlines (DL only - UE-side measurement)
+  - **DL Throughput vs RSRQ/Ec/No/RxQual** with polynomial trendlines (NEW - quality indicator correlation)
+  - MCS vs CQI (LTE/NR only) with polynomial trendlines
+  - **DL Throughput vs BLER** (LTE/NR only - DL only) with polynomial trendlines
   - **Note**: All throughput correlations use DL throughput only (UL SINR not available in UE logs)
 - **Click-to-Zoom Modal**
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
@@ -534,7 +553,119 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.11 (Current - Customizable Chart Visibility)**
+**v3.14 (Current - Complete 5-Chart Correlation Analysis)**
+- ✅ **Added missing DL Throughput vs RSRQ/Ec/No/RxQual scatter plot**
+  - Fifth scatter plot now fully implemented and functional
+  - Technology-specific quality indicator correlation:
+    - **LTE/5G**: DL Throughput vs RSRQ (dB)
+    - **UMTS**: DL Throughput vs Ec/No (dB)
+    - **GSM**: DL Throughput vs RxQual (0-7 scale)
+  - Complete feature parity with other scatter plots:
+    - Polynomial regression trendlines (90th percentile, median, average)
+    - Configurable polynomial degree (1-6)
+    - Optional overall trend line in zoom modal
+    - Smart idle sample filtering
+    - Click-to-zoom functionality
+  - All trendline controls work correctly:
+    - Polynomial degree dropdown updates chart in real-time
+    - "Include idle samples" checkbox filters data properly
+    - "Show overall trend" checkbox toggles purple line
+    - Legend state preserved when changing controls
+  - Fixed click handler in `makeChartsZoomable()` function
+  - Chart properly opens zoom modal when clicked
+  - Works seamlessly across all technologies (2G/3G/4G/5G)
+- ✅ **Moved trendline controls to zoom modal for better UX**
+  - Removed controls from main correlation section header (cleaner main view)
+  - All three controls now appear in zoom modal header when viewing scatter plots:
+    - **Polynomial Degree** dropdown (Linear to Sextic)
+    - **Include idle samples (Tput=0)** checkbox
+    - **Show overall trend** checkbox
+  - Controls only visible for scatter plots (hidden for time-series charts)
+  - Smart detection: Auto-detects scatter plots by chart title keywords
+  - Contextual controls: Only appear when relevant (zoom modal for scatter plots)
+  - Cleaner main correlation section (no clutter)
+  - Better workflow: Adjust settings while viewing fullscreen chart
+  - Real-time updates: Changes apply immediately without closing modal
+  - Control synchronization: Values sync when modal opens (10ms delay for DOM readiness)
+- ✅ **Complete correlation analysis suite (5 scatter plots)**
+  1. DL Throughput vs SINR/RSCP/RxLev (signal strength)
+  2. DL Throughput vs RSRP/RSCP/RxLev (reference signal power)
+  3. **DL Throughput vs RSRQ/Ec/No/RxQual** (quality indicator) - NEW!
+  4. MCS vs CQI (modulation/coding correlation)
+  5. DL Throughput vs BLER (error rate impact)
+- ✅ **Technical improvements**
+  - Added chart rendering logic in `renderCorrelationScatters()` function
+  - Updated all three event listeners (polynomial degree, idle samples, overall trend)
+  - Added chart title detection for RxQual/Ec/No/RSRQ in event handlers
+  - Proper mapping to `scatterTputRsrq` chart instance
+  - HTML container and canvas element already existed (now functional)
+  - Chart variable declaration already in place (now utilized)
+  - Control visibility logic in `openChartZoom()` function
+
+**v3.13 (Polynomial Regression with Optional Raw Trend)**
+- ✅ **Enhanced scatter plot visualization with polynomial regression**
+  - Removed noisy solid statistical lines (90th percentile, median, average)
+  - Replaced with smooth polynomial regression curves for cleaner visualization
+  - Three polynomial trendlines per chart: 90th Percentile, Median, Average
+  - Color-coded dashed lines: Red (#ef4444), Yellow (#fbbf24), Green (#10b981)
+  - Line width increased to 3px for better visibility
+  - Simplified legend labels: "90th Percentile (Deg 2)" format
+- ✅ **Optional overall trend line (advanced feature)**
+  - Control moved to **zoom modal** for better UX
+  - Toggle appears in modal header when viewing scatter plots
+  - Checkbox: "Show overall trend (advanced)" (only visible for scatter plots)
+  - Displays polynomial fit of ALL raw data points when enabled
+  - Light purple dashed line (#a78bfa) with distinct [4, 4] pattern
+  - Thinner line (2px) to distinguish from statistical curves (3px)
+  - Shows "center of mass" of scatter cloud for validation/comparison
+  - Default: OFF (keeps default view clean at 19/20 score)
+  - Contextual control: only appears when zooming into scatter plots
+  - Cleaner main correlation section (removed from header)
+  - Useful for data distribution analysis and debugging
+  - Labeled as "Overall Trend (Deg N)" in legend
+- ✅ **Polynomial degree control**
+  - Single dropdown controls all polynomial curves (1-6 degrees)
+  - Default: Quadratic (Degree 2) - optimal for most telecom KPI relationships
+  - Options: Linear, Quadratic, Cubic, Quartic, Quintic, Sextic
+  - Dynamic legend updates showing current degree
+  - Console warning for high-degree polynomials (≥6) to prevent overfitting
+- ✅ **Technical improvements**
+  - New helper function: `computeStatisticalPolynomial()` for binned data regression
+  - Polynomial curves computed from statistical lines (not raw data) for smooth trends
+  - 100 interpolated points per curve for professional appearance
+  - Default: 4 datasets per chart (clean visualization)
+  - Optional: 5 datasets when raw trend enabled (advanced analysis)
+  - Better performance: 43% fewer datasets by default (16 vs 28)
+  - Cleaner, more professional visualization matching industry tools
+- ✅ **Multi-technology support**
+  - Works seamlessly across 5G NR, 4G LTE, 3G UMTS, 2G GSM
+  - Technology-specific KPI labels automatically applied
+  - Charts adapt to available metrics per technology
+
+**v3.12 (GSM Data Visualization Fixes)**
+- ✅ **Fixed GSM RxLev chart Y-axis scaling**
+  - Dynamic Y-axis range based on actual data (handles 0 to -99 dBm and beyond)
+  - Peaks at 0 dBm or higher (e.g., -40 dBm) now fully visible
+  - Applied to both KPI Comparison charts and Multi-KPI charts
+  - Extends Y-axis above max value (+10 dBm padding) and below min value (-10 dBm padding)
+- ✅ **Fixed GSM RxQual chart visibility**
+  - Smart flat-line detection for RxQual values
+  - When all values are similar (range < 1), creates visible range around center (±5 units)
+  - Handles non-standard negative RxQual values (-20 to 0)
+  - Applied to both KPI Comparison charts and Multi-KPI charts
+  - Chart now clearly visible even with flat lines at 0
+- ✅ **Added BTS column mapping to BSIC**
+  - Automatically maps BTS column to gsm_bsic for compatibility
+  - BSIC field now displays correctly from BTS column in CSV
+  - Backward compatible (doesn't override existing gsm_bsic/bsic columns)
+  - Works in all views: tooltips, observation panel, map popups
+- ✅ **Technical improvements**
+  - Technology-aware Y-axis scaling for GSM (separate logic from LTE/UMTS/NR)
+  - Prevents chart cutoffs for extreme values (0 dBm, -99 dBm, negative RxQual)
+  - Optimized for real-world GSM data with non-standard value ranges
+  - Consistent behavior across all chart types (time-series, multi-KPI, scatter plots)
+
+**v3.11 (Customizable Chart Visibility)**
 - ✅ **Customizable chart visibility system**
   - Individual ✕ (close) buttons on each chart for quick hide/show
   - Centralized "⚙️ Customize Charts" panel for bulk management
