@@ -534,7 +534,30 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.11 (Current - Customizable Chart Visibility)**
+**v3.12 (Current - GSM Data Visualization Fixes)**
+- ✅ **Fixed GSM RxLev chart Y-axis scaling**
+  - Dynamic Y-axis range based on actual data (handles 0 to -99 dBm and beyond)
+  - Peaks at 0 dBm or higher (e.g., -40 dBm) now fully visible
+  - Applied to both KPI Comparison charts and Multi-KPI charts
+  - Extends Y-axis above max value (+10 dBm padding) and below min value (-10 dBm padding)
+- ✅ **Fixed GSM RxQual chart visibility**
+  - Smart flat-line detection for RxQual values
+  - When all values are similar (range < 1), creates visible range around center (±5 units)
+  - Handles non-standard negative RxQual values (-20 to 0)
+  - Applied to both KPI Comparison charts and Multi-KPI charts
+  - Chart now clearly visible even with flat lines at 0
+- ✅ **Added BTS column mapping to BSIC**
+  - Automatically maps BTS column to gsm_bsic for compatibility
+  - BSIC field now displays correctly from BTS column in CSV
+  - Backward compatible (doesn't override existing gsm_bsic/bsic columns)
+  - Works in all views: tooltips, observation panel, map popups
+- ✅ **Technical improvements**
+  - Technology-aware Y-axis scaling for GSM (separate logic from LTE/UMTS/NR)
+  - Prevents chart cutoffs for extreme values (0 dBm, -99 dBm, negative RxQual)
+  - Optimized for real-world GSM data with non-standard value ranges
+  - Consistent behavior across all chart types (time-series, multi-KPI, scatter plots)
+
+**v3.11 (Customizable Chart Visibility)**
 - ✅ **Customizable chart visibility system**
   - Individual ✕ (close) buttons on each chart for quick hide/show
   - Centralized "⚙️ Customize Charts" panel for bulk management

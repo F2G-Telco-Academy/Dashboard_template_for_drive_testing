@@ -2153,6 +2153,19 @@ function renderScatterPlots() {
             if (compRsrpOnly) compRsrpOnly.destroy();
             const minRsrp = Math.min(...rsrpVals);
             const maxRsrp = Math.max(...rsrpVals);
+            
+            // Smart Y-axis scaling for GSM RxLev (0 to -99 range)
+            let rsrpYMin, rsrpYMax;
+            if (tech === 'GSM') {
+                // RxLev: ensure we show the full range including 0 at top
+                rsrpYMax = Math.max(maxRsrp + 5, 5); // Always show at least up to 5
+                rsrpYMin = Math.min(minRsrp - 5, -110); // Extend below minimum
+            } else {
+                // Standard scaling for LTE/UMTS/NR
+                rsrpYMin = Math.floor(minRsrp - 5);
+                rsrpYMax = Math.ceil(maxRsrp + 5);
+            }
+            
             compRsrpOnly = new Chart(document.getElementById('compRsrpOnly'), {
                 type: 'line',
                 data: {
@@ -2193,7 +2206,7 @@ function renderScatterPlots() {
                     },
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrp - 5), max: Math.ceil(maxRsrp + 5) }
+                        y: { type: 'linear', title: { display: true, text: rsrpLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: rsrpYMin, max: rsrpYMax }
                     }
                 }
             });
@@ -2202,6 +2215,27 @@ function renderScatterPlots() {
             if (compRsrqOnly) compRsrqOnly.destroy();
             const minRsrq = Math.min(...rsrqVals);
             const maxRsrq = Math.max(...rsrqVals);
+            
+            // Smart Y-axis scaling for GSM RxQual (handles negative values and flat lines)
+            let rsrqYMin, rsrqYMax;
+            if (tech === 'GSM') {
+                // RxQual: handle non-standard negative values and flat lines
+                const range = maxRsrq - minRsrq;
+                if (range < 1) {
+                    // Flat line or very small range - create visible range around the value
+                    const center = (maxRsrq + minRsrq) / 2;
+                    rsrqYMin = center - 5;
+                    rsrqYMax = center + 5;
+                } else {
+                    rsrqYMin = Math.floor(minRsrq - 2);
+                    rsrqYMax = Math.ceil(maxRsrq + 2);
+                }
+            } else {
+                // Standard scaling for LTE/UMTS/NR
+                rsrqYMin = Math.floor(minRsrq - 2);
+                rsrqYMax = Math.ceil(maxRsrq + 2);
+            }
+            
             compRsrqOnly = new Chart(document.getElementById('compRsrqOnly'), {
                 type: 'line',
                 data: {
@@ -2242,7 +2276,7 @@ function renderScatterPlots() {
                     },
                     scales: {
                         x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minRsrq - 2), max: Math.ceil(maxRsrq + 2) }
+                        y: { type: 'linear', title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: rsrqYMin, max: rsrqYMax }
                     }
                 }
             });
@@ -2684,47 +2718,16 @@ function renderScatterPlots() {
                     }
                 }
                 
-                // 3. RELEASE/DROP DETECTION (throughput drops to 0 + signal degradation)
-                if (index > 0) {
-                    const prevTput = parseFloat(data[index-1].throughput_dl_mbps) || 0;
-                    const currTput = parseFloat(point.throughput_dl_mbps) || 0;
-                    
-                    // Detect connection drop: throughput was >1 Mbps, now is 0
-                    if (prevTput > 1 && currTput === 0) {
-                        const tech = point.technology || 'LTE';
-                        let pci = '-';
-                        
-                        if (tech === 'NR') {
-                            pci = point.nr_pci || '-';
-                        } else if (tech === 'UMTS') {
-                            pci = point.wcdma_psc || point.psc || '-';
-                        } else if (tech === 'GSM') {
-                            pci = point.gsm_bsic || point.bsic || '-';
-                        } else {
-                            pci = point.pci || '-';
-                        }
-                        
-                        // Check if there's already an event at this index
-                        const existingEvent = events.find(e => e.index === index);
-                        if (!existingEvent) {
-                            events.push({
-                                time: point.time,
-                                index: index,
-                                type: 'release',
-                                pci: pci,
-                                technology: tech,
-                                details: 'Connection released/dropped'
-                            });
-                        }
-                    }
-                }
-                
-                // 4. TECHNOLOGY CHANGES (RAT change: LTE→UMTS, etc.)
+                // 3. TECHNOLOGY CHANGES (RAT change: LTE→UMTS, etc.)
                 if (index > 0) {
                     const prevTech = data[index-1].technology;
                     const currTech = point.technology;
                     
-                    if (prevTech && currTech && prevTech !== currTech) {
+                    // Only show RAT changes if both technologies are valid (not Unknown)
+                    if (prevTech && currTech && 
+                        prevTech !== currTech && 
+                        prevTech !== 'Unknown' && 
+                        currTech !== 'Unknown') {
                         events.push({
                             time: point.time,
                             index: index,
@@ -3486,6 +3489,11 @@ function renderScatterPlots() {
                         obj[h] = val;
                     }
                 });
+                
+                // Map BTS column to gsm_bsic for compatibility
+                if (obj.bts && !obj.gsm_bsic && !obj.bsic) {
+                    obj.gsm_bsic = obj.bts;
+                }
                 
                 // Auto-detect technology if not specified
                 if (!obj.technology || obj.technology === '') {
@@ -4812,14 +4820,29 @@ function renderScatterPlots() {
                 
                 // Check for events at this index
                 const eventTimeline = extractEventTimeline(parsedData);
-                const event = eventTimeline.find(e => e.index === index);
+                const eventsAtIndex = eventTimeline.filter(e => e.index === index);
                 
-                if (event) {
-                    const icon = getEventIcon(event.type);
-                    html += `<div style="background:#fef3c7; color:#92400e; padding:8px; border-radius:4px; margin-top:8px; border-left:3px solid #f59e0b; font-size:11px;">`;
-                    html += `<div style="font-weight:700; margin-bottom:2px;">${icon} Event Detected</div>`;
-                    html += `<div style="font-size:10px;">${event.details}</div>`;
-                    html += `</div>`;
+                if (eventsAtIndex.length > 0) {
+                    eventsAtIndex.forEach(event => {
+                        const icon = getEventIcon(event.type);
+                        
+                        // Distinguish between real CSV events and detected changes
+                        const isRealEvent = event.type !== 'pci_change' && event.type !== 'tech_change' && event.type !== 'release';
+                        
+                        if (isRealEvent) {
+                            // Real CSV event - Yellow background
+                            html += `<div style="background:#fef3c7; color:#92400e; padding:8px; border-radius:4px; margin-top:8px; border-left:3px solid #f59e0b; font-size:11px;">`;
+                            html += `<div style="font-weight:700; margin-bottom:2px;">${icon} Event: ${event.type.toUpperCase()}</div>`;
+                            html += `<div style="font-size:10px;">${event.details}</div>`;
+                            html += `</div>`;
+                        } else {
+                            // Detected change - Blue/Info background
+                            html += `<div style="background:#dbeafe; color:#1e40af; padding:8px; border-radius:4px; margin-top:8px; border-left:3px solid #3b82f6; font-size:11px;">`;
+                            html += `<div style="font-weight:700; margin-bottom:2px;">ℹ️ Info</div>`;
+                            html += `<div style="font-size:10px;">${event.details}</div>`;
+                            html += `</div>`;
+                        }
+                    });
                 }
                 
                 html += `</div>`;
@@ -5012,8 +5035,8 @@ function renderScatterPlots() {
                 let yMin, yMax;
                 const kpiName = selectedKpis[index].kpi;
                 
-                // Apply technology-aware fixed ranges for specific KPIs
-                // This ensures consistency while respecting each technology's actual range
+                // Apply technology-aware ranges for specific KPIs
+                // Use actual data range with padding for better visibility
                 if (kpiName === 'rsrp') {
                     // RSRP / RSCP / RxLev - Technology-specific ranges
                     if (tech === 'NR' || tech === 'LTE') {
@@ -5023,13 +5046,21 @@ function renderScatterPlots() {
                         yMin = -120; // RSCP can go lower than RSRP
                         yMax = -25;  // RSCP can go higher than RSRP
                     } else if (tech === 'GSM') {
-                        yMin = -110;
-                        yMax = -48;
+                        // RxLev: Use actual data range (0 to -99 dBm typical, but can vary)
+                        if (validData.length > 0) {
+                            const dataMin = Math.min(...validData);
+                            const dataMax = Math.max(...validData);
+                            yMin = Math.min(dataMin - 10, -110); // Extend below, cap at -110
+                            yMax = Math.max(dataMax + 10, 5);     // Extend above, ensure room for peaks
+                        } else {
+                            yMin = -110;
+                            yMax = 5;
+                        }
                     } else {
                         yMin = -110;
                         yMax = -50;
                     }
-                    console.log(`📊 RSRP/RSCP Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                    console.log(`📊 RSRP/RSCP/RxLev Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
                 } else if (kpiName === 'rsrq') {
                     // RSRQ / Ec/No / RxQual - Technology-specific ranges
                     if (tech === 'NR' || tech === 'LTE') {
@@ -5039,13 +5070,31 @@ function renderScatterPlots() {
                         yMin = -24; // Ec/No can go lower in poor conditions
                         yMax = 5;   // Ec/No can go positive in excellent conditions
                     } else if (tech === 'GSM') {
-                        yMin = 0;   // RxQual is inverted (0=best, 7=worst)
-                        yMax = 7;
+                        // RxQual: Handle non-standard negative values and flat lines
+                        if (validData.length > 0) {
+                            const dataMin = Math.min(...validData);
+                            const dataMax = Math.max(...validData);
+                            const range = dataMax - dataMin;
+                            
+                            if (range < 1) {
+                                // Flat line - create visible range around the value
+                                const center = (dataMax + dataMin) / 2;
+                                yMin = center - 5;
+                                yMax = center + 5;
+                            } else {
+                                // Use actual range with padding
+                                yMin = Math.floor(dataMin - 2);
+                                yMax = Math.ceil(dataMax + 2);
+                            }
+                        } else {
+                            yMin = 0;   // Standard RxQual range
+                            yMax = 7;
+                        }
                     } else {
                         yMin = -20;
                         yMax = -3;
                     }
-                    console.log(`📊 RSRQ/Ec/No Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                    console.log(`📊 RSRQ/Ec/No/RxQual Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
                 } else if (kpiName === 'sinr') {
                     // SINR - Only for LTE/NR (3G/2G don't have SINR)
                     if (tech === 'NR' || tech === 'LTE') {
