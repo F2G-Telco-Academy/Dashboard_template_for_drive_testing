@@ -24,6 +24,7 @@
         let compTxPowerOnly = null; // TxPower chart instance
         let scatterTputSinr = null;
         let scatterTputRsrp = null;
+        let scatterTputRsrq = null;
         let scatterMcsCqi = null;
         let scatterBlerTput = null;
         let kpiHistogramChart = null;
@@ -2990,6 +2991,34 @@ function renderScatterPlots() {
             return trendline;
         }
 
+        /**
+         * Compute polynomial regression for statistical line (binned data)
+         * Takes binned data points (from percentile/average calculations) and fits a polynomial
+         * @param {Array} binnedData - Array of {x, y} points from binned calculations
+         * @param {Number} degree - Polynomial degree
+         * @returns {Array} - Polynomial trendline as array of {x, y} points
+         */
+        function computeStatisticalPolynomial(binnedData, degree) {
+            if (!binnedData || binnedData.length < degree + 1) {
+                console.warn('Insufficient binned data points for polynomial degree', degree);
+                return [];
+            }
+            
+            // Extract x and y arrays from binned data
+            const xVals = binnedData.map(point => point.x);
+            const yVals = binnedData.map(point => point.y);
+            
+            // Compute polynomial coefficients
+            const coeffs = polynomialRegression(xVals, yVals, degree);
+            
+            // Generate smooth polynomial curve
+            if (coeffs) {
+                return generatePolynomialTrendline(xVals, coeffs, 100);
+            }
+            
+            return [];
+        }
+
         function renderCorrelationScatters() {
             if (parsedData.length === 0) return;
 
@@ -3041,22 +3070,43 @@ function renderScatterPlots() {
                 const tputXP50 = calculateBinnedPercentiles(filteredX, filteredY, 50);
                 const tputXAvg = calculateBinnedAverage(filteredX, filteredY);
                 
-                // Calculate polynomial trendline on filtered data
-                const polyCoeffs = polynomialRegression(filteredX, filteredY, polynomialDegree);
-                const polyTrendline = polyCoeffs ? generatePolynomialTrendline(filteredX, polyCoeffs, 100) : [];
+                // Calculate polynomial trendlines for statistical lines
+                const p90Poly = computeStatisticalPolynomial(tputXP90, polynomialDegree);
+                const p50Poly = computeStatisticalPolynomial(tputXP50, polynomialDegree);
+                const avgPoly = computeStatisticalPolynomial(tputXAvg, polynomialDegree);
+                
+                // Optional: Calculate raw data polynomial (if toggle enabled in zoom modal)
+                const showRaw = window.showRawTrendlineState ?? (document.getElementById('showRawTrendlineZoom')?.checked || false);
+                const rawPolyCoeffs = showRaw ? polynomialRegression(filteredX, filteredY, polynomialDegree) : null;
+                const rawPoly = rawPolyCoeffs ? generatePolynomialTrendline(filteredX, rawPolyCoeffs, 100) : [];
+
+                // Build datasets array
+                const datasets = [
+                    { label: 'Data Points', data: tputXData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
+                    { label: `90th Percentile (Deg ${polynomialDegree})`, data: p90Poly, type: 'line', borderColor: '#ef4444', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                    { label: `Median (Deg ${polynomialDegree})`, data: p50Poly, type: 'line', borderColor: '#fbbf24', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                    { label: `Average (Deg ${polynomialDegree})`, data: avgPoly, type: 'line', borderColor: '#10b981', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
+                ];
+                
+                // Add raw polynomial if enabled
+                if (showRaw && rawPoly.length > 0) {
+                    datasets.push({
+                        label: `Overall Trend (Deg ${polynomialDegree})`,
+                        data: rawPoly,
+                        type: 'line',
+                        borderColor: '#a78bfa',
+                        borderWidth: 2,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0
+                    });
+                }
 
                 if (scatterTputSinr) scatterTputSinr.destroy();
                 scatterTputSinr = new Chart(document.getElementById('scatterTputSinr'), {
                     type: 'scatter',
-                    data: {
-                        datasets: [
-                            { label: 'Data Points', data: tputXData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
-                            { label: '90th Percentile', data: tputXP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                            { label: 'Median (50th)', data: tputXP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                            { label: 'Average', data: tputXAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                            { label: `Polynomial (Degree ${polynomialDegree})`, data: polyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
-                        ]
-                    },
+                    data: { datasets: datasets },
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         plugins: {
@@ -3084,22 +3134,43 @@ function renderScatterPlots() {
             const rsrpTputP50 = calculateBinnedPercentiles(rsrpFilteredX, rsrpFilteredY, 50);
             const rsrpTputAvg = calculateBinnedAverage(rsrpFilteredX, rsrpFilteredY);
             
-            // Calculate polynomial trendline on filtered data
-            const rsrpPolyCoeffs = polynomialRegression(rsrpFilteredX, rsrpFilteredY, polynomialDegree);
-            const rsrpPolyTrendline = rsrpPolyCoeffs ? generatePolynomialTrendline(rsrpFilteredX, rsrpPolyCoeffs, 100) : [];
+            // Calculate polynomial trendlines for statistical lines
+            const rsrpP90Poly = computeStatisticalPolynomial(rsrpTputP90, polynomialDegree);
+            const rsrpP50Poly = computeStatisticalPolynomial(rsrpTputP50, polynomialDegree);
+            const rsrpAvgPoly = computeStatisticalPolynomial(rsrpTputAvg, polynomialDegree);
+            
+            // Optional: Calculate raw data polynomial (if toggle enabled in zoom modal)
+            const showRaw = window.showRawTrendlineState ?? (document.getElementById('showRawTrendlineZoom')?.checked || false);
+            const rsrpRawPolyCoeffs = showRaw ? polynomialRegression(rsrpFilteredX, rsrpFilteredY, polynomialDegree) : null;
+            const rsrpRawPoly = rsrpRawPolyCoeffs ? generatePolynomialTrendline(rsrpFilteredX, rsrpRawPolyCoeffs, 100) : [];
+
+            // Build datasets array
+            const rsrpDatasets = [
+                { label: 'Data Points', data: rsrpTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
+                { label: `90th Percentile (Deg ${polynomialDegree})`, data: rsrpP90Poly, type: 'line', borderColor: '#ef4444', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                { label: `Median (Deg ${polynomialDegree})`, data: rsrpP50Poly, type: 'line', borderColor: '#fbbf24', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                { label: `Average (Deg ${polynomialDegree})`, data: rsrpAvgPoly, type: 'line', borderColor: '#10b981', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
+            ];
+            
+            // Add raw polynomial if enabled
+            if (showRaw && rsrpRawPoly.length > 0) {
+                rsrpDatasets.push({
+                    label: `Overall Trend (Deg ${polynomialDegree})`,
+                    data: rsrpRawPoly,
+                    type: 'line',
+                    borderColor: '#a78bfa',
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
 
             if (scatterTputRsrp) scatterTputRsrp.destroy();
             scatterTputRsrp = new Chart(document.getElementById('scatterTputRsrp'), {
                 type: 'scatter',
-                data: {
-                    datasets: [
-                        { label: 'Data Points', data: rsrpTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
-                        { label: '90th Percentile', data: rsrpTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Median (50th)', data: rsrpTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: rsrpTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: `Polynomial (Degree ${polynomialDegree})`, data: rsrpPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
-                    ]
-                },
+                data: { datasets: rsrpDatasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
@@ -3114,6 +3185,85 @@ function renderScatterPlots() {
                 }
             });
 
+            // Throughput vs RSRQ/Ec/No/RxQual - Extract technology-specific quality KPIs
+            let rsrqVals;
+            let rsrqLabel;
+            
+            if (tech === 'NR') {
+                rsrqVals = parsedData.map(d => parseFloat(d.nr_rsrq) || -20);
+                rsrqLabel = 'NR-RSRQ (dB)';
+            } else if (tech === 'UMTS') {
+                rsrqVals = parsedData.map(d => parseFloat(d.wcdma_ecno || d.ecno) || -20);
+                rsrqLabel = 'Ec/No (dB)';
+            } else if (tech === 'GSM') {
+                rsrqVals = parsedData.map(d => parseFloat(d.gsm_rxqual || d.rxqual) || -20);
+                rsrqLabel = 'RxQual';
+            } else {
+                rsrqVals = parsedData.map(d => parseFloat(d.rsrq) || -20);
+                rsrqLabel = 'RSRQ (dB)';
+            }
+            
+            // Apply filtering to remove idle samples
+            const filteredRsrq = filterActiveDataPoints(rsrqVals, tputDlVals, cqiVals, mcsVals, blerVals, includeIdle);
+            const rsrqTputData = filteredRsrq.dataPoints;
+            const rsrqFilteredX = filteredRsrq.filteredX;
+            const rsrqFilteredY = filteredRsrq.filteredY;
+            
+            const rsrqTputP90 = calculateBinnedPercentiles(rsrqFilteredX, rsrqFilteredY, 90);
+            const rsrqTputP50 = calculateBinnedPercentiles(rsrqFilteredX, rsrqFilteredY, 50);
+            const rsrqTputAvg = calculateBinnedAverage(rsrqFilteredX, rsrqFilteredY);
+            
+            // Calculate polynomial trendlines for statistical lines
+            const rsrqP90Poly = computeStatisticalPolynomial(rsrqTputP90, polynomialDegree);
+            const rsrqP50Poly = computeStatisticalPolynomial(rsrqTputP50, polynomialDegree);
+            const rsrqAvgPoly = computeStatisticalPolynomial(rsrqTputAvg, polynomialDegree);
+            
+            // Optional: Calculate raw data polynomial (if toggle enabled in zoom modal)
+            const showRawRsrq = window.showRawTrendlineState ?? (document.getElementById('showRawTrendlineZoom')?.checked || false);
+            const rsrqRawPolyCoeffs = showRawRsrq ? polynomialRegression(rsrqFilteredX, rsrqFilteredY, polynomialDegree) : null;
+            const rsrqRawPoly = rsrqRawPolyCoeffs ? generatePolynomialTrendline(rsrqFilteredX, rsrqRawPolyCoeffs, 100) : [];
+
+            // Build datasets array
+            const rsrqDatasets = [
+                { label: 'Data Points', data: rsrqTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
+                { label: `90th Percentile (Deg ${polynomialDegree})`, data: rsrqP90Poly, type: 'line', borderColor: '#ef4444', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                { label: `Median (Deg ${polynomialDegree})`, data: rsrqP50Poly, type: 'line', borderColor: '#fbbf24', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                { label: `Average (Deg ${polynomialDegree})`, data: rsrqAvgPoly, type: 'line', borderColor: '#10b981', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
+            ];
+            
+            // Add raw polynomial if enabled
+            if (showRawRsrq && rsrqRawPoly.length > 0) {
+                rsrqDatasets.push({
+                    label: `Overall Trend (Deg ${polynomialDegree})`,
+                    data: rsrqRawPoly,
+                    type: 'line',
+                    borderColor: '#a78bfa',
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
+
+            if (scatterTputRsrq) scatterTputRsrq.destroy();
+            scatterTputRsrq = new Chart(document.getElementById('scatterTputRsrq'), {
+                type: 'scatter',
+                data: { datasets: rsrqDatasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { family: 'JetBrains Mono', size: 10 } } },
+                        title: { display: true, text: `DL Throughput vs ${rsrqLabel.split(' ')[0]} ${includeIdle ? '(All Samples)' : '(Active Sessions Only)'}`, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 14 } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'JetBrains Mono' }, bodyFont: { family: 'JetBrains Mono' } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: rsrqLabel, color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { title: { display: true, text: 'DL Throughput (Mbps)', color: kpiTheme === 'dark' ? '#fff' : '#1f2937', font: { size: 12 } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563' }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } }
+                    }
+                }
+            });
+
             // MCS vs CQI - Hide for UMTS/GSM
             const scatterMcsCqiContainer = document.getElementById('scatterMcsCqi')?.parentElement;
             if (tech !== 'UMTS' && tech !== 'GSM') {
@@ -3123,22 +3273,43 @@ function renderScatterPlots() {
                 const cqiMcsP50 = calculateBinnedPercentiles(cqiVals, mcsVals, 50);
                 const cqiMcsAvg = calculateBinnedAverage(cqiVals, mcsVals);
                 
-                // Calculate polynomial trendline
-                const cqiPolyCoeffs = polynomialRegression(cqiVals, mcsVals, polynomialDegree);
-                const cqiPolyTrendline = cqiPolyCoeffs ? generatePolynomialTrendline(cqiVals, cqiPolyCoeffs, 100) : [];
+                // Calculate polynomial trendlines for statistical lines
+                const cqiP90Poly = computeStatisticalPolynomial(cqiMcsP90, polynomialDegree);
+                const cqiP50Poly = computeStatisticalPolynomial(cqiMcsP50, polynomialDegree);
+                const cqiAvgPoly = computeStatisticalPolynomial(cqiMcsAvg, polynomialDegree);
+                
+                // Optional: Calculate raw data polynomial (if toggle enabled in zoom modal)
+                const showRaw = window.showRawTrendlineState ?? (document.getElementById('showRawTrendlineZoom')?.checked || false);
+                const cqiRawPolyCoeffs = showRaw ? polynomialRegression(cqiVals, mcsVals, polynomialDegree) : null;
+                const cqiRawPoly = cqiRawPolyCoeffs ? generatePolynomialTrendline(cqiVals, cqiRawPolyCoeffs, 100) : [];
+
+                // Build datasets array
+                const cqiDatasets = [
+                    { label: 'Data Points', data: cqiMcsData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
+                    { label: `90th Percentile (Deg ${polynomialDegree})`, data: cqiP90Poly, type: 'line', borderColor: '#ef4444', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                    { label: `Median (Deg ${polynomialDegree})`, data: cqiP50Poly, type: 'line', borderColor: '#fbbf24', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                    { label: `Average (Deg ${polynomialDegree})`, data: cqiAvgPoly, type: 'line', borderColor: '#10b981', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
+                ];
+                
+                // Add raw polynomial if enabled
+                if (showRaw && cqiRawPoly.length > 0) {
+                    cqiDatasets.push({
+                        label: `Overall Trend (Deg ${polynomialDegree})`,
+                        data: cqiRawPoly,
+                        type: 'line',
+                        borderColor: '#a78bfa',
+                        borderWidth: 2,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0
+                    });
+                }
 
                 if (scatterMcsCqi) scatterMcsCqi.destroy();
             scatterMcsCqi = new Chart(document.getElementById('scatterMcsCqi'), {
                 type: 'scatter',
-                data: {
-                    datasets: [
-                        { label: 'Data Points', data: cqiMcsData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
-                        { label: '90th Percentile', data: cqiMcsP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Median (50th)', data: cqiMcsP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: cqiMcsAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: `Polynomial (Degree ${polynomialDegree})`, data: cqiPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
-                    ]
-                },
+                data: { datasets: cqiDatasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
@@ -3165,22 +3336,43 @@ function renderScatterPlots() {
                 const blerTputP50 = calculateBinnedPercentiles(blerVals, tputDlVals, 50);
                 const blerTputAvg = calculateBinnedAverage(blerVals, tputDlVals);
                 
-                // Calculate polynomial trendline
-                const blerPolyCoeffs = polynomialRegression(blerVals, tputDlVals, polynomialDegree);
-                const blerPolyTrendline = blerPolyCoeffs ? generatePolynomialTrendline(blerVals, blerPolyCoeffs, 100) : [];
+                // Calculate polynomial trendlines for statistical lines
+                const blerP90Poly = computeStatisticalPolynomial(blerTputP90, polynomialDegree);
+                const blerP50Poly = computeStatisticalPolynomial(blerTputP50, polynomialDegree);
+                const blerAvgPoly = computeStatisticalPolynomial(blerTputAvg, polynomialDegree);
+                
+                // Optional: Calculate raw data polynomial (if toggle enabled in zoom modal)
+                const showRaw = window.showRawTrendlineState ?? (document.getElementById('showRawTrendlineZoom')?.checked || false);
+                const blerRawPolyCoeffs = showRaw ? polynomialRegression(blerVals, tputDlVals, polynomialDegree) : null;
+                const blerRawPoly = blerRawPolyCoeffs ? generatePolynomialTrendline(blerVals, blerRawPolyCoeffs, 100) : [];
+
+                // Build datasets array
+                const blerDatasets = [
+                    { label: 'Data Points', data: blerTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
+                    { label: `90th Percentile (Deg ${polynomialDegree})`, data: blerP90Poly, type: 'line', borderColor: '#ef4444', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                    { label: `Median (Deg ${polynomialDegree})`, data: blerP50Poly, type: 'line', borderColor: '#fbbf24', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 },
+                    { label: `Average (Deg ${polynomialDegree})`, data: blerAvgPoly, type: 'line', borderColor: '#10b981', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
+                ];
+                
+                // Add raw polynomial if enabled
+                if (showRaw && blerRawPoly.length > 0) {
+                    blerDatasets.push({
+                        label: `Overall Trend (Deg ${polynomialDegree})`,
+                        data: blerRawPoly,
+                        type: 'line',
+                        borderColor: '#a78bfa',
+                        borderWidth: 2,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0
+                    });
+                }
 
                 if (scatterBlerTput) scatterBlerTput.destroy();
             scatterBlerTput = new Chart(document.getElementById('scatterBlerTput'), {
                 type: 'scatter',
-                data: {
-                    datasets: [
-                        { label: 'Data Points', data: blerTputData, backgroundColor: 'rgba(59,130,246,0.6)', pointRadius: 3, pointHoverRadius: 5 },
-                        { label: '90th Percentile', data: blerTputP90, type: 'line', borderColor: '#ef4444', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Median (50th)', data: blerTputP50, type: 'line', borderColor: '#fbbf24', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: 'Average', data: blerTputAvg, type: 'line', borderColor: '#10b981', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 },
-                        { label: `Polynomial (Degree ${polynomialDegree})`, data: blerPolyTrendline, type: 'line', borderColor: '#8b5cf6', borderWidth: 3, borderDash: [8, 4], pointRadius: 0, fill: false, tension: 0 }
-                    ]
-                },
+                data: { datasets: blerDatasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
@@ -3942,7 +4134,6 @@ function renderScatterPlots() {
         // Polynomial degree selector change handler
         document.getElementById('polynomialDegreeSelector').addEventListener('change', function(e) {
             polynomialDegree = parseInt(e.target.value, 10);
-            console.log('Polynomial degree changed to:', polynomialDegree);
             
             // Warn user about high-degree polynomials
             if (polynomialDegree >= 6) {
@@ -3953,16 +4144,199 @@ function renderScatterPlots() {
             if (parsedData.length > 0) {
                 renderCorrelationScatters();
             }
+            
+            // If zoom modal is open, update the zoomed chart immediately
+            const modal = document.getElementById('chartZoomModal');
+            if (modal && modal.style.display === 'flex' && zoomedChart) {
+                // Save the current legend state (which datasets are hidden)
+                const legendState = {};
+                if (zoomedChart.data && zoomedChart.data.datasets) {
+                    zoomedChart.data.datasets.forEach((dataset, index) => {
+                        legendState[index] = zoomedChart.isDatasetVisible(index);
+                    });
+                }
+                
+                const chartTitle = document.getElementById('chartZoomTitle')?.textContent || '';
+                
+                // Find the corresponding main chart instance
+                // For 2G/3G: RxLev and RSCP are shown in scatterTputRsrp (not scatterTputSinr which is hidden)
+                // For 4G/5G: SINR is shown in scatterTputSinr, RSRP in scatterTputRsrp
+                let mainChartInstance = null;
+                if (chartTitle.includes('RxLev') || chartTitle.includes('RSCP') || chartTitle.includes('RSRP')) {
+                    // RxLev (2G), RSCP (3G), and RSRP (4G/5G) all use scatterTputRsrp
+                    mainChartInstance = scatterTputRsrp;
+                } else if (chartTitle.includes('BLER')) {
+                    mainChartInstance = scatterBlerTput;
+                } else if (chartTitle.includes('MCS') || chartTitle.includes('CQI')) {
+                    mainChartInstance = scatterMcsCqi;
+                } else if (chartTitle.includes('RxQual') || chartTitle.includes('Ec/No') || chartTitle.includes('RSRQ')) {
+                    // RxQual (2G), Ec/No (3G), and RSRQ (4G/5G) all use scatterTputRsrq
+                    mainChartInstance = scatterTputRsrq;
+                } else if (chartTitle.includes('SINR')) {
+                    // SINR (4G/5G only) uses scatterTputSinr
+                    mainChartInstance = scatterTputSinr;
+                }
+                
+                // Wait for main charts to update, then re-open zoom with updated data
+                setTimeout(() => {
+                    if (mainChartInstance) {
+                        openChartZoom(chartTitle, mainChartInstance);
+                        
+                        // Restore the legend state after chart is created
+                        setTimeout(() => {
+                            if (zoomedChart && zoomedChart.data && zoomedChart.data.datasets) {
+                                zoomedChart.data.datasets.forEach((dataset, index) => {
+                                    if (legendState[index] === false) {
+                                        zoomedChart.setDatasetVisibility(index, false);
+                                    }
+                                });
+                                zoomedChart.update();
+                            }
+                        }, 50);
+                    }
+                }, 100);
+            }
         });
 
         // Include idle samples toggle handler
         document.getElementById('includeIdleSamples')?.addEventListener('change', function(e) {
             const includeIdle = e.target.checked;
-            console.log('Include idle samples:', includeIdle ? 'ON (showing all data)' : 'OFF (filtering idle UE states)');
             
             // Re-render scatter plots with new filtering setting
             if (parsedData.length > 0) {
                 renderCorrelationScatters();
+            }
+            
+            // If zoom modal is open, update the zoomed chart immediately
+            const modal = document.getElementById('chartZoomModal');
+            if (modal && modal.style.display === 'flex' && zoomedChart) {
+                // Save the current legend state (which datasets are hidden)
+                const legendState = {};
+                if (zoomedChart.data && zoomedChart.data.datasets) {
+                    zoomedChart.data.datasets.forEach((dataset, index) => {
+                        legendState[index] = zoomedChart.isDatasetVisible(index);
+                    });
+                }
+                
+                const chartTitle = document.getElementById('chartZoomTitle')?.textContent || '';
+                
+                // Find the corresponding main chart instance
+                // For 2G/3G: RxLev and RSCP are shown in scatterTputRsrp (not scatterTputSinr which is hidden)
+                // For 4G/5G: SINR is shown in scatterTputSinr, RSRP in scatterTputRsrp
+                let mainChartInstance = null;
+                if (chartTitle.includes('RxLev') || chartTitle.includes('RSCP') || chartTitle.includes('RSRP')) {
+                    // RxLev (2G), RSCP (3G), and RSRP (4G/5G) all use scatterTputRsrp
+                    mainChartInstance = scatterTputRsrp;
+                } else if (chartTitle.includes('BLER')) {
+                    mainChartInstance = scatterBlerTput;
+                } else if (chartTitle.includes('MCS') || chartTitle.includes('CQI')) {
+                    mainChartInstance = scatterMcsCqi;
+                } else if (chartTitle.includes('RxQual') || chartTitle.includes('Ec/No') || chartTitle.includes('RSRQ')) {
+                    // RxQual (2G), Ec/No (3G), and RSRQ (4G/5G) all use scatterTputRsrq
+                    mainChartInstance = scatterTputRsrq;
+                } else if (chartTitle.includes('SINR')) {
+                    // SINR (4G/5G only) uses scatterTputSinr
+                    mainChartInstance = scatterTputSinr;
+                }
+                
+                // Wait for main charts to update, then re-open zoom with updated data
+                setTimeout(() => {
+                    if (mainChartInstance) {
+                        openChartZoom(chartTitle, mainChartInstance);
+                        
+                        // Restore the legend state after chart is created
+                        setTimeout(() => {
+                            if (zoomedChart && zoomedChart.data && zoomedChart.data.datasets) {
+                                zoomedChart.data.datasets.forEach((dataset, index) => {
+                                    if (legendState[index] === false) {
+                                        zoomedChart.setDatasetVisibility(index, false);
+                                    }
+                                });
+                                zoomedChart.update();
+                            }
+                        }, 50);
+                    }
+                }, 100);
+            }
+        });
+
+        // Show raw trendline toggle handler (zoom modal version)
+        let isUpdatingZoom = false; // Prevent recursive triggers
+        
+        document.getElementById('showRawTrendlineZoom')?.addEventListener('change', function(e) {
+            if (isUpdatingZoom) {
+                return; // Prevent recursive calls
+            }
+            
+            const showRaw = e.target.checked;
+            
+            // Store the state globally so renderCorrelationScatters can use it
+            window.showRawTrendlineState = showRaw;
+            
+            // Re-render the main charts first with the new state
+            if (parsedData.length > 0) {
+                renderCorrelationScatters();
+            }
+            
+            // If zoom modal is open, update the zoomed chart immediately
+            const modal = document.getElementById('chartZoomModal');
+            if (modal && modal.style.display === 'flex' && zoomedChart) {
+                // Save the current legend state (which datasets are hidden)
+                const legendState = {};
+                if (zoomedChart.data && zoomedChart.data.datasets) {
+                    zoomedChart.data.datasets.forEach((dataset, index) => {
+                        legendState[index] = zoomedChart.isDatasetVisible(index);
+                    });
+                }
+                
+                // Get the current chart title to determine which scatter plot is open
+                const chartTitle = document.getElementById('chartZoomTitle')?.textContent || '';
+                
+                // Find the corresponding main chart instance
+                // For 2G/3G: RxLev and RSCP are shown in scatterTputRsrp (not scatterTputSinr which is hidden)
+                // For 4G/5G: SINR is shown in scatterTputSinr, RSRP in scatterTputRsrp
+                let mainChartInstance = null;
+                if (chartTitle.includes('RxLev') || chartTitle.includes('RSCP') || chartTitle.includes('RSRP')) {
+                    // RxLev (2G), RSCP (3G), and RSRP (4G/5G) all use scatterTputRsrp
+                    mainChartInstance = scatterTputRsrp;
+                } else if (chartTitle.includes('BLER')) {
+                    mainChartInstance = scatterBlerTput;
+                } else if (chartTitle.includes('MCS') || chartTitle.includes('CQI')) {
+                    mainChartInstance = scatterMcsCqi;
+                } else if (chartTitle.includes('RxQual') || chartTitle.includes('Ec/No') || chartTitle.includes('RSRQ')) {
+                    // RxQual (2G), Ec/No (3G), and RSRQ (4G/5G) all use scatterTputRsrq
+                    mainChartInstance = scatterTputRsrq;
+                } else if (chartTitle.includes('SINR')) {
+                    // SINR (4G/5G only) uses scatterTputSinr
+                    mainChartInstance = scatterTputSinr;
+                }
+                
+                // Wait for main charts to update, then re-open zoom with updated data
+                setTimeout(() => {
+                    if (mainChartInstance) {
+                        isUpdatingZoom = true; // Set flag before updating
+                        openChartZoom(chartTitle, mainChartInstance);
+                        // Ensure checkbox state is preserved after re-opening
+                        const zoomCheckbox = document.getElementById('showRawTrendlineZoom');
+                        if (zoomCheckbox) {
+                            zoomCheckbox.checked = showRaw;
+                        }
+                        
+                        // Restore the legend state after chart is created
+                        setTimeout(() => {
+                            if (zoomedChart && zoomedChart.data && zoomedChart.data.datasets) {
+                                zoomedChart.data.datasets.forEach((dataset, index) => {
+                                    if (legendState[index] === false) {
+                                        zoomedChart.setDatasetVisibility(index, false);
+                                    }
+                                });
+                                zoomedChart.update();
+                            }
+                        }, 50);
+                        
+                        isUpdatingZoom = false; // Clear flag after updating
+                    }
+                }, 150);
             }
         });
 
@@ -4150,6 +4524,9 @@ function renderScatterPlots() {
 
         // Load saved state on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the global state for raw trendline (default: OFF)
+            window.showRawTrendlineState = false;
+            
             loadSavedState();
             loadChartVisibility();
             initializeChartVisibilityControls();
@@ -4249,6 +4626,15 @@ function renderScatterPlots() {
             const title = document.getElementById('chartZoomTitle');
             const modalContent = modal.querySelector('div');
             const chartContainer = document.getElementById('chartZoomContainer');
+            const scatterControls = document.getElementById('zoomScatterControls');
+            
+            // Detect if this is a scatter plot (correlation analysis chart)
+            const isScatterPlot = chartTitle.includes('Throughput') || chartTitle.includes('MCS vs CQI');
+            
+            // Show/hide the scatter plot controls based on chart type
+            if (scatterControls) {
+                scatterControls.style.display = isScatterPlot ? 'flex' : 'none';
+            }
             
             // Clean up multi-KPI charts if they exist
             if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
@@ -4273,6 +4659,30 @@ function renderScatterPlots() {
             
             title.textContent = chartTitle;
             modal.style.display = 'flex';
+            
+            // Synchronize control values with current state AFTER modal is displayed (for scatter plots)
+            if (isScatterPlot) {
+                // Use setTimeout to ensure DOM is ready
+                setTimeout(() => {
+                    // Sync polynomial degree dropdown
+                    const degreeSelector = document.getElementById('polynomialDegreeSelector');
+                    if (degreeSelector) {
+                        degreeSelector.value = polynomialDegree.toString();
+                    }
+                    
+                    // Sync include idle samples checkbox
+                    const idleSamplesCheckbox = document.getElementById('includeIdleSamples');
+                    if (idleSamplesCheckbox) {
+                        idleSamplesCheckbox.checked = document.getElementById('includeIdleSamples')?.checked || false;
+                    }
+                    
+                    // Sync show overall trend checkbox
+                    const rawTrendCheckbox = document.getElementById('showRawTrendlineZoom');
+                    if (rawTrendCheckbox) {
+                        rawTrendCheckbox.checked = window.showRawTrendlineState || false;
+                    }
+                }, 10);
+            }
             
             const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
             const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
@@ -4445,8 +4855,13 @@ function renderScatterPlots() {
                             const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                             title = `Throughput vs ${rsrpLabel}`; 
                         }
-                        else if (index === 11 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 12 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (index === 11 && scatterTputRsrq) { 
+                            chart = scatterTputRsrq; 
+                            const rsrqLabel = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                            title = `Throughput vs ${rsrqLabel}`; 
+                        }
+                        else if (index === 12 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
+                        else if (index === 13 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
