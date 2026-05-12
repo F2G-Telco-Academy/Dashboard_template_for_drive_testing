@@ -1,5 +1,39 @@
 
         // =====================================================
+        // TIMESTAMP UTILITY FUNCTIONS
+        // =====================================================
+        
+        /**
+         * Extract full timestamp with microseconds from data point
+         * Preserves microsecond precision from ECA CSV files
+         * @param {Object} dataPoint - Parsed CSV row with time field
+         * @returns {string} - Full timestamp (HH:MM:SS.microseconds)
+         */
+        function getFullTimestamp(dataPoint) {
+            if (!dataPoint || !dataPoint.time) return '-';
+            
+            // Handle ISO format: YYYY-MM-DDTHH:MM:SS.microseconds
+            if (dataPoint.time.includes('T')) {
+                return dataPoint.time.split('T')[1] || dataPoint.time;
+            }
+            
+            // Handle direct time format: HH:MM:SS.microseconds
+            return dataPoint.time;
+        }
+
+        /**
+         * Extract shortened timestamp for axis labels (HH:MM:SS only)
+         * Used for x-axis readability while preserving full precision in tooltips
+         * @param {Object} dataPoint - Parsed CSV row with time field
+         * @returns {string} - Shortened timestamp (HH:MM:SS)
+         */
+        function getShortTimestamp(dataPoint) {
+            const fullTime = getFullTimestamp(dataPoint);
+            // Keep only HH:MM:SS for axis readability
+            return fullTime.slice(0, 8);
+        }
+
+        // =====================================================
         // CONFIGURATION STATE
         // =====================================================
         let editMode = false;
@@ -1417,7 +1451,7 @@
         function renderKPIChart(kpiType) {
             if (parsedData.length === 0) return;
 
-            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`);
+            const labels = parsedData.map((d, i) => getShortTimestamp(d) || `Point ${i+1}`);
             
             if (kpiType === 'all') {
                 renderMultipleMetricsChart(labels);
@@ -1545,7 +1579,7 @@
             const eventsList = document.getElementById('eventsList');
             if (events.length > 0) {
                 eventsList.innerHTML = events.map(e => 
-                    `<div>${e.time?.split('T')[1]?.slice(0, 8) || '-'} ${e.event.toUpperCase()}</div>`
+                    `<div>${getFullTimestamp(e)} ${e.event.toUpperCase()}</div>`
                 ).join('');
             }
 
@@ -1729,8 +1763,9 @@
                                 title: function(context) {
                                     const idx = context[0].dataIndex;
                                     const point = parsedData[idx];
+                                    const fullTime = getFullTimestamp(point);
                                     const tech = point?.technology || detectedTechnology || 'LTE';
-                                    return 'Time: ' + context[0].label + ' [' + tech + ']';
+                                    return 'Time: ' + fullTime + ' [' + tech + ']';
                                 },
                                 label: function(context) {
                                     return null;
@@ -1935,7 +1970,7 @@
 function renderScatterPlots() {
             if (parsedData.length === 0) return;
 
-            const labels = parsedData.map((d, i) => d.time?.split('T')[1]?.slice(0, 8) || `${i+1}`);
+            const labels = parsedData.map((d, i) => getShortTimestamp(d) || `${i+1}`);
             const tech = detectedTechnology || 'LTE';
             
             // Update section title with technology name
@@ -2017,7 +2052,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return 'CQI: ' + context.parsed.y.toFixed(0);
                                 },
@@ -2070,7 +2109,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return 'MCS: ' + context.parsed.y.toFixed(0);
                                 },
@@ -2124,7 +2167,11 @@ function renderScatterPlots() {
                                 borderColor: '#fff',
                                 borderWidth: 1,
                                 callbacks: {
-                                    title: function(context) { return 'Time: ' + context[0].label; },
+                                    title: function(context) { 
+                                        const idx = context[0].dataIndex;
+                                        const point = parsedData[idx];
+                                        return 'Time: ' + getFullTimestamp(point); 
+                                    },
                                     label: function(context) {
                                         return sinrLabel + ': ' + context.parsed.y.toFixed(2);
                                     },
@@ -2189,7 +2236,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return rsrpLabel + ': ' + context.parsed.y.toFixed(2);
                                 },
@@ -2259,7 +2310,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return rsrqLabel + ': ' + context.parsed.y.toFixed(2);
                                 },
@@ -2306,7 +2361,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return 'DL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
                                 },
@@ -2353,7 +2412,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return 'UL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
                                 },
@@ -2404,7 +2467,11 @@ function renderScatterPlots() {
                             borderColor: '#fff',
                             borderWidth: 1,
                             callbacks: {
-                                title: function(context) { return 'Time: ' + context[0].label; },
+                                title: function(context) { 
+                                    const idx = context[0].dataIndex;
+                                    const point = parsedData[idx];
+                                    return 'Time: ' + getFullTimestamp(point); 
+                                },
                                 label: function(context) {
                                     return 'BLER: ' + context.parsed.y.toFixed(2) + ' %';
                                 },
@@ -2475,7 +2542,11 @@ function renderScatterPlots() {
                                     borderColor: '#fff',
                                     borderWidth: 1,
                                     callbacks: {
-                                        title: function(context) { return 'Time: ' + context[0].label; },
+                                        title: function(context) { 
+                                            const idx = context[0].dataIndex;
+                                            const point = parsedData[idx];
+                                            return 'Time: ' + getFullTimestamp(point); 
+                                        },
                                         label: function(context) {
                                             if (context.parsed.y === null) return 'Tx Power: N/A';
                                             return 'Tx Power: ' + context.parsed.y.toFixed(2) + ' dBm';
@@ -3852,7 +3923,7 @@ function renderScatterPlots() {
                     const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
                         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                             <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div>
-                            <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                            <div style="margin:4px 0;"><b>Time:</b> ${getFullTimestamp(row)}</div>
                             <div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div>
                             <div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>
                             ${kpiContent}
@@ -3908,7 +3979,7 @@ function renderScatterPlots() {
                 const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
                     <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                         <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label} (${tech})</div>
-                        <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                        <div style="margin:4px 0;"><b>Time:</b> ${getFullTimestamp(row)}</div>
                         <div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div>
                         <div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>
                         ${kpiContent}
@@ -5342,7 +5413,7 @@ function renderScatterPlots() {
             
             // Extract shared time labels
             const labels = parsedData.map((d, i) => 
-                d.time?.split('T')[1]?.slice(0, 8) || `Point ${i+1}`
+                getShortTimestamp(d) || `Point ${i+1}`
             );
             
             // Technology detection
@@ -5464,7 +5535,7 @@ function renderScatterPlots() {
             
             // Get data point
             const point = parsedData[index];
-            const timestamp = labels[index];
+            const fullTimestamp = getFullTimestamp(point);
             
             // Apply theme colors
             const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
@@ -5481,7 +5552,7 @@ function renderScatterPlots() {
             // Timestamp section
             html += `<div style="background:${bgColor}; padding:10px; border-radius:4px; margin-bottom:12px; border:1px solid ${borderColor};">`;
             html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Timestamp</div>`;
-            html += `<div style="font-size:13px; font-weight:700; font-family:'JetBrains Mono';">${timestamp || 'N/A'}</div>`;
+            html += `<div style="font-size:13px; font-weight:700; font-family:'JetBrains Mono';">${fullTimestamp || 'N/A'}</div>`;
             html += `</div>`;
             
             // GPS Coordinates section
