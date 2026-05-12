@@ -567,7 +567,14 @@ Client: Open URL → View dashboard (read-only)
   - Format options: PNG (raster) or SVG (vector)
   - Dropdown button in zoom modal header: "⬇ DOWNLOAD"
   - Simple format selection: PNG or SVG (no clutter)
-  - Works for all chart types (time-series and scatter plots)
+  - Works for all chart types (time-series, scatter plots, and multi-KPI)
+- ✅ **Multi-KPI chart export with complete capture**
+  - Captures ALL selected KPI charts in one image (no missing charts)
+  - Direct canvas stitching approach (not viewport-dependent)
+  - Works regardless of browser zoom level or scroll position
+  - Includes charts below the fold (scrolled content)
+  - Proper spacing between charts (matches modal layout)
+  - Perfect quality from native Chart.js rendering
 - ✅ **Theme preservation in exports**
   - Downloaded files preserve current theme (dark/light mode)
   - Dark mode: Charts exported with dark background (#374151)
@@ -577,14 +584,20 @@ Client: Open URL → View dashboard (read-only)
 - ✅ **Smart filename generation**
   - Auto-generated descriptive filenames
   - Format: `ChartTitle_YYYY-MM-DD_HH-MM.png/svg`
-  - Example: `Throughput_vs_SINR_2024-01-15_14-30.png`
+  - Example: `Multi-KPI_Analysis_RSRP_RSRQ_SINR_2024-01-15_14-30.png`
   - Removes emojis and special characters
   - Includes timestamp for version tracking
 - ✅ **High-quality output**
-  - PNG: Full canvas resolution (typically 1200x600px or larger)
+  - PNG: Full canvas resolution (typically 1200x600px per chart)
   - SVG: Vector format with embedded PNG (scalable, perfect for reports)
+  - Multi-KPI: Stitches all charts into single image
   - Suitable for professional presentations and publications
-  - File sizes: PNG ~200-500KB, SVG ~300-600KB
+  - File sizes: Single chart ~200-500KB, Multi-KPI ~1-3MB (depends on chart count)
+- ✅ **Clean UI for multi-KPI charts**
+  - Trendline controls hidden for multi-KPI (only relevant for scatter plots)
+  - Only DOWNLOAD and CLOSE buttons shown
+  - Observation panel persists when clicking download (300ms delay)
+  - Smooth user experience without panel flickering
 - ✅ **User-friendly workflow**
   - Click any chart to open zoom modal
   - Click "⬇ DOWNLOAD" button
