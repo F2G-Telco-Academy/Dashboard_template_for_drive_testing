@@ -561,7 +561,18 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.15 (Current - Chart Export Feature)**
+**v3.16 (Current - Timestamp Precision Enhancement)**
+- ✅ **Full microsecond precision preserved from ECA CSV files**
+  - Timestamps now display complete precision (e.g., `18:48:03.654906`)
+  - Two-tier display system: short labels on axes (HH:MM:SS), full precision in tooltips
+  - Added utility functions: `getFullTimestamp()` and `getShortTimestamp()`
+  - Updated 17 display locations across KPI charts, map popups, tooltips, and event timeline
+  - X-axis labels remain readable while tooltips show full microsecond precision
+  - Works across all technologies (LTE, NR, UMTS, GSM)
+  - Zero performance impact, fully backward compatible
+  - Professional-grade temporal resolution for precise event correlation
+
+**v3.15 (Chart Export Feature)**
 - ✅ **Download charts as high-quality images**
   - Export any KPI chart from zoom modal (fullscreen view)
   - Format options: PNG (raster) or SVG (vector)
