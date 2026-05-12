@@ -128,6 +128,7 @@
             'txpower': true,
             'scatter-tput-sinr': true,
             'scatter-tput-rsrp': true,
+            'scatter-tput-rsrq': true,
             'scatter-mcs-cqi': true,
             'scatter-bler-tput': true
         };
@@ -222,6 +223,11 @@
             chartVisibility[chartId] = !chartVisibility[chartId];
             saveChartVisibility();
             applyChartVisibility();
+            
+            // Re-render correlation scatter plots if toggling a scatter plot chart
+            if (chartId.startsWith('scatter-') && parsedData.length > 0) {
+                renderCorrelationScatters();
+            }
         }
 
         // Initialize chart visibility controls
@@ -283,6 +289,12 @@
                     });
                     saveChartVisibility();
                     applyChartVisibility();
+                    
+                    // Re-render correlation scatter plots to reflect visibility changes
+                    if (parsedData.length > 0) {
+                        renderCorrelationScatters();
+                    }
+                    
                     customizePanel.classList.add('hidden');
                 });
             }
@@ -464,24 +476,45 @@
                         break;
                         
                     case 'scatter-tput-sinr':
+                        if (tech === 'UMTS' || tech === 'GSM') {
+                            label.textContent = 'DL Throughput vs SINR - Not available for ' + tech;
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.parentElement.style.opacity = '0.5';
+                        } else if (tech === 'NR') {
+                            label.textContent = 'DL Throughput vs NR-SINR';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        } else {
+                            label.textContent = 'DL Throughput vs SINR';
+                            checkbox.disabled = false;
+                            checkbox.parentElement.style.opacity = '1';
+                        }
+                        break;
+                        
+                    case 'scatter-tput-rsrp':
                         if (tech === 'UMTS') {
                             label.textContent = 'DL Throughput vs RSCP';
                         } else if (tech === 'GSM') {
                             label.textContent = 'DL Throughput vs RxLev';
+                        } else if (tech === 'NR') {
+                            label.textContent = 'DL Throughput vs NR-RSRP';
                         } else {
-                            label.textContent = 'DL Throughput vs SINR';
+                            label.textContent = 'DL Throughput vs RSRP';
                         }
                         checkbox.disabled = false;
                         checkbox.parentElement.style.opacity = '1';
                         break;
                         
-                    case 'scatter-tput-rsrp':
+                    case 'scatter-tput-rsrq':
                         if (tech === 'UMTS') {
                             label.textContent = 'DL Throughput vs Ec/No';
                         } else if (tech === 'GSM') {
                             label.textContent = 'DL Throughput vs RxQual';
+                        } else if (tech === 'NR') {
+                            label.textContent = 'DL Throughput vs NR-RSRQ';
                         } else {
-                            label.textContent = 'DL Throughput vs RSRP';
+                            label.textContent = 'DL Throughput vs RSRQ';
                         }
                         checkbox.disabled = false;
                         checkbox.parentElement.style.opacity = '1';
@@ -654,6 +687,7 @@
                     if (compTxPowerOnly) { compTxPowerOnly.destroy(); compTxPowerOnly = null; }
                     if (scatterTputSinr) { scatterTputSinr.destroy(); scatterTputSinr = null; }
                     if (scatterTputRsrp) { scatterTputRsrp.destroy(); scatterTputRsrp = null; }
+                    if (scatterTputRsrq) { scatterTputRsrq.destroy(); scatterTputRsrq = null; }
                     if (scatterMcsCqi) { scatterMcsCqi.destroy(); scatterMcsCqi = null; }
                     if (scatterBlerTput) { scatterBlerTput.destroy(); scatterBlerTput = null; }
                     if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
@@ -666,7 +700,7 @@
                         'kpiChart', 'kpiHistogram', 'chartZoomCanvas',
                         'compRsrpOnly', 'compRsrqOnly', 'compSinrOnly', 
                         'compTputOnly', 'compTputUlOnly', 'compBlerOnly', 'compCqiOnly', 'compMcsOnly', 'compTxPowerOnly',
-                        'scatterTputSinr', 'scatterTputRsrp', 'scatterMcsCqi', 'scatterBlerTput'
+                        'scatterTputSinr', 'scatterTputRsrp', 'scatterTputRsrq', 'scatterMcsCqi', 'scatterBlerTput'
                     ];
                     canvasIds.forEach(id => {
                         const canvas = document.getElementById(id);
@@ -3125,7 +3159,9 @@ function renderScatterPlots() {
 
             // Throughput vs SINR (or RSRP for UMTS/GSM) - Hide for UMTS/GSM since it's redundant
             const scatterTputSinrContainer = document.getElementById('scatterTputSinr')?.parentElement;
-            if (tech !== 'UMTS' && tech !== 'GSM') {
+            const isSinrChartVisible = chartVisibility['scatter-tput-sinr'] !== false;
+            
+            if (tech !== 'UMTS' && tech !== 'GSM' && isSinrChartVisible) {
                 if (scatterTputSinrContainer) scatterTputSinrContainer.style.display = 'block';
                 const xAxisVals = sinrVals || rsrpVals;
                 const xAxisLabel = sinrVals ? sinrLabel : rsrpLabel;
@@ -3196,6 +3232,12 @@ function renderScatterPlots() {
             }
 
             // Throughput vs RSRP - Apply same filtering
+            const isRsrpChartVisible = chartVisibility['scatter-tput-rsrp'] !== false;
+            const rsrpContainer = document.getElementById('scatterTputRsrp')?.parentElement;
+            
+            if (isRsrpChartVisible) {
+                if (rsrpContainer) rsrpContainer.style.display = 'block';
+                
             const filteredRsrp = filterActiveDataPoints(rsrpVals, tputDlVals, cqiVals, mcsVals, blerVals, includeIdle);
             const rsrpTputData = filteredRsrp.dataPoints;
             const rsrpFilteredX = filteredRsrp.filteredX;
@@ -3255,8 +3297,18 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                // Hide RSRP chart if not visible
+                if (rsrpContainer) rsrpContainer.style.display = 'none';
+            }
 
             // Throughput vs RSRQ/Ec/No/RxQual - Extract technology-specific quality KPIs
+            const isRsrqChartVisible = chartVisibility['scatter-tput-rsrq'] !== false;
+            const rsrqContainer = document.getElementById('scatterTputRsrq')?.parentElement;
+            
+            if (isRsrqChartVisible) {
+                if (rsrqContainer) rsrqContainer.style.display = 'block';
+                
             let rsrqVals;
             let rsrqLabel;
             
@@ -3334,10 +3386,16 @@ function renderScatterPlots() {
                     }
                 }
             });
+            } else {
+                // Hide RSRQ chart if not visible
+                if (rsrqContainer) rsrqContainer.style.display = 'none';
+            }
 
             // MCS vs CQI - Hide for UMTS/GSM
             const scatterMcsCqiContainer = document.getElementById('scatterMcsCqi')?.parentElement;
-            if (tech !== 'UMTS' && tech !== 'GSM') {
+            const isMcsCqiChartVisible = chartVisibility['scatter-mcs-cqi'] !== false;
+            
+            if (tech !== 'UMTS' && tech !== 'GSM' && isMcsCqiChartVisible) {
                 if (scatterMcsCqiContainer) scatterMcsCqiContainer.style.display = 'block';
                 const cqiMcsData = cqiVals.map((cqi, i) => ({ x: cqi, y: mcsVals[i] }));
                 const cqiMcsP90 = calculateBinnedPercentiles(cqiVals, mcsVals, 90);
@@ -3400,7 +3458,9 @@ function renderScatterPlots() {
 
             // Throughput vs BLER - Hide for UMTS/GSM
             const scatterBlerTputContainer = document.getElementById('scatterBlerTput')?.parentElement;
-            if (tech !== 'UMTS' && tech !== 'GSM') {
+            const isBlerChartVisible = chartVisibility['scatter-bler-tput'] !== false;
+            
+            if (tech !== 'UMTS' && tech !== 'GSM' && isBlerChartVisible) {
                 if (scatterBlerTputContainer) scatterBlerTputContainer.style.display = 'block';
                 const blerTputData = blerVals.map((bler, i) => ({ x: bler, y: tputDlVals[i] }));
                 const blerTputP90 = calculateBinnedPercentiles(blerVals, tputDlVals, 90);
