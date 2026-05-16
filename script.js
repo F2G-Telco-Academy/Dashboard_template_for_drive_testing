@@ -4749,6 +4749,1178 @@ function renderScatterPlots() {
         loadSavedState();
 
         // =====================================================
+        // TELECOM ZONE SYSTEM FOR MULTI-KPI INVESTIGATION
+        // =====================================================
+        
+        /**
+         * Telecom Zone Manager - Professional RF Investigation Zones
+         * Synchronized zones spanning ALL KPI charts (like Nemo Analyze / TEMS)
+         * Zones are timestamp-based, interactive, and resizable
+         */
+        const TelecomZoneManager = {
+            // State
+            zones: [],
+            canvases: [],
+            contexts: [],
+            activeZone: null,
+            interactionMode: null, // 'resize-left' | 'resize-right' | 'move' | null
+            dragStartX: null,
+            dragStartZone: null,
+            
+            /**
+             * Initialize zone canvases for all charts
+             */
+            init() {
+                console.log('🎯 Initializing Telecom Zone System...');
+                this.cleanup();
+                
+                const chartContainer = document.getElementById('chartZoomContainer');
+                if (!chartContainer) return;
+                
+                const chartWrappers = chartContainer.querySelectorAll('div[style*="position: relative"]');
+                
+                chartWrappers.forEach((wrapper, index) => {
+                    const canvasWrapper = wrapper.querySelector('div[style*="position: relative"]');
+                    if (!canvasWrapper) return;
+                    
+                    const chartCanvas = canvasWrapper.querySelector('canvas');
+                    if (!chartCanvas) return;
+                    
+                    // Create zone canvas overlay (below annotation canvas)
+                    const zoneCanvas = document.createElement('canvas');
+                    zoneCanvas.className = 'zone-canvas';
+                    zoneCanvas.dataset.chartIndex = index;
+                    
+                    zoneCanvas.width = chartCanvas.width;
+                    zoneCanvas.height = chartCanvas.height;
+                    zoneCanvas.style.width = chartCanvas.style.width;
+                    zoneCanvas.style.height = chartCanvas.style.height;
+                    
+                    canvasWrapper.appendChild(zoneCanvas);
+                    
+                    this.canvases.push(zoneCanvas);
+                    this.contexts.push(zoneCanvas.getContext('2d'));
+                    
+                    // Add event listeners for zone interaction
+                    this.attachEventListeners(zoneCanvas, index);
+                    
+                    console.log(`✅ Zone canvas ${index} initialized`);
+                });
+                
+                this.redrawAll();
+            },
+            
+            /**
+             * Attach event listeners for zone interaction
+             */
+            attachEventListeners(canvas, chartIndex) {
+                canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e, chartIndex));
+                canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e, chartIndex));
+                canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e, chartIndex));
+                canvas.addEventListener('mouseleave', (e) => this.handleMouseLeave(e, chartIndex));
+            },
+            
+            /**
+             * Convert data index to pixel X coordinate
+             */
+            indexToPixel(index, chartIndex) {
+                if (!window.multiKpiCharts || !window.multiKpiCharts[chartIndex]) return null;
+                const chart = window.multiKpiCharts[chartIndex];
+                const xScale = chart.scales.x;
+                return xScale.getPixelForValue(index);
+            },
+            
+            /**
+             * Convert pixel X coordinate to data index
+             */
+            pixelToIndex(x, chartIndex) {
+                if (!window.multiKpiCharts || !window.multiKpiCharts[chartIndex]) return null;
+                const chart = window.multiKpiCharts[chartIndex];
+                const xScale = chart.scales.x;
+                const index = Math.round(xScale.getValueForPixel(x));
+                const labels = chart.data.labels;
+                
+                if (index < 0 || index >= labels.length) return null;
+                
+                return {
+                    index: index,
+                    timestamp: labels[index]
+                };
+            },
+            
+            /**
+             * Add a new zone
+             */
+            addZone(startIndex, endIndex, color, label, zoneType = 'custom') {
+                const zone = {
+                    id: 'zone_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    startIndex: Math.min(startIndex, endIndex),
+                    endIndex: Math.max(startIndex, endIndex),
+                    color: color,
+                    label: label || '',
+                    zoneType: zoneType,
+                    opacity: 0.15,
+                    created: Date.now(),
+                    isHovered: false
+                };
+                
+                this.zones.push(zone);
+                this.redrawAll();
+                console.log(`✅ Added zone "${label}" from index ${zone.startIndex} to ${zone.endIndex}`);
+                return zone;
+            },
+            
+            /**
+             * Detect zone interaction at mouse position
+             */
+            detectInteraction(mouseX, chartIndex) {
+                const EDGE_THRESHOLD = 10; // pixels
+                
+                // Check zones in reverse order (newest first)
+                for (let i = this.zones.length - 1; i >= 0; i--) {
+                    const zone = this.zones[i];
+                    const startX = this.indexToPixel(zone.startIndex, chartIndex);
+                    const endX = this.indexToPixel(zone.endIndex, chartIndex);
+                    
+                    if (startX === null || endX === null) continue;
+                    
+                    // Check left edge
+                    if (Math.abs(mouseX - startX) < EDGE_THRESHOLD) {
+                        return { type: 'resize-left', zone: zone };
+                    }
+                    
+                    // Check right edge
+                    if (Math.abs(mouseX - endX) < EDGE_THRESHOLD) {
+                        return { type: 'resize-right', zone: zone };
+                    }
+                    
+                    // Check zone body
+                    if (mouseX > startX + EDGE_THRESHOLD && mouseX < endX - EDGE_THRESHOLD) {
+                        return { type: 'move', zone: zone };
+                    }
+                }
+                
+                return null;
+            },
+            
+            /**
+             * Mouse move handler
+             */
+            handleMouseMove(e, chartIndex) {
+                const rect = this.canvases[chartIndex].getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                
+                // Handle active drag/resize
+                if (this.interactionMode && this.activeZone) {
+                    const result = this.pixelToIndex(mouseX, chartIndex);
+                    if (!result) return;
+                    
+                    if (this.interactionMode === 'resize-left') {
+                        this.activeZone.startIndex = Math.max(0, Math.min(result.index, this.activeZone.endIndex - 1));
+                    } else if (this.interactionMode === 'resize-right') {
+                        const maxIndex = window.multiKpiCharts[chartIndex].data.labels.length - 1;
+                        this.activeZone.endIndex = Math.min(maxIndex, Math.max(result.index, this.activeZone.startIndex + 1));
+                    } else if (this.interactionMode === 'move') {
+                        const deltaIndex = result.index - this.dragStartX;
+                        const duration = this.dragStartZone.endIndex - this.dragStartZone.startIndex;
+                        const maxIndex = window.multiKpiCharts[chartIndex].data.labels.length - 1;
+                        
+                        let newStart = this.dragStartZone.startIndex + deltaIndex;
+                        let newEnd = newStart + duration;
+                        
+                        // Clamp to valid range
+                        if (newStart < 0) {
+                            newStart = 0;
+                            newEnd = duration;
+                        }
+                        if (newEnd > maxIndex) {
+                            newEnd = maxIndex;
+                            newStart = maxEnd - duration;
+                        }
+                        
+                        this.activeZone.startIndex = newStart;
+                        this.activeZone.endIndex = newEnd;
+                    }
+                    
+                    this.redrawAll();
+                    return;
+                }
+                
+                // Update hover state and cursor
+                const interaction = this.detectInteraction(mouseX, chartIndex);
+                
+                // Clear all hover states
+                this.zones.forEach(z => z.isHovered = false);
+                
+                if (interaction) {
+                    interaction.zone.isHovered = true;
+                    
+                    switch(interaction.type) {
+                        case 'resize-left':
+                        case 'resize-right':
+                            this.canvases[chartIndex].style.cursor = 'ew-resize';
+                            break;
+                        case 'move':
+                            this.canvases[chartIndex].style.cursor = 'move';
+                            break;
+                    }
+                    
+                    this.redrawAll();
+                } else {
+                    this.canvases[chartIndex].style.cursor = '';
+                    this.redrawAll();
+                }
+            },
+            
+            /**
+             * Mouse down handler
+             */
+            handleMouseDown(e, chartIndex) {
+                const rect = this.canvases[chartIndex].getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                
+                const interaction = this.detectInteraction(mouseX, chartIndex);
+                
+                if (interaction) {
+                    this.activeZone = interaction.zone;
+                    this.interactionMode = interaction.type;
+                    
+                    const result = this.pixelToIndex(mouseX, chartIndex);
+                    if (result) {
+                        this.dragStartX = result.index;
+                        this.dragStartZone = {
+                            startIndex: interaction.zone.startIndex,
+                            endIndex: interaction.zone.endIndex
+                        };
+                    }
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            },
+            
+            /**
+             * Mouse up handler
+             */
+            handleMouseUp(e, chartIndex) {
+                if (this.interactionMode) {
+                    console.log(`✅ Zone "${this.activeZone.label}" updated: ${this.activeZone.startIndex} → ${this.activeZone.endIndex}`);
+                }
+                
+                this.activeZone = null;
+                this.interactionMode = null;
+                this.dragStartX = null;
+                this.dragStartZone = null;
+            },
+            
+            /**
+             * Mouse leave handler
+             */
+            handleMouseLeave(e, chartIndex) {
+                this.handleMouseUp(e, chartIndex);
+                this.canvases[chartIndex].style.cursor = '';
+                this.zones.forEach(z => z.isHovered = false);
+                this.redrawAll();
+            },
+            
+            /**
+             * Render zone on specific chart
+             */
+            renderZone(zone, chartIndex) {
+                const ctx = this.contexts[chartIndex];
+                const canvas = this.canvases[chartIndex];
+                
+                const startX = this.indexToPixel(zone.startIndex, chartIndex);
+                const endX = this.indexToPixel(zone.endIndex, chartIndex);
+                
+                if (startX === null || endX === null) return;
+                
+                const width = endX - startX;
+                const height = canvas.height;
+                
+                // Draw semi-transparent fill
+                const alpha = Math.floor(zone.opacity * 255).toString(16).padStart(2, '0');
+                ctx.fillStyle = zone.color + alpha;
+                ctx.fillRect(startX, 0, width, height);
+                
+                // Draw border lines
+                ctx.strokeStyle = zone.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(startX, 0);
+                ctx.lineTo(startX, height);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(endX, 0);
+                ctx.lineTo(endX, height);
+                ctx.stroke();
+                
+                // Draw resize handles on hover
+                if (zone.isHovered) {
+                    this.drawResizeHandles(ctx, startX, endX, height, zone.color);
+                }
+                
+                // Draw label at top (first chart only)
+                if (chartIndex === 0 && zone.label) {
+                    this.drawZoneLabel(ctx, zone.label, startX, endX, zone.color);
+                }
+            },
+            
+            /**
+             * Draw resize handles
+             */
+            drawResizeHandles(ctx, startX, endX, height, color) {
+                const handleWidth = 8;
+                const handleHeight = 40;
+                const handleY = (height - handleHeight) / 2;
+                
+                // Left handle
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.fillRect(startX - handleWidth/2, handleY, handleWidth, handleHeight);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startX - handleWidth/2, handleY, handleWidth, handleHeight);
+                
+                // Right handle
+                ctx.fillRect(endX - handleWidth/2, handleY, handleWidth, handleHeight);
+                ctx.strokeRect(endX - handleWidth/2, handleY, handleWidth, handleHeight);
+            },
+            
+            /**
+             * Draw zone label
+             */
+            drawZoneLabel(ctx, label, startX, endX, color) {
+                const centerX = (startX + endX) / 2;
+                const textY = 15;
+                
+                ctx.font = 'bold 12px JetBrains Mono';
+                const textMetrics = ctx.measureText(label);
+                const textWidth = textMetrics.width;
+                const textHeight = 12;
+                
+                // Background
+                ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+                ctx.fillRect(
+                    centerX - textWidth/2 - 4,
+                    textY - textHeight + 2,
+                    textWidth + 8,
+                    textHeight + 4
+                );
+                
+                // Border
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(
+                    centerX - textWidth/2 - 4,
+                    textY - textHeight + 2,
+                    textWidth + 8,
+                    textHeight + 4
+                );
+                
+                // Text
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.fillText(label, centerX, textY);
+                ctx.textAlign = 'left';
+            },
+            
+            /**
+             * Redraw all zones on specific chart
+             */
+            redrawChart(chartIndex) {
+                if (!this.contexts[chartIndex]) return;
+                
+                const ctx = this.contexts[chartIndex];
+                const canvas = this.canvases[chartIndex];
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                this.zones.forEach(zone => {
+                    this.renderZone(zone, chartIndex);
+                });
+            },
+            
+            /**
+             * Redraw all zones on all charts
+             */
+            redrawAll() {
+                this.canvases.forEach((canvas, index) => {
+                    this.redrawChart(index);
+                });
+            },
+            
+            /**
+             * Delete zone by ID
+             */
+            deleteZone(zoneId) {
+                this.zones = this.zones.filter(z => z.id !== zoneId);
+                this.redrawAll();
+            },
+            
+            /**
+             * Clear all zones
+             */
+            clearAll() {
+                if (confirm('Clear all investigation zones?')) {
+                    this.zones = [];
+                    this.redrawAll();
+                    console.log('🗑️ All zones cleared');
+                }
+            },
+            
+            /**
+             * Cleanup
+             */
+            cleanup() {
+                this.canvases.forEach(canvas => {
+                    if (canvas.parentNode) {
+                        canvas.parentNode.removeChild(canvas);
+                    }
+                });
+                this.canvases = [];
+                this.contexts = [];
+                this.activeZone = null;
+                this.interactionMode = null;
+            }
+        };
+        
+        // =====================================================
+        // ANNOTATION SYSTEM FOR MULTI-KPI CHARTS
+        // =====================================================
+        
+        /**
+         * Annotation Manager - Technology-agnostic annotation system
+         * Works dynamically with any number of KPI charts (2G/3G/4G/5G)
+         */
+        const AnnotationManager = {
+            // State
+            enabled: false,
+            currentTool: 'pen',
+            currentColor: '#ef4444',
+            lineWidth: 2,
+            annotations: [],
+            history: [],
+            historyIndex: -1,
+            canvases: [],
+            contexts: [],
+            isDrawing: false,
+            startPoint: null,
+            currentPath: [],
+            activeChartIndex: null,
+            
+            /**
+             * Initialize annotation system for all KPI charts in modal
+             * Called after multi-KPI charts are rendered
+             */
+            init() {
+                console.log('🎨 Initializing Annotation System...');
+                this.cleanup(); // Clean up any existing canvases
+                
+                // Find all chart wrappers in the zoom modal
+                const chartContainer = document.getElementById('chartZoomContainer');
+                if (!chartContainer) {
+                    console.warn('⚠️ Chart container not found');
+                    return;
+                }
+                
+                // Get all dynamically created chart wrappers
+                const chartWrappers = chartContainer.querySelectorAll('div[style*="position: relative"]');
+                console.log(`📊 Found ${chartWrappers.length} chart wrappers`);
+                
+                chartWrappers.forEach((wrapper, index) => {
+                    // Find the canvas wrapper inside
+                    const canvasWrapper = wrapper.querySelector('div[style*="position: relative"]');
+                    if (!canvasWrapper) return;
+                    
+                    const chartCanvas = canvasWrapper.querySelector('canvas');
+                    if (!chartCanvas) return;
+                    
+                    // Create annotation canvas overlay
+                    const annoCanvas = document.createElement('canvas');
+                    annoCanvas.className = 'annotation-canvas';
+                    annoCanvas.dataset.chartIndex = index;
+                    
+                    // Match chart canvas dimensions
+                    const rect = chartCanvas.getBoundingClientRect();
+                    annoCanvas.width = chartCanvas.width;
+                    annoCanvas.height = chartCanvas.height;
+                    annoCanvas.style.width = chartCanvas.style.width;
+                    annoCanvas.style.height = chartCanvas.style.height;
+                    
+                    // Position overlay
+                    canvasWrapper.style.position = 'relative';
+                    canvasWrapper.appendChild(annoCanvas);
+                    
+                    // Store canvas and context
+                    this.canvases.push(annoCanvas);
+                    this.contexts.push(annoCanvas.getContext('2d'));
+                    
+                    // Add event listeners
+                    this.attachEventListeners(annoCanvas, index);
+                    
+                    console.log(`✅ Annotation canvas ${index} initialized (${annoCanvas.width}x${annoCanvas.height})`);
+                });
+                
+                // Restore annotations if any
+                this.redrawAll();
+                
+                // Setup UI controls
+                this.setupControls();
+            },
+            
+            /**
+             * Attach mouse event listeners to annotation canvas
+             */
+            attachEventListeners(canvas, chartIndex) {
+                canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e, chartIndex));
+                canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e, chartIndex));
+                canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e, chartIndex));
+                canvas.addEventListener('mouseleave', (e) => this.handleMouseLeave(e, chartIndex));
+            },
+            
+            /**
+             * Setup annotation control buttons
+             */
+            setupControls() {
+                // Annotation mode toggle
+                const modeBtn = document.getElementById('annotationModeBtn');
+                const toolbar = document.getElementById('annotationToolbar');
+                const modeText = document.getElementById('annotationModeText');
+                
+                if (modeBtn) {
+                    modeBtn.onclick = () => {
+                        this.enabled = !this.enabled;
+                        
+                        if (this.enabled) {
+                            modeBtn.classList.add('active');
+                            modeText.textContent = 'ANNOTATING';
+                            toolbar.style.display = 'flex';
+                            this.enableAnnotationMode();
+                        } else {
+                            modeBtn.classList.remove('active');
+                            modeText.textContent = 'ANNOTATE';
+                            toolbar.style.display = 'none';
+                            this.disableAnnotationMode();
+                        }
+                    };
+                }
+                
+                // Tool buttons
+                document.querySelectorAll('.anno-tool-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        this.currentTool = btn.dataset.tool;
+                        document.querySelectorAll('.anno-tool-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.updateCursor();
+                    };
+                });
+                
+                // Color buttons
+                document.querySelectorAll('.anno-color-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        this.currentColor = btn.dataset.color;
+                        document.querySelectorAll('.anno-color-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    };
+                });
+                
+                // Set default active states
+                document.querySelector('.anno-tool-btn[data-tool="pen"]')?.classList.add('active');
+                document.querySelector('.anno-color-btn[data-color="#ef4444"]')?.classList.add('active');
+                
+                // Action buttons
+                const undoBtn = document.getElementById('annoUndoBtn');
+                const redoBtn = document.getElementById('annoRedoBtn');
+                const clearBtn = document.getElementById('annoClearBtn');
+                
+                if (undoBtn) undoBtn.onclick = () => this.undo();
+                if (redoBtn) redoBtn.onclick = () => this.redo();
+                if (clearBtn) clearBtn.onclick = () => this.clearAll();
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (!this.enabled) return;
+                    
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'z' && !e.shiftKey) {
+                            e.preventDefault();
+                            this.undo();
+                        } else if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) {
+                            e.preventDefault();
+                            this.redo();
+                        }
+                    }
+                });
+                
+                this.updateUndoRedoButtons();
+            },
+            
+            /**
+             * Enable annotation mode - pause chart interactions
+             */
+            enableAnnotationMode() {
+                this.canvases.forEach(canvas => {
+                    canvas.classList.add('active');
+                });
+                this.updateCursor();
+                
+                // Pause chart hover interactions
+                if (window.multiKpiCharts) {
+                    window.multiKpiCharts.forEach(chart => {
+                        chart.options.interaction.mode = null;
+                    });
+                }
+                
+                console.log('✏️ Annotation mode enabled');
+            },
+            
+            /**
+             * Disable annotation mode - resume chart interactions
+             */
+            disableAnnotationMode() {
+                this.canvases.forEach(canvas => {
+                    canvas.classList.remove('active');
+                    canvas.style.cursor = '';
+                });
+                
+                // Resume chart hover interactions
+                if (window.multiKpiCharts) {
+                    window.multiKpiCharts.forEach(chart => {
+                        chart.options.interaction.mode = 'index';
+                    });
+                }
+                
+                console.log('✏️ Annotation mode disabled');
+            },
+            
+            /**
+             * Update cursor based on current tool
+             */
+            updateCursor() {
+                const cursorClass = `anno-cursor-${this.currentTool}`;
+                this.canvases.forEach(canvas => {
+                    canvas.className = 'annotation-canvas active ' + cursorClass;
+                });
+            },
+            
+            /**
+             * Mouse down handler
+             */
+            handleMouseDown(e, chartIndex) {
+                if (!this.enabled) return;
+                
+                this.isDrawing = true;
+                this.activeChartIndex = chartIndex;
+                const rect = this.canvases[chartIndex].getBoundingClientRect();
+                this.startPoint = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                if (this.currentTool === 'pen') {
+                    this.currentPath = [this.startPoint];
+                } else if (this.currentTool === 'text') {
+                    this.addTextAnnotation(this.startPoint, chartIndex);
+                    this.isDrawing = false;
+                } else if (this.currentTool === 'eraser') {
+                    this.eraseAt(this.startPoint, chartIndex);
+                }
+            },
+            
+            /**
+             * Mouse move handler
+             */
+            handleMouseMove(e, chartIndex) {
+                if (!this.enabled || !this.isDrawing || this.activeChartIndex !== chartIndex) return;
+                
+                const rect = this.canvases[chartIndex].getBoundingClientRect();
+                const currentPoint = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                if (this.currentTool === 'pen') {
+                    this.currentPath.push(currentPoint);
+                    this.drawTempPath(chartIndex);
+                } else if (this.currentTool === 'eraser') {
+                    this.eraseAt(currentPoint, chartIndex);
+                } else {
+                    // For line, rect, arrow - show preview
+                    this.drawTempShape(this.startPoint, currentPoint, chartIndex);
+                }
+            },
+            
+            /**
+             * Mouse up handler
+             */
+            handleMouseUp(e, chartIndex) {
+                if (!this.enabled || !this.isDrawing || this.activeChartIndex !== chartIndex) return;
+                
+                const rect = this.canvases[chartIndex].getBoundingClientRect();
+                const endPoint = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                // Save annotation
+                if (this.currentTool === 'pen' && this.currentPath.length > 1) {
+                    this.addAnnotation({
+                        type: 'pen',
+                        chartIndex,
+                        color: this.currentColor,
+                        lineWidth: this.lineWidth,
+                        points: [...this.currentPath]
+                    });
+                } else if (this.currentTool === 'line') {
+                    this.addAnnotation({
+                        type: 'line',
+                        chartIndex,
+                        color: this.currentColor,
+                        lineWidth: this.lineWidth,
+                        start: this.startPoint,
+                        end: endPoint
+                    });
+                } else if (this.currentTool === 'rect') {
+                    // Rectangle tool now creates TELECOM ZONES spanning all charts
+                    const startResult = TelecomZoneManager.pixelToIndex(this.startPoint.x, chartIndex);
+                    const endResult = TelecomZoneManager.pixelToIndex(endPoint.x, chartIndex);
+                    
+                    if (startResult && endResult) {
+                        // Prompt for zone label
+                        const label = prompt('Enter zone label:', 'Cell Center');
+                        if (label) {
+                            TelecomZoneManager.addZone(
+                                startResult.index,
+                                endResult.index,
+                                this.currentColor,
+                                label,
+                                'custom'
+                            );
+                        }
+                    }
+                } else if (this.currentTool === 'arrow') {
+                    this.addAnnotation({
+                        type: 'arrow',
+                        chartIndex,
+                        color: this.currentColor,
+                        lineWidth: this.lineWidth,
+                        start: this.startPoint,
+                        end: endPoint
+                    });
+                }
+                
+                this.isDrawing = false;
+                this.currentPath = [];
+                this.activeChartIndex = null;
+            },
+            
+            /**
+             * Mouse leave handler
+             */
+            handleMouseLeave(e, chartIndex) {
+                if (this.isDrawing && this.activeChartIndex === chartIndex) {
+                    this.handleMouseUp(e, chartIndex);
+                }
+            },
+            
+            /**
+             * Add text annotation
+             */
+            addTextAnnotation(point, chartIndex) {
+                const text = prompt('Enter annotation text:', 'Cell Edge');
+                if (!text) return;
+                
+                this.addAnnotation({
+                    type: 'text',
+                    chartIndex,
+                    color: this.currentColor,
+                    fontSize: 14,
+                    point,
+                    text
+                });
+            },
+            
+            /**
+             * Erase annotations at point
+             */
+            eraseAt(point, chartIndex) {
+                const eraseRadius = 15;
+                let erased = false;
+                
+                this.annotations = this.annotations.filter(anno => {
+                    if (anno.chartIndex !== chartIndex) return true;
+                    
+                    // Check if point is near annotation
+                    if (anno.type === 'pen') {
+                        const near = anno.points.some(p => 
+                            Math.hypot(p.x - point.x, p.y - point.y) < eraseRadius
+                        );
+                        if (near) {
+                            erased = true;
+                            return false;
+                        }
+                    } else if (anno.type === 'text') {
+                        const near = Math.hypot(anno.point.x - point.x, anno.point.y - point.y) < eraseRadius;
+                        if (near) {
+                            erased = true;
+                            return false;
+                        }
+                    } else if (anno.start && anno.end) {
+                        // Check if point is near line/rect/arrow
+                        const near = this.isPointNearLine(point, anno.start, anno.end, eraseRadius);
+                        if (near) {
+                            erased = true;
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                });
+                
+                if (erased) {
+                    this.redrawAll();
+                    this.saveToHistory();
+                }
+            },
+            
+            /**
+             * Check if point is near a line
+             */
+            isPointNearLine(point, start, end, threshold) {
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const length = Math.hypot(dx, dy);
+                if (length === 0) return Math.hypot(point.x - start.x, point.y - start.y) < threshold;
+                
+                const t = Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / (length * length)));
+                const projX = start.x + t * dx;
+                const projY = start.y + t * dy;
+                const dist = Math.hypot(point.x - projX, point.y - projY);
+                
+                return dist < threshold;
+            },
+            
+            /**
+             * Draw temporary path (for pen tool)
+             */
+            drawTempPath(chartIndex) {
+                const ctx = this.contexts[chartIndex];
+                this.clearCanvas(chartIndex);
+                this.redrawChart(chartIndex);
+                
+                if (this.currentPath.length < 2) return;
+                
+                ctx.strokeStyle = this.currentColor;
+                ctx.lineWidth = this.lineWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(this.currentPath[0].x, this.currentPath[0].y);
+                for (let i = 1; i < this.currentPath.length; i++) {
+                    ctx.lineTo(this.currentPath[i].x, this.currentPath[i].y);
+                }
+                ctx.stroke();
+            },
+            
+            /**
+             * Draw temporary shape (for line, rect, arrow)
+             */
+            drawTempShape(start, end, chartIndex) {
+                const ctx = this.contexts[chartIndex];
+                this.clearCanvas(chartIndex);
+                this.redrawChart(chartIndex);
+                
+                ctx.strokeStyle = this.currentColor;
+                ctx.lineWidth = this.lineWidth;
+                ctx.lineCap = 'round';
+                
+                if (this.currentTool === 'line') {
+                    ctx.beginPath();
+                    ctx.moveTo(start.x, start.y);
+                    ctx.lineTo(end.x, end.y);
+                    ctx.stroke();
+                } else if (this.currentTool === 'rect') {
+                    // Show zone preview spanning full height
+                    const startX = Math.min(start.x, end.x);
+                    const endX = Math.max(start.x, end.x);
+                    const width = endX - startX;
+                    
+                    // Semi-transparent fill
+                    ctx.fillStyle = this.currentColor + '26'; // 15% opacity
+                    ctx.fillRect(startX, 0, width, ctx.canvas.height);
+                    
+                    // Border lines
+                    ctx.strokeStyle = this.currentColor;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(startX, 0);
+                    ctx.lineTo(startX, ctx.canvas.height);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(endX, 0);
+                    ctx.lineTo(endX, ctx.canvas.height);
+                    ctx.stroke();
+                } else if (this.currentTool === 'arrow') {
+                    this.drawArrow(ctx, start, end);
+                }
+            },
+            
+            /**
+             * Draw arrow
+             */
+            drawArrow(ctx, start, end) {
+                const headLength = 15;
+                const angle = Math.atan2(end.y - start.y, end.x - start.x);
+                
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+                
+                // Draw arrowhead
+                ctx.beginPath();
+                ctx.moveTo(end.x, end.y);
+                ctx.lineTo(
+                    end.x - headLength * Math.cos(angle - Math.PI / 6),
+                    end.y - headLength * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.moveTo(end.x, end.y);
+                ctx.lineTo(
+                    end.x - headLength * Math.cos(angle + Math.PI / 6),
+                    end.y - headLength * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.stroke();
+            },
+            
+            /**
+             * Add annotation to collection
+             */
+            addAnnotation(annotation) {
+                annotation.id = 'anno_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                annotation.timestamp = Date.now();
+                this.annotations.push(annotation);
+                this.redrawChart(annotation.chartIndex);
+                this.saveToHistory();
+                console.log(`✅ Added ${annotation.type} annotation to chart ${annotation.chartIndex}`);
+            },
+            
+            /**
+             * Clear specific canvas
+             */
+            clearCanvas(chartIndex) {
+                const ctx = this.contexts[chartIndex];
+                const canvas = this.canvases[chartIndex];
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            },
+            
+            /**
+             * Redraw annotations for specific chart
+             */
+            redrawChart(chartIndex) {
+                this.clearCanvas(chartIndex);
+                const ctx = this.contexts[chartIndex];
+                
+                this.annotations
+                    .filter(anno => anno.chartIndex === chartIndex)
+                    .forEach(anno => {
+                        ctx.strokeStyle = anno.color;
+                        ctx.fillStyle = anno.color;
+                        ctx.lineWidth = anno.lineWidth || this.lineWidth;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        
+                        if (anno.type === 'pen') {
+                            if (anno.points.length < 2) return;
+                            ctx.beginPath();
+                            ctx.moveTo(anno.points[0].x, anno.points[0].y);
+                            for (let i = 1; i < anno.points.length; i++) {
+                                ctx.lineTo(anno.points[i].x, anno.points[i].y);
+                            }
+                            ctx.stroke();
+                        } else if (anno.type === 'line') {
+                            ctx.beginPath();
+                            ctx.moveTo(anno.start.x, anno.start.y);
+                            ctx.lineTo(anno.end.x, anno.end.y);
+                            ctx.stroke();
+                        } else if (anno.type === 'rect') {
+                            ctx.strokeRect(
+                                anno.start.x,
+                                anno.start.y,
+                                anno.end.x - anno.start.x,
+                                anno.end.y - anno.start.y
+                            );
+                        } else if (anno.type === 'arrow') {
+                            this.drawArrow(ctx, anno.start, anno.end);
+                        } else if (anno.type === 'text') {
+                            ctx.font = `bold ${anno.fontSize}px JetBrains Mono`;
+                            ctx.fillText(anno.text, anno.point.x, anno.point.y);
+                        }
+                    });
+            },
+            
+            /**
+             * Redraw all charts
+             */
+            redrawAll() {
+                this.canvases.forEach((canvas, index) => {
+                    this.redrawChart(index);
+                });
+            },
+            
+            /**
+             * Save current state to history
+             */
+            saveToHistory() {
+                // Remove any redo history
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                
+                // Add current state
+                this.history.push(JSON.parse(JSON.stringify(this.annotations)));
+                this.historyIndex++;
+                
+                // Limit history size
+                if (this.history.length > 50) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+                
+                this.updateUndoRedoButtons();
+            },
+            
+            /**
+             * Undo last action
+             */
+            undo() {
+                if (this.historyIndex <= 0) return;
+                
+                this.historyIndex--;
+                this.annotations = JSON.parse(JSON.stringify(this.history[this.historyIndex] || []));
+                this.redrawAll();
+                this.updateUndoRedoButtons();
+                console.log('↶ Undo');
+            },
+            
+            /**
+             * Redo last undone action
+             */
+            redo() {
+                if (this.historyIndex >= this.history.length - 1) return;
+                
+                this.historyIndex++;
+                this.annotations = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+                this.redrawAll();
+                this.updateUndoRedoButtons();
+                console.log('↷ Redo');
+            },
+            
+            /**
+             * Clear all annotations
+             */
+            clearAll() {
+                if (!confirm('Clear all annotations? This cannot be undone.')) return;
+                
+                this.annotations = [];
+                this.redrawAll();
+                this.saveToHistory();
+                console.log('🧹 Cleared all annotations');
+            },
+            
+            /**
+             * Update undo/redo button states
+             */
+            updateUndoRedoButtons() {
+                const undoBtn = document.getElementById('annoUndoBtn');
+                const redoBtn = document.getElementById('annoRedoBtn');
+                
+                if (undoBtn) {
+                    undoBtn.disabled = this.historyIndex <= 0;
+                }
+                if (redoBtn) {
+                    redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+                }
+            },
+            
+            /**
+             * Export annotations with chart as PNG
+             * Merges Chart.js canvas + annotation canvas
+             */
+            async exportAsPNG() {
+                console.log('📸 Exporting annotated charts as PNG...');
+                
+                const chartContainer = document.getElementById('chartZoomContainer');
+                if (!chartContainer) return;
+                
+                // Create a temporary canvas for stitching
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Calculate total height
+                let totalHeight = 0;
+                const chartWrappers = chartContainer.querySelectorAll('div[style*="position: relative"]');
+                const maxWidth = chartWrappers[0]?.querySelector('canvas')?.width || 800;
+                
+                chartWrappers.forEach(wrapper => {
+                    const canvas = wrapper.querySelector('canvas:not(.annotation-canvas)');
+                    if (canvas) totalHeight += canvas.height + 10; // 10px gap
+                });
+                
+                tempCanvas.width = maxWidth;
+                tempCanvas.height = totalHeight;
+                
+                // Fill background
+                tempCtx.fillStyle = kpiTheme === 'dark' ? '#374151' : '#ffffff';
+                tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // Draw each chart + annotations
+                let yOffset = 0;
+                chartWrappers.forEach((wrapper, index) => {
+                    const chartCanvas = wrapper.querySelector('canvas:not(.annotation-canvas)');
+                    const annoCanvas = wrapper.querySelector('.annotation-canvas');
+                    
+                    if (chartCanvas) {
+                        // Draw chart
+                        tempCtx.drawImage(chartCanvas, 0, yOffset);
+                        
+                        // Draw annotations
+                        if (annoCanvas) {
+                            tempCtx.drawImage(annoCanvas, 0, yOffset);
+                        }
+                        
+                        yOffset += chartCanvas.height + 10;
+                    }
+                });
+                
+                // Download
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                link.download = `multi-kpi-annotated_${timestamp}.png`;
+                link.href = tempCanvas.toDataURL('image/png');
+                link.click();
+                
+                console.log('✅ Annotated chart exported');
+            },
+            
+            /**
+             * Cleanup - remove all annotation canvases
+             */
+            cleanup() {
+                this.canvases.forEach(canvas => {
+                    canvas.remove();
+                });
+                this.canvases = [];
+                this.contexts = [];
+                this.annotations = [];
+                this.history = [];
+                this.historyIndex = -1;
+                this.enabled = false;
+                console.log('🧹 Annotation system cleaned up');
+            }
+        };
+
+        // =====================================================
         // CHART ZOOM MODAL FUNCTIONALITY
         // =====================================================
 
@@ -4888,7 +6060,7 @@ function renderScatterPlots() {
                 const filename = `${cleanTitle}_${dateStr}_${timeStr}.png`;
                 
                 if (hasMultiKpi) {
-                    // Multi-KPI: Stitch together all individual chart canvases
+                    // Multi-KPI: Stitch together all individual chart canvases + annotations
                     const charts = window.multiKpiCharts;
                     
                     if (!charts || charts.length === 0) {
@@ -4918,11 +6090,26 @@ function renderScatterPlots() {
                     finalCtx.fillStyle = bgColor;
                     finalCtx.fillRect(0, 0, totalWidth, totalHeight);
                     
-                    // Draw each chart canvas onto the final canvas
+                    // Draw each chart canvas + zone canvas + annotation canvas onto the final canvas
                     let currentY = padding;
                     charts.forEach((chart, index) => {
                         const canvas = chart.canvas;
+                        
+                        // Draw chart (layer 1)
                         finalCtx.drawImage(canvas, padding, currentY, chartWidth, chartHeight);
+                        
+                        // Draw zones if they exist (layer 2)
+                        if (TelecomZoneManager.canvases[index]) {
+                            const zoneCanvas = TelecomZoneManager.canvases[index];
+                            finalCtx.drawImage(zoneCanvas, padding, currentY, chartWidth, chartHeight);
+                        }
+                        
+                        // Draw annotations if they exist (layer 3)
+                        if (AnnotationManager.canvases[index]) {
+                            const annoCanvas = AnnotationManager.canvases[index];
+                            finalCtx.drawImage(annoCanvas, padding, currentY, chartWidth, chartHeight);
+                        }
+                        
                         currentY += chartHeight + gap;
                     });
                     
@@ -4936,7 +6123,7 @@ function renderScatterPlots() {
                     link.click();
                     document.body.removeChild(link);
                     
-                    console.log(`✅ Multi-KPI chart downloaded as PNG (${kpiTheme} mode, ${charts.length} charts): ${filename}`);
+                    console.log(`✅ Multi-KPI chart with zones and annotations downloaded as PNG (${kpiTheme} mode, ${charts.length} charts): ${filename}`);
                 } else {
                     // Single chart: Use existing method
                     const originalCanvas = zoomedChart.canvas;
@@ -5003,7 +6190,7 @@ function renderScatterPlots() {
                 const filename = `${cleanTitle}_${dateStr}_${timeStr}.svg`;
                 
                 if (hasMultiKpi) {
-                    // Multi-KPI: Stitch together all individual chart canvases
+                    // Multi-KPI: Stitch together all individual chart canvases + annotations
                     const charts = window.multiKpiCharts;
                     
                     if (!charts || charts.length === 0) {
@@ -5033,11 +6220,20 @@ function renderScatterPlots() {
                     finalCtx.fillStyle = bgColor;
                     finalCtx.fillRect(0, 0, totalWidth, totalHeight);
                     
-                    // Draw each chart canvas onto the final canvas
+                    // Draw each chart canvas + annotation canvas onto the final canvas
                     let currentY = padding;
                     charts.forEach((chart, index) => {
                         const canvas = chart.canvas;
+                        
+                        // Draw chart
                         finalCtx.drawImage(canvas, padding, currentY, chartWidth, chartHeight);
+                        
+                        // Draw annotations if they exist
+                        if (AnnotationManager.canvases[index]) {
+                            const annoCanvas = AnnotationManager.canvases[index];
+                            finalCtx.drawImage(annoCanvas, padding, currentY, chartWidth, chartHeight);
+                        }
+                        
                         currentY += chartHeight + gap;
                     });
                     
@@ -5162,6 +6358,19 @@ function renderScatterPlots() {
                 window.multiKpiCharts.forEach(chart => chart.destroy());
                 window.multiKpiCharts = [];
             }
+            
+            // Clean up annotation and zone systems
+            TelecomZoneManager.cleanup();
+            AnnotationManager.cleanup();
+            
+            // Reset annotation UI
+            const modeBtn = document.getElementById('annotationModeBtn');
+            const toolbar = document.getElementById('annotationToolbar');
+            const modeText = document.getElementById('annotationModeText');
+            if (modeBtn) modeBtn.classList.remove('active');
+            if (modeText) modeText.textContent = 'ANNOTATE';
+            if (toolbar) toolbar.style.display = 'none';
+            
             // Hide observation panel and reset content
             const observationPanel = document.getElementById('observationPanel');
             const observationContent = document.getElementById('observationContent');
@@ -6177,6 +7386,12 @@ function renderScatterPlots() {
             });
             
             console.log('✅ Multi-KPI stacked charts rendered:', datasets.length, 'charts');
+            
+            // Initialize annotation and zone systems after charts are rendered
+            setTimeout(() => {
+                TelecomZoneManager.init();  // Initialize zones first (bottom layer)
+                AnnotationManager.init();   // Initialize annotations second (top layer)
+            }, 100); // Small delay to ensure DOM is fully updated
         }
         
         /**

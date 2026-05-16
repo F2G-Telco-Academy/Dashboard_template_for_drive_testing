@@ -180,3 +180,119 @@ body {
     font-weight: bold;
     color: #2563eb;
 }
+
+
+/* =====================================================
+   ANNOTATION SYSTEM STYLES
+   ===================================================== */
+
+/* Annotation canvas overlay */
+.annotation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Allow clicks through when not in annotation mode */
+    z-index: 10;
+    cursor: crosshair;
+}
+
+.annotation-canvas.active {
+    pointer-events: auto; /* Enable interactions in annotation mode */
+}
+
+/* Annotation mode active state */
+#annotationModeBtn.active {
+    background: #22c55e !important;
+    border-color: #16a34a !important;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+}
+
+/* Tool button active state */
+.anno-tool-btn.active {
+    background: #3b82f6 !important;
+    color: white !important;
+    border-color: #1e40af !important;
+    transform: scale(1.05);
+}
+
+/* Color button active state */
+.anno-color-btn.active {
+    border-width: 3px !important;
+    border-color: #1f2937 !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Hover effects */
+.anno-tool-btn:hover:not(.active) {
+    background: #f3f4f6;
+    transform: translateY(-1px);
+}
+
+.anno-color-btn:hover:not(.active) {
+    transform: scale(1.15);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#annoUndoBtn:hover,
+#annoRedoBtn:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+    border-color: #9ca3af;
+}
+
+#annoClearBtn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Disabled state */
+#annoUndoBtn:disabled,
+#annoRedoBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Chart wrapper positioning for annotation overlay */
+.chart-wrapper-with-annotation {
+    position: relative;
+}
+
+/* Text input for text annotations */
+.annotation-text-input {
+    position: absolute;
+    background: white;
+    border: 2px solid #3b82f6;
+    padding: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 3px;
+    outline: none;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Annotation cursor styles */
+.anno-cursor-pen { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="2" fill="black"/></svg>') 10 10, crosshair; }
+.anno-cursor-line { cursor: crosshair; }
+.anno-cursor-rect { cursor: crosshair; }
+.anno-cursor-arrow { cursor: crosshair; }
+.anno-cursor-text { cursor: text; }
+.anno-cursor-eraser { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect x="5" y="5" width="10" height="10" fill="none" stroke="red" stroke-width="2"/></svg>') 10 10, pointer; }
+
+/* Annotation info badge */
+.annotation-count-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(139, 92, 246, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    pointer-events: none;
+    z-index: 15;
+}
