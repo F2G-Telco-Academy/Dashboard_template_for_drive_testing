@@ -118,7 +118,7 @@ A professional telecom network validation dashboard for creating **customizable 
 - **Click-to-Zoom Modal**
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
   - All charts support fullscreen view with correct labels
-- **🎨 Professional Annotation System** (NEW)
+- **🎨 Professional Annotation System**
   - **Technology-Agnostic**: Works seamlessly across 2G/3G/4G/5G
   - **Drawing Tools**: Freehand pen, straight line, rectangle, arrow, text labels, eraser
   - **Multi-Color Palette**: 6 colors (red, green, orange, blue, black, yellow) for marking different findings
@@ -200,7 +200,7 @@ Download Charts (NEW):
 5. Theme preserved (dark/light mode)
 6. Perfect for presentations and reports
 
-Annotate Charts (NEW):
+Annotate Charts:
 1. Open Multi-KPI Comparison modal (zoom view)
 2. Click "✏️ ANNOTATE" button to enable annotation mode
 3. Select drawing tool (pen, line, rectangle, arrow, text, eraser)
