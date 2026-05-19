@@ -5930,6 +5930,12 @@ function renderScatterPlots() {
             const modalContent = modal.querySelector('div');
             const chartContainer = document.getElementById('chartZoomContainer');
             const scatterControls = document.getElementById('zoomScatterControls');
+            const annotationControls = document.getElementById('annotationControls');
+            
+            // Hide annotation controls for regular charts (only show for multi-KPI)
+            if (annotationControls) {
+                annotationControls.style.display = 'none';
+            }
             
             // Detect if this is a scatter plot (correlation analysis chart)
             const isScatterPlot = chartTitle.includes('Throughput') || chartTitle.includes('MCS vs CQI');
@@ -6974,6 +6980,12 @@ function renderScatterPlots() {
             const scatterControls = document.getElementById('zoomScatterControls');
             if (scatterControls) {
                 scatterControls.style.display = 'none';
+            }
+            
+            // Show annotation controls for multi-KPI modal
+            const annotationControls = document.getElementById('annotationControls');
+            if (annotationControls) {
+                annotationControls.style.display = 'flex';
             }
             
             // Show modal
