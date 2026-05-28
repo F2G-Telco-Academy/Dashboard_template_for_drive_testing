@@ -4760,7 +4760,7 @@ function renderScatterPlots() {
             const scatterControls = document.getElementById('zoomScatterControls');
             
             // Detect if this is a scatter plot (correlation analysis chart)
-            const isScatterPlot = chartTitle.includes('Throughput') || chartTitle.includes('MCS vs CQI');
+            const isScatterPlot = chartTitle.includes('Throughput vs') || chartTitle.includes('MCS vs CQI');
             
             // Show/hide the scatter plot controls based on chart type
             if (scatterControls) {
