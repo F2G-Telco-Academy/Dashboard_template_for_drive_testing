@@ -4895,12 +4895,39 @@ function renderScatterPlots() {
                     }
                     
                     const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
-                    const finalCanvas = await html2canvas(container, {
-                        backgroundColor: bgColor,
-                        scale: window.devicePixelRatio || 1,
-                        useCORS: true,
-                        allowTaint: true
-                    });
+                    const originalStyles = {
+                        height: container.style.height,
+                        maxHeight: container.style.maxHeight,
+                        overflowY: container.style.overflowY,
+                        overflowX: container.style.overflowX,
+                        width: container.style.width,
+                        position: container.style.position
+                    };
+                    const fullHeight = container.scrollHeight;
+                    const fullWidth = container.scrollWidth;
+                    container.style.height = `${fullHeight}px`;
+                    container.style.maxHeight = 'none';
+                    container.style.overflowY = 'visible';
+                    container.style.overflowX = 'visible';
+                    container.style.width = `${fullWidth}px`;
+                    container.style.position = 'relative';
+
+                    let finalCanvas;
+                    try {
+                        finalCanvas = await html2canvas(container, {
+                            backgroundColor: bgColor,
+                            scale: window.devicePixelRatio || 1,
+                            useCORS: true,
+                            allowTaint: true
+                        });
+                    } finally {
+                        container.style.height = originalStyles.height;
+                        container.style.maxHeight = originalStyles.maxHeight;
+                        container.style.overflowY = originalStyles.overflowY;
+                        container.style.overflowX = originalStyles.overflowX;
+                        container.style.width = originalStyles.width;
+                        container.style.position = originalStyles.position;
+                    }
                     
                     const url = finalCanvas.toDataURL('image/png', 1.0);
                     
@@ -4985,12 +5012,39 @@ function renderScatterPlots() {
                     }
                     
                     const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
-                    const finalCanvas = await html2canvas(container, {
-                        backgroundColor: bgColor,
-                        scale: window.devicePixelRatio || 1,
-                        useCORS: true,
-                        allowTaint: true
-                    });
+                    const originalStyles = {
+                        height: container.style.height,
+                        maxHeight: container.style.maxHeight,
+                        overflowY: container.style.overflowY,
+                        overflowX: container.style.overflowX,
+                        width: container.style.width,
+                        position: container.style.position
+                    };
+                    const fullHeight = container.scrollHeight;
+                    const fullWidth = container.scrollWidth;
+                    container.style.height = `${fullHeight}px`;
+                    container.style.maxHeight = 'none';
+                    container.style.overflowY = 'visible';
+                    container.style.overflowX = 'visible';
+                    container.style.width = `${fullWidth}px`;
+                    container.style.position = 'relative';
+
+                    let finalCanvas;
+                    try {
+                        finalCanvas = await html2canvas(container, {
+                            backgroundColor: bgColor,
+                            scale: window.devicePixelRatio || 1,
+                            useCORS: true,
+                            allowTaint: true
+                        });
+                    } finally {
+                        container.style.height = originalStyles.height;
+                        container.style.maxHeight = originalStyles.maxHeight;
+                        container.style.overflowY = originalStyles.overflowY;
+                        container.style.overflowX = originalStyles.overflowX;
+                        container.style.width = originalStyles.width;
+                        container.style.position = originalStyles.position;
+                    }
                     
                     const imageData = finalCanvas.toDataURL('image/png', 1.0);
                     const width = finalCanvas.width;
