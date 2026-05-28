@@ -4860,7 +4860,7 @@ function renderScatterPlots() {
         }
 
         // Download chart as PNG (high quality) - preserves theme (dark/light mode)
-        function downloadChartPNG() {
+        async function downloadChartPNG() {
             // Check if we have multi-KPI charts or single chart
             const hasMultiKpi = window.multiKpiCharts && window.multiKpiCharts.length > 0;
             
@@ -4888,45 +4888,20 @@ function renderScatterPlots() {
                 const filename = `${cleanTitle}_${dateStr}_${timeStr}.png`;
                 
                 if (hasMultiKpi) {
-                    // Multi-KPI: Stitch together all individual chart canvases
-                    const charts = window.multiKpiCharts;
-                    
-                    if (!charts || charts.length === 0) {
-                        alert('No charts available to download');
+                    const container = document.getElementById('chartZoomContainer');
+                    if (!container) {
+                        alert('No chart container available to download');
                         return;
                     }
                     
-                    // Get background color based on theme
                     const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
-                    
-                    // Calculate dimensions
-                    const chartWidth = charts[0].canvas.width;
-                    const chartHeight = charts[0].canvas.height;
-                    const gap = 16; // Gap between charts (8px * 2 for scale)
-                    const padding = 24; // Padding around all charts (12px * 2 for scale)
-                    
-                    const totalWidth = chartWidth + (padding * 2);
-                    const totalHeight = (chartHeight * charts.length) + (gap * (charts.length - 1)) + (padding * 2);
-                    
-                    // Create final canvas
-                    const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = totalWidth;
-                    finalCanvas.height = totalHeight;
-                    const finalCtx = finalCanvas.getContext('2d');
-                    
-                    // Fill background
-                    finalCtx.fillStyle = bgColor;
-                    finalCtx.fillRect(0, 0, totalWidth, totalHeight);
-                    
-                    // Draw each chart canvas onto the final canvas
-                    let currentY = padding;
-                    charts.forEach((chart, index) => {
-                        const canvas = chart.canvas;
-                        finalCtx.drawImage(canvas, padding, currentY, chartWidth, chartHeight);
-                        currentY += chartHeight + gap;
+                    const finalCanvas = await html2canvas(container, {
+                        backgroundColor: bgColor,
+                        scale: window.devicePixelRatio || 1,
+                        useCORS: true,
+                        allowTaint: true
                     });
                     
-                    // Convert to PNG and download
                     const url = finalCanvas.toDataURL('image/png', 1.0);
                     
                     const link = document.createElement('a');
@@ -4936,7 +4911,7 @@ function renderScatterPlots() {
                     link.click();
                     document.body.removeChild(link);
                     
-                    console.log(`✅ Multi-KPI chart downloaded as PNG (${kpiTheme} mode, ${charts.length} charts): ${filename}`);
+                    console.log(`✅ Multi-KPI chart downloaded as PNG (${kpiTheme} mode): ${filename}`);
                 } else {
                     // Single chart: Use existing method
                     const originalCanvas = zoomedChart.canvas;
@@ -5003,48 +4978,21 @@ function renderScatterPlots() {
                 const filename = `${cleanTitle}_${dateStr}_${timeStr}.svg`;
                 
                 if (hasMultiKpi) {
-                    // Multi-KPI: Stitch together all individual chart canvases
-                    const charts = window.multiKpiCharts;
-                    
-                    if (!charts || charts.length === 0) {
-                        alert('No charts available to download');
+                    const container = document.getElementById('chartZoomContainer');
+                    if (!container) {
+                        alert('No chart container available to download');
                         return;
                     }
                     
-                    // Get background color based on theme
                     const bgColor = kpiTheme === 'dark' ? '#374151' : '#ffffff';
-                    
-                    // Calculate dimensions
-                    const chartWidth = charts[0].canvas.width;
-                    const chartHeight = charts[0].canvas.height;
-                    const gap = 16; // Gap between charts (8px * 2 for scale)
-                    const padding = 24; // Padding around all charts (12px * 2 for scale)
-                    
-                    const totalWidth = chartWidth + (padding * 2);
-                    const totalHeight = (chartHeight * charts.length) + (gap * (charts.length - 1)) + (padding * 2);
-                    
-                    // Create final canvas
-                    const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = totalWidth;
-                    finalCanvas.height = totalHeight;
-                    const finalCtx = finalCanvas.getContext('2d');
-                    
-                    // Fill background
-                    finalCtx.fillStyle = bgColor;
-                    finalCtx.fillRect(0, 0, totalWidth, totalHeight);
-                    
-                    // Draw each chart canvas onto the final canvas
-                    let currentY = padding;
-                    charts.forEach((chart, index) => {
-                        const canvas = chart.canvas;
-                        finalCtx.drawImage(canvas, padding, currentY, chartWidth, chartHeight);
-                        currentY += chartHeight + gap;
+                    const finalCanvas = await html2canvas(container, {
+                        backgroundColor: bgColor,
+                        scale: window.devicePixelRatio || 1,
+                        useCORS: true,
+                        allowTaint: true
                     });
                     
-                    // Convert to PNG data URL
                     const imageData = finalCanvas.toDataURL('image/png', 1.0);
-                    
-                    // Create SVG with embedded PNG
                     const width = finalCanvas.width;
                     const height = finalCanvas.height;
                     
@@ -5056,7 +5004,6 @@ function renderScatterPlots() {
     <image width="${width}" height="${height}" xlink:href="${imageData}"/>
 </svg>`;
                     
-                    // Create blob and download
                     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
                     const url = URL.createObjectURL(blob);
                     
@@ -5067,10 +5014,9 @@ function renderScatterPlots() {
                     link.click();
                     document.body.removeChild(link);
                     
-                    // Clean up
                     URL.revokeObjectURL(url);
                     
-                    console.log(`✅ Multi-KPI chart downloaded as SVG (${kpiTheme} mode, ${charts.length} charts): ${filename}`);
+                    console.log(`✅ Multi-KPI chart downloaded as SVG (${kpiTheme} mode): ${filename}`);
                 } else {
                     // Single chart: Use existing method
                     const originalCanvas = zoomedChart.canvas;
