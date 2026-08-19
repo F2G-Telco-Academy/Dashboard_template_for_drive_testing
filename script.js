@@ -64,6 +64,9 @@
         let kpiHistogramChart = null;
         let zoomedChart = null; // Zoom modal chart instance
         let polynomialDegree = 2; // Default: Quadratic (degree 2)
+        let mentorChart1 = null;
+        let mentorChart2 = null;
+        let mentorChart3 = null;
         let showingKPIs = false;
         let currentChartType = 'line';
         let currentKpiType = 'rsrp';
@@ -1299,6 +1302,11 @@
                 this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentKpiType = this.dataset.kpi;
                 renderKPIChart(currentKpiType);
+                // If zoom modal is open, update mentor charts to reflect new KPI selection
+                try {
+                    const modal = document.getElementById('chartZoomModal');
+                    if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                } catch (err) { console.warn('mentor charts update after KPI tab click failed', err); }
             });
         });
 
@@ -1314,6 +1322,11 @@
                 this.classList.remove('bg-gray-700', 'bg-gray-200');
                 currentChartType = this.dataset.type;
                 renderKPIChart(currentKpiType);
+                // Update mentor charts when chart type changes and modal is open
+                try {
+                    const modal = document.getElementById('chartZoomModal');
+                    if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                } catch (err) { console.warn('mentor charts update after chart type change failed', err); }
             });
         });
 
@@ -1982,7 +1995,7 @@
                     scales: {
                         x: {
                             ticks: { 
-                                color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563',
+                                color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563',
                                 maxRotation: 45,
                                 minRotation: 45,
                                 font: { size: 9, family: 'JetBrains Mono' }
@@ -1991,7 +2004,7 @@
                         },
                         y: {
                             ticks: { 
-                                color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563',
+                                color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563',
                                 font: { family: 'JetBrains Mono' }
                             },
                             grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
@@ -2001,7 +2014,269 @@
             });
         }
 
-function renderScatterPlots() {
+function renderMentorCharts(data, kpiType) {
+            if (!data || data.length === 0) return;
+            const tech = detectedTechnology || currentTechFilter || (data[0] && data[0].technology) || 'LTE';
+
+            // ── CHART 1: Signal Quality Distribution (vertical bar) ──────────
+            let sigVals;
+            if (tech === 'NR')        sigVals = data.map(d => parseFloat(d.nr_rsrp) || 0);
+            else if (tech === 'UMTS') sigVals = data.map(d => parseFloat(d.wcdma_rscp) || 0);
+            else if (tech === 'GSM')  sigVals = data.map(d => parseFloat(d.gsm_rxlev || d.rxlev) || 0);
+            else                      sigVals = data.map(d => parseFloat(d.rsrp) || 0);
+
+            const qCounts = { Excellent: 0, Good: 0, Fair: 0, Poor: 0 };
+            sigVals.forEach(v => {
+                // Technology-specific thresholds
+                if (tech === 'GSM') {
+                    if (v >= -70)       qCounts.Excellent++;
+                    else if (v >= -85)  qCounts.Good++;
+                    else if (v >= -95)  qCounts.Fair++;
+                    else                qCounts.Poor++;
+                } else if (tech === 'UMTS') {
+                    if (v >= -85)       qCounts.Excellent++;
+                    else if (v >= -95)  qCounts.Good++;
+                    else if (v >= -105) qCounts.Fair++;
+                    else                qCounts.Poor++;
+                } else { // LTE/NR
+                    if (v >= -80)       qCounts.Excellent++;
+                    else if (v >= -90)  qCounts.Good++;
+                    else if (v >= -100) qCounts.Fair++;
+                    else                qCounts.Poor++;
+                }
+            });
+
+            if (mentorChart1) mentorChart1.destroy();
+            mentorChart1 = new Chart(document.getElementById('mentorChart1'), {
+                type: 'bar',
+                data: {
+                    labels: ['EXCELLENT', 'GOOD', 'FAIR', 'POOR'],
+                    datasets: [{
+                        data: [qCounts.Excellent, qCounts.Good, qCounts.Fair, qCounts.Poor],
+                        backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        borderRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: {
+                        label: ctx => `${ctx.parsed.y} samples (${((ctx.parsed.y/sigVals.length)*100).toFixed(1)}%)`
+                    }}},
+                    scales: {
+                        x: { ticks: { color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' } }, grid: { display: false } },
+                        y: { ticks: { color: '#6b7280', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+                    }
+                }
+            });
+
+            // ── CHART 2: Will be replaced by renderMentorChart2WithClickedChart ──────────
+            // This is just a placeholder - the actual chart is rendered separately
+            
+            // ── CHART 3: Signal strength by Band (grouped histogram) ─────────
+            const sigLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+            document.getElementById('mentorChart3Title').textContent = `${sigLabel}_LOAD`;
+
+            // Group avg signal per band
+            const bandMap = {};
+            data.forEach(d => {
+                // Support both CSV formats: 'BCCH-ARFCN' (hyphen) and 'gsm_bcch_arfcn' (underscore)
+                const band = d.band || d.earfcn || d.uarfcn || d.gsm_bcch_arfcn || d['bcch-arfcn'] || 'N/A';
+                const key = `B${band}`;
+                if (!bandMap[key]) bandMap[key] = [];
+                const sv = tech === 'NR' ? parseFloat(d.nr_rsrp) :
+                           tech === 'UMTS' ? parseFloat(d.wcdma_rscp) :
+                           tech === 'GSM'  ? parseFloat(d.gsm_rxlev || d.rxlev) :
+                                            parseFloat(d.rsrp);
+                if (!isNaN(sv) && sv !== 0) bandMap[key].push(sv);
+            });
+
+            const bandEntries = Object.entries(bandMap)
+                .filter(([, v]) => v.length > 0)
+                .sort((a, b) => b[1].length - a[1].length)
+                .slice(0, 8);
+
+            const bandLabels = bandEntries.map(([k]) => k);
+            const bandAvg    = bandEntries.map(([, v]) => parseFloat((v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)));
+            const bandCounts = bandEntries.map(([, v]) => v.length);
+
+            // Color bars by avg signal quality (technology-specific thresholds)
+            const bandColors = bandAvg.map(v => {
+                if (tech === 'GSM') {
+                    return v >= -70 ? '#22c55e' : v >= -85 ? '#f59e0b' : '#ef4444';
+                } else if (tech === 'UMTS') {
+                    return v >= -85 ? '#22c55e' : v >= -95 ? '#f59e0b' : '#ef4444';
+                } else { // LTE/NR
+                    return v >= -80 ? '#22c55e' : v >= -90 ? '#f59e0b' : '#ef4444';
+                }
+            });
+
+            // Update health badge (technology-specific thresholds)
+            let goodPct;
+            if (tech === 'GSM') {
+                goodPct = sigVals.filter(v => v >= -85).length / (sigVals.length || 1);
+            } else if (tech === 'UMTS') {
+                goodPct = sigVals.filter(v => v >= -95).length / (sigVals.length || 1);
+            } else { // LTE/NR
+                goodPct = sigVals.filter(v => v >= -90).length / (sigVals.length || 1);
+            }
+            
+            const badge = document.getElementById('mentorChart3Badge');
+            if (goodPct >= 0.8)      { badge.textContent = 'HEALTHY';  badge.style.background = '#22c55e'; }
+            else if (goodPct >= 0.5) { badge.textContent = 'WARNING';  badge.style.background = '#f59e0b'; }
+            else                     { badge.textContent = 'CRITICAL'; badge.style.background = '#ef4444'; }
+
+            if (mentorChart3) mentorChart3.destroy();
+            mentorChart3 = new Chart(document.getElementById('mentorChart3'), {
+                type: 'bar',
+                data: {
+                    labels: bandLabels,
+                    datasets: [
+                        {
+                            label: `Avg ${sigLabel} (dBm)`,
+                            data: bandAvg,
+                            backgroundColor: bandColors,
+                            borderWidth: 0, borderRadius: 2, yAxisID: 'y'
+                        },
+                        {
+                            label: 'Samples',
+                            data: bandCounts,
+                            backgroundColor: 'rgba(156,163,175,0.4)',
+                            borderWidth: 0, borderRadius: 2, yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top', labels: { color: '#6b7280', font: { size: 9, family: 'JetBrains Mono' }, boxWidth: 10 } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', bodyFont: { family: 'JetBrains Mono', size: 10 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#6b7280', font: { size: 9 } }, grid: { display: false } },
+                        y:  { position: 'left',  ticks: { color: '#6b7280', font: { size: 9 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+                        y1: { position: 'right', ticks: { color: '#9ca3af', font: { size: 8 } }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            // ── PANEL 4: Active Events ranked list ───────────────────────────
+            const eventCounts = {};
+            data.forEach(d => {
+                if (d.event && d.event.trim()) {
+                    const key = d.event.trim().toUpperCase();
+                    eventCounts[key] = (eventCounts[key] || 0) + 1;
+                }
+            });
+
+            const eventColors = {
+                HANDOVER: '#f97316', ATTACH: '#3b82f6', DETACH: '#9ca3af',
+                RLF: '#ef4444', CELL_RESELECTION: '#8b5cf6', CSFB: '#a855f7',
+                'VOICE CALL': '#10b981'
+            };
+
+            const sortedEvents = Object.entries(eventCounts).sort((a, b) => b[1] - a[1]);
+            const maxCount = sortedEvents[0]?.[1] || 1;
+            const listEl = document.getElementById('mentorEventsList');
+
+            if (sortedEvents.length === 0) {
+                listEl.innerHTML = '<div style="font-size:11px; color:#9ca3af; padding:8px 0;">No events detected</div>';
+            } else {
+                listEl.innerHTML = sortedEvents.map(([name, count], i) => {
+                    const color = eventColors[name] || '#6b7280';
+                    const barPct = Math.round((count / maxCount) * 100);
+                    return `
+                        <div style="display:flex; flex-direction:column; gap:3px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:10px; font-weight:600; color:#374151; font-family:'JetBrains Mono',monospace;">[0${i}] ${name}</span>
+                                <span style="font-size:11px; font-weight:700; color:#1f2937;">${count.toLocaleString()}</span>
+                            </div>
+                            <div style="height:4px; background:#f3f4f6; border-radius:2px; overflow:hidden;">
+                                <div style="height:100%; width:${barPct}%; background:${color}; border-radius:2px;"></div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+        }
+
+        // New function to render mentorChart2 with the clicked chart
+        function renderMentorChartsWithClickedChart(data, kpiType, clickedChartInstance) {
+            // First render all other mentor charts (1, 3, 4)
+            renderMentorCharts(data, kpiType);
+            
+            // Now render mentorChart2 as a clone of the clicked chart
+            if (mentorChart2) mentorChart2.destroy();
+            
+            const ctx = document.getElementById('mentorChart2');
+            const cfg = clickedChartInstance.config;
+            const clonedData = JSON.parse(JSON.stringify(cfg.data));
+            
+            // Update title and subtitle based on clicked chart
+            const titleEl = document.getElementById('mentorChart2Title');
+            const subtitleEl = document.getElementById('mentorChart2Subtitle');
+            
+            if (titleEl && subtitleEl) {
+                // Extract meaningful title from chart
+                const chartTitle = cfg.options?.plugins?.title?.text || cfg.data.datasets[0]?.label || 'KPI';
+                titleEl.textContent = chartTitle.split('(')[0].trim();
+                
+                // Set subtitle based on chart type
+                if (cfg.type === 'scatter') {
+                    subtitleEl.textContent = 'CORRELATION';
+                } else {
+                    subtitleEl.textContent = 'TIME_SERIES';
+                }
+            }
+            
+            // Clone the chart with proper type preservation
+            mentorChart2 = new Chart(ctx, {
+                type: cfg.type, // Preserve original type (scatter, line, bar, etc.)
+                data: clonedData,
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    interaction: cfg.options?.interaction || { mode: 'point', intersect: true },
+                    plugins: { 
+                        legend: { 
+                            display: clonedData.datasets.length > 1, 
+                            position: 'top', 
+                            labels: { color: '#6b7280', font: { size: 9 } } 
+                        }, 
+                        tooltip: cfg.options?.plugins?.tooltip || {
+                            backgroundColor: 'rgba(0,0,0,0.85)', 
+                            bodyFont: { family: 'JetBrains Mono', size: 10 } 
+                        }
+                    },
+                    scales: cfg.type === 'scatter' ? {
+                        // For scatter plots, preserve x and y axes
+                        x: { 
+                            type: 'linear',
+                            ticks: { color: '#9ca3af', font: { size: 8 } }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            title: cfg.options?.scales?.x?.title || undefined
+                        },
+                        y: { 
+                            type: 'linear',
+                            ticks: { color: '#9ca3af', font: { size: 9 } }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            title: cfg.options?.scales?.y?.title || undefined
+                        }
+                    } : {
+                        // For time-series charts
+                        x: { 
+                            ticks: { color: '#9ca3af', font: { size: 8 }, maxTicksLimit: 6, maxRotation: 0 }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' } 
+                        },
+                        y: { 
+                            ticks: { color: '#9ca3af', font: { size: 9 } }, 
+                            grid: { color: 'rgba(0,0,0,0.06)' } 
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderScatterPlots() {
             if (parsedData.length === 0) return;
 
             const labels = parsedData.map((d, i) => getShortTimestamp(d) || `${i+1}`);
@@ -2107,8 +2382,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'CQI', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxCqi * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'CQI', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxCqi * 1.1) }
                     }
                 }
             });
@@ -2164,8 +2439,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'MCS', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxMcs * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'MCS', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxMcs * 1.1) }
                     }
                 }
             });
@@ -2222,8 +2497,8 @@ function renderScatterPlots() {
                             }
                         },
                         scales: {
-                            x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                            y: { type: 'linear', title: { display: true, text: sinrLabel, color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
+                            x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                            y: { type: 'linear', title: { display: true, text: sinrLabel, color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: Math.floor(minSinr - 2), max: Math.ceil(maxSinr + 2) }
                         }
                     }
                 });
@@ -2416,8 +2691,46 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
+                    }
+                }
+            });
+
+            // Throughput UL (Separate Chart)
+            if (compTputUlOnly) compTputUlOnly.destroy();
+            const maxTputUl = Math.max(...tputUlVals);
+            compTputUlOnly = new Chart(document.getElementById('compTputUlOnly'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'UL Throughput (Mbps)', data: tputUlVals, borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, fill: false, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            titleFont: { family: 'JetBrains Mono', size: 11 },
+                            bodyFont: { family: 'JetBrains Mono', size: 10 },
+                            padding: 10,
+                            borderColor: '#fff',
+                            borderWidth: 1,
+                            callbacks: {
+                                title: function(context) { return 'Time: ' + context[0].label; },
+                                label: function(context) {
+                                    return 'UL Throughput: ' + context.parsed.y.toFixed(2) + ' Mbps';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'Throughput (Mbps)', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: Math.ceil(maxTput * 1.1) }
                     }
                 }
             });
@@ -2522,8 +2835,8 @@ function renderScatterPlots() {
                         }
                     },
                     scales: {
-                        x: { ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
-                        y: { type: 'linear', title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#9ca3af' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: blerYMax }
+                        x: { ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 9 }, maxRotation: 0, minRotation: 0, autoSkip: true, maxTicksLimit: 5, padding: 8 }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' } },
+                        y: { type: 'linear', title: { display: true, text: 'BLER (%)', color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 11, weight: 'bold' } }, ticks: { color: kpiTheme === 'dark' ? '#ffffff' : '#4b5563', font: { size: 10 } }, grid: { color: kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }, min: 0, max: blerYMax }
                     }
                 }
             });
@@ -3843,8 +4156,18 @@ function renderScatterPlots() {
                     } else if (techValue.includes('NR') || techValue === '5G') {
                         obj.technology = 'NR';
                     } else {
-                        // Mark as Unknown if technology doesn't match any known type
-                        obj.technology = 'Unknown';
+                        // Fallback: auto-detect from signal columns for unrecognized values (e.g. 'Unknown')
+                        if (hasNR && obj.nr_rsrp && obj.nr_rsrp !== '' && obj.nr_rsrp !== '0') {
+                            obj.technology = 'NR';
+                        } else if (hasUMTS && obj.wcdma_rscp && obj.wcdma_rscp !== '' && obj.wcdma_rscp !== '0') {
+                            obj.technology = 'UMTS';
+                        } else if (hasGSM && (obj.gsm_rxlev || obj.rxlev) && (obj.gsm_rxlev !== '0' || obj.rxlev !== '0')) {
+                            obj.technology = 'GSM';
+                        } else if (hasLTE && obj.rsrp && obj.rsrp !== '' && obj.rsrp !== '0') {
+                            obj.technology = 'LTE';
+                        } else {
+                            obj.technology = 'Unknown';
+                        }
                     }
                 }
                 
@@ -3934,13 +4257,16 @@ function renderScatterPlots() {
             const eventIcons = {
                 'handover': { icon: '↔', color: '#f97316', label: 'Handover', circleIcon: true },
                 'cell_reselection': { icon: '📶', color: '#8b5cf6', label: 'Cell Reselection' },
+                'cell reselection': { icon: '📶', color: '#8b5cf6', label: 'Cell Reselection' },
                 'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
-                'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true }
+                'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true },
+                'voice call': { icon: '☎️', color: '#10b981', label: 'Voice Call', circleIcon: true }
             };
 
-            // Add markers
+            // Group coordinates by location to handle overlapping points
+            const locationGroups = {};
             coords.forEach((p, i) => {
                 const row = p.row;
                 const hasEvent = row.event && row.event.trim() !== '';
@@ -3948,11 +4274,8 @@ function renderScatterPlots() {
                 if (!hasEvent) {
                     const el = document.createElement('div');
                     el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
-                    
-                    // Build popup content based on technology
                     const tech = row.technology || 'LTE';
                     let kpiContent = '';
-                    
                     if (tech === 'NR') {
                         kpiContent = `
                             <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
@@ -3979,7 +4302,6 @@ function renderScatterPlots() {
                             <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
                             <div style="margin:4px 0;"><b>ARFCN:</b> ${row.gsm_bcch_arfcn || row['bcch-arfcn'] || '-'}</div>`;
                     }
-                    
                     const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
                         <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                             <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div>
@@ -3991,11 +4313,305 @@ function renderScatterPlots() {
                         </div>
                     `);
                     markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                } else {
+                    const key = `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`;
+                    if (!locationGroups[key]) {
+                        locationGroups[key] = { all: [], noEvent: [], withEvent: [] };
+                    }
+                    locationGroups[key].all.push({ ...p, originalIndex: i });
+                    locationGroups[key].withEvent.push({ ...p, originalIndex: i });
                 }
             });
 
-            // Event markers
+            // Add markers with count badges for grouped locations (non-event points)
+            Object.values(locationGroups).forEach(groupData => {
+                const group = groupData.noEvent;
+                if (group.length === 0) return; // Skip if no non-event points
+                
+                const p = group[0]; // Use first point for location
+                const row = p.row;
+                const totalCount = groupData.all.length; // Total count including events
+                const count = group.length; // Count without events
+
+                const el = document.createElement('div');
+                
+                // If multiple points at same location, show count badge (use total count)
+                if (totalCount > 1) {
+                    el.innerHTML = `
+                        <div style="position:relative;display:inline-block;">
+                            <div style="width:14px;height:14px;border-radius:50%;background:${p.color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>
+                            <div style="position:absolute;top:-8px;right:-8px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.5);">${totalCount}</div>
+                        </div>`;
+                } else {
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
+                }
+                
+                // Build popup content based on technology
+                const tech = row.technology || 'LTE';
+                
+                // For single point, show standard popup
+                if (count === 1 && totalCount === 1) {
+                        let kpiContent = '';
+                        
+                        if (tech === 'NR') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
+                                <div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
+                        } else if (tech === 'LTE') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>`;
+                        } else if (tech === 'UMTS') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
+                                <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
+                                <div style="margin:4px 0;"><b>UARFCN:</b> ${row.uarfcn || '-'}</div>`;
+                        } else if (tech === 'GSM') {
+                            kpiContent = `
+                                <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
+                                <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
+                                <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
+                                <div style="margin:4px 0;"><b>ARFCN:</b> ${row.gsm_bcch_arfcn || row['bcch-arfcn'] || '-'}</div>`;
+                        }
+                        
+                        const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                                <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || p.originalIndex + 1}</div>
+                                <div style="margin:4px 0;"><b>Time:</b> ${row.time?.split('T')[1]?.slice(0, 8) || '-'}</div>
+                                ${kpiContent}
+                                ${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}
+                            </div>
+                        `);
+                        markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                    } else {
+                        // For multiple points, show enhanced popup with sample table and timeline controls
+                        // Use ALL samples at this location (including events)
+                        const allSamples = groupData.all;
+                        const eventCount = groupData.withEvent.length;
+                        
+                        // Debug logging
+                        console.log(`Location ${p.lat.toFixed(6)},${p.lon.toFixed(6)}:`, {
+                            totalCount,
+                            allSamplesLength: allSamples.length,
+                            eventCount,
+                            noEventCount: groupData.noEvent.length
+                        });
+                        
+                        const timeRange = `${allSamples[0].row.time?.split('T')[1]?.slice(0, 8) || '-'} to ${allSamples[totalCount-1].row.time?.split('T')[1]?.slice(0, 8) || '-'}`;
+                        
+                        // Build sample table rows for ALL samples
+                        let tableRows = '';
+                        console.log(`Building table with ${allSamples.length} samples:`, allSamples.map(s => ({
+                            time: s.row.time,
+                            hasEvent: !!(s.row.event && s.row.event.trim() !== ''),
+                            event: s.row.event
+                        })));
+                        
+                        allSamples.forEach((sample, idx) => {
+                            const sRow = sample.row;
+                            const sColor = sample.color;
+                            const time = sRow.time?.split('T')[1]?.slice(0, 8) || '-';
+                            const hasEvent = sRow.event && sRow.event.trim() !== '';
+                            
+                            let kpiValues = '';
+                            if (tech === 'NR') {
+                                kpiValues = `<td>${sRow.nr_rsrp || '-'}</td><td>${sRow.nr_rsrq || '-'}</td><td>${sRow.nr_sinr || '-'}</td><td>${sRow.nr_pci || '-'}</td>`;
+                            } else if (tech === 'LTE') {
+                                kpiValues = `<td>${sRow.rsrp || '-'}</td><td>${sRow.rsrq || '-'}</td><td>${sRow.sinr || '-'}</td><td>${sRow.pci || '-'}</td>`;
+                            } else if (tech === 'UMTS') {
+                                kpiValues = `<td>${sRow.wcdma_rscp || '-'}</td><td>${sRow.wcdma_ecno || '-'}</td><td>-</td><td>${sRow.wcdma_psc || '-'}</td>`;
+                            } else if (tech === 'GSM') {
+                                kpiValues = `<td>${sRow.gsm_rxlev || sRow.rxlev || '-'}</td><td>${sRow.gsm_rxqual || sRow.rxqual || '-'}</td><td>-</td><td>${sRow.gsm_bsic || '-'}</td>`;
+                            }
+                            
+                            // Add event indicator if present
+                            const eventBadge = hasEvent ? `<span style="background:#f97316;color:white;padding:1px 4px;border-radius:3px;font-size:8px;margin-left:4px;">${sRow.event}</span>` : '';
+                            
+                            tableRows += `
+                                <tr style="background:${idx % 2 === 0 ? '#f9fafb' : '#fff'};border-left:3px solid ${sColor};" data-sample-idx="${idx}">
+                                    <td style="padding:4px 6px;font-size:10px;white-space:nowrap;">${time}${eventBadge}</td>
+                                    ${kpiValues}
+                                </tr>`;
+                        });
+                        
+                        // Determine column headers based on technology
+                        let headers = '';
+                        if (tech === 'NR') {
+                            headers = '<th>NR-RSRP</th><th>NR-RSRQ</th><th>NR-SINR</th><th>PCI</th>';
+                        } else if (tech === 'LTE') {
+                            headers = '<th>RSRP</th><th>RSRQ</th><th>SINR</th><th>PCI</th>';
+                        } else if (tech === 'UMTS') {
+                            headers = '<th>RSCP</th><th>Ec/No</th><th>-</th><th>PSC</th>';
+                        } else if (tech === 'GSM') {
+                            headers = '<th>RxLev</th><th>RxQual</th><th>-</th><th>BSIC</th>';
+                        }
+                        
+                        // Event info message
+                        const eventInfo = eventCount > 0 ? `<br/><small style="color:#f97316;">⚡ Includes ${eventCount} event sample${eventCount > 1 ? 's' : ''}</small>` : '';
+                        
+                        const popupContent = `
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;max-width:450px;">
+                                <div style="font-weight:800;color:#1f2937;margin-bottom:8px;border-bottom:2px solid #3b82f6;padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                                    <span>📍 ${tech} - ${totalCount} Samples</span>
+                                    <button id="playTimelineBtn" style="background:#3b82f6;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:10px;font-weight:bold;">▶ Play</button>
+                                </div>
+                                <div style="margin:8px 0;padding:8px;background:#fef3c7;border-left:3px solid #f59e0b;font-size:10px;">
+                                    <b>⚠️ ${totalCount} samples at same location</b><br/>
+                                    <small>Time range: ${timeRange}${eventInfo}</small>
+                                </div>
+                                
+                                <!-- Timeline Playback Controls -->
+                                <div id="timelineControls" style="display:none;margin:8px 0;padding:8px;background:#dbeafe;border-left:3px solid #3b82f6;border-radius:4px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <div style="font-size:10px;font-weight:bold;">Timeline Playback</div>
+                                        <div style="display:flex;gap:4px;">
+                                            <button id="prevSampleBtn" style="background:#6b7280;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;">◀</button>
+                                            <button id="pauseTimelineBtn" style="background:#ef4444;color:white;border:none;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:10px;">⏸</button>
+                                            <button id="nextSampleBtn" style="background:#6b7280;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;">▶</button>
+                                        </div>
+                                    </div>
+                                    <div style="font-size:10px;color:#1f2937;margin-bottom:4px;">
+                                        Sample <span id="currentSampleNum">1</span> of ${totalCount} - <span id="currentSampleTime">${allSamples[0].row.time?.split('T')[1]?.slice(0, 8) || '-'}</span>
+                                    </div>
+                                    <input type="range" id="timelineSlider" min="0" max="${totalCount - 1}" value="0" style="width:100%;cursor:pointer;" />
+                                </div>
+                                
+                                <div style="max-height:250px;overflow-y:scroll;margin-top:8px;border:1px solid #e5e7eb;border-radius:4px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.06);">
+                                    <table style="width:100%;border-collapse:collapse;font-size:10px;">
+                                        <thead style="position:sticky;top:0;background:#1f2937;color:white;z-index:1;box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                                            <tr>
+                                                <th style="padding:6px;text-align:left;font-weight:600;">Time</th>
+                                                ${headers}
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sampleTableBody">
+                                            ${tableRows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div style="margin-top:8px;padding:6px;background:#f3f4f6;border-radius:4px;font-size:9px;color:#6b7280;">
+                                    💡 Click Play to animate through samples or use the table to compare KPIs
+                                </div>
+                            </div>
+                        `;
+                        
+                        const popup = new maplibregl.Popup({ 
+                            offset: 10,
+                            maxWidth: '500px',
+                            className: 'timeline-popup'
+                        }).setHTML(popupContent);
+                        
+                        // Add timeline playback functionality
+                        popup.on('open', () => {
+                            let currentSampleIndex = 0;
+                            let playInterval = null;
+                            const timelineControls = document.getElementById('timelineControls');
+                            const playBtn = document.getElementById('playTimelineBtn');
+                            const pauseBtn = document.getElementById('pauseTimelineBtn');
+                            const prevBtn = document.getElementById('prevSampleBtn');
+                            const nextBtn = document.getElementById('nextSampleBtn');
+                            const slider = document.getElementById('timelineSlider');
+                            const tableBody = document.getElementById('sampleTableBody');
+                            
+                            function highlightSample(index) {
+                                currentSampleIndex = index;
+                                // Update UI
+                                document.getElementById('currentSampleNum').textContent = index + 1;
+                                document.getElementById('currentSampleTime').textContent = allSamples[index].row.time?.split('T')[1]?.slice(0, 8) || '-';
+                                slider.value = index;
+                                
+                                // Highlight row in table
+                                const rows = tableBody.querySelectorAll('tr');
+                                rows.forEach((row, idx) => {
+                                    if (idx === index) {
+                                        row.style.background = '#dbeafe';
+                                        row.style.fontWeight = 'bold';
+                                        row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                    } else {
+                                        row.style.background = idx % 2 === 0 ? '#f9fafb' : '#fff';
+                                        row.style.fontWeight = 'normal';
+                                    }
+                                });
+                            }
+                            
+                            function playTimeline() {
+                                timelineControls.style.display = 'block';
+                                playBtn.style.display = 'none';
+                                highlightSample(0);
+                                
+                                playInterval = setInterval(() => {
+                                    if (currentSampleIndex < totalCount - 1) {
+                                        highlightSample(currentSampleIndex + 1);
+                                    } else {
+                                        clearInterval(playInterval);
+                                        playBtn.style.display = 'inline-block';
+                                        playBtn.textContent = '🔄 Replay';
+                                    }
+                                }, 800); // 800ms per sample
+                            }
+                            
+                            function pauseTimeline() {
+                                if (playInterval) {
+                                    clearInterval(playInterval);
+                                    playInterval = null;
+                                    playBtn.style.display = 'inline-block';
+                                    playBtn.textContent = '▶ Resume';
+                                }
+                            }
+                            
+                            playBtn.addEventListener('click', playTimeline);
+                            pauseBtn.addEventListener('click', pauseTimeline);
+                            prevBtn.addEventListener('click', () => {
+                                if (currentSampleIndex > 0) highlightSample(currentSampleIndex - 1);
+                            });
+                            nextBtn.addEventListener('click', () => {
+                                if (currentSampleIndex < totalCount - 1) highlightSample(currentSampleIndex + 1);
+                            });
+                            slider.addEventListener('input', (e) => {
+                                pauseTimeline();
+                                highlightSample(parseInt(e.target.value));
+                            });
+                            
+                            // Click on table row to jump to that sample
+                            tableBody.querySelectorAll('tr').forEach((row, idx) => {
+                                row.style.cursor = 'pointer';
+                                row.addEventListener('click', () => {
+                                    pauseTimeline();
+                                    highlightSample(idx);
+                                });
+                            });
+                        });
+                        
+                        markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
+                    }
+            });
+
+            // Event markers - only create separate markers for events NOT in location groups
+            const groupedEventLocations = new Set();
+            Object.entries(locationGroups).forEach(([key, groupData]) => {
+                if (groupData.withEvent.length > 0 && groupData.all.length > 1) {
+                    // This location has events AND multiple samples, so events are included in the group popup
+                    groupData.withEvent.forEach(evt => {
+                        groupedEventLocations.add(`${evt.lat.toFixed(6)},${evt.lon.toFixed(6)},${evt.originalIndex}`);
+                    });
+                }
+            });
+            
             coords.filter(p => p.row.event && p.row.event.trim() !== '').forEach((p, i) => {
+                // Skip if this event is part of a multi-sample location group
+                const eventKey = `${p.lat.toFixed(6)},${p.lon.toFixed(6)},${p.originalIndex}`;
+                if (groupedEventLocations.has(eventKey)) {
+                    console.log(`Skipping separate event marker for ${eventKey} - already in group popup`);
+                    return;
+                }
+                
                 const row = p.row;
                 const evtKey = row.event.toLowerCase().trim();
                 const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
@@ -4007,8 +4623,9 @@ function renderScatterPlots() {
                     el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
                 
-                // Build KPI content based on technology
+                // Build KPI content based on technology (excluding band for handovers to avoid duplicates)
                 const tech = row.technology || 'LTE';
+                const isHandover = row.event && row.event.toLowerCase().includes('handover');
                 let kpiContent = '';
                 
                 if (tech === 'NR') {
@@ -4016,14 +4633,13 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>`;
+                        ${!isHandover ? `<div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>` : ''}`;
                 } else if (tech === 'LTE') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
-                        <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>`;
+                        ${!isHandover ? `<div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>` : ''}`;
                 } else if (tech === 'UMTS') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
@@ -4036,7 +4652,8 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>`;
                 }
 
-                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
+                // Build popup content with handover frequency transition details
+                let popupContent = `
                     <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
                         <div style="font-weight:800;color:${evt.color};margin-bottom:8px;border-bottom:2px solid ${evt.color};padding-bottom:4px;">${evt.icon} ${evt.label} (${tech})</div>
                         <div style="margin:4px 0;"><b>Time:</b> ${getFullTimestamp(row)}</div>
@@ -4044,7 +4661,8 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>
                         ${kpiContent}
                     </div>
-                `);
+                `;
+                const popup = new maplibregl.Popup({ offset: 15 }).setHTML(popupContent);
                 markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
             });
 
@@ -4065,6 +4683,12 @@ function renderScatterPlots() {
                 const bounds = lngLats.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(lngLats[0], lngLats[0]));
                 map.fitBounds(bounds, { padding: 50 });
             }
+
+            // If zoom modal is open, update mentor charts with the newly filtered data
+            try {
+                const modal = document.getElementById('chartZoomModal');
+                if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+            } catch (err) { console.warn('mentor charts update after renderMap failed', err); }
 
             // Auto-populate L3 messages (removed - no longer needed)
         }
@@ -4259,6 +4883,13 @@ function renderScatterPlots() {
             currentTechFilter = e.target.value;
             if (csvData && rawParsedData.length > 0) {
                 renderMap(); // Call without csvText to re-filter existing data
+                // If zoom modal is open, re-render mentor charts with new filtered data
+                setTimeout(() => {
+                    try {
+                        const modal = document.getElementById('chartZoomModal');
+                        if (modal && modal.style.display === 'flex') renderMentorCharts(parsedData, currentKpiType);
+                    } catch (err) { console.warn('mentor charts update after tech change failed', err); }
+                }, 250);
             }
         });
         
@@ -4752,91 +5383,456 @@ function renderScatterPlots() {
         // CHART ZOOM MODAL FUNCTIONALITY
         // =====================================================
 
+        function updateModalTheme() {
+            const modal = document.getElementById('chartZoomModal');
+            const modalContent = document.getElementById('chartZoomModalContent');
+            
+            if (!modal || !modalContent) return;
+            
+            if (kpiTheme === 'dark') {
+                modal.classList.add('dark');
+                modalContent.style.background = 'var(--card-bg-dark)';
+                
+                // Apply dark mode to mentor grid panels
+                const mentorPanels = document.querySelectorAll('.mentor-grid-panel');
+                mentorPanels.forEach(panel => {
+                    panel.style.background = '#1a1f2e';
+                    panel.style.borderColor = '#2d3748';
+                    
+                    // Update text colors in panels
+                    const textElements = panel.querySelectorAll('div[style*="color"]');
+                    textElements.forEach(el => {
+                        if (el.style.color === 'rgb(55, 65, 81)' || el.style.color === '#374151') {
+                            el.style.color = '#9ca3af';
+                        }
+                        if (el.style.color === 'rgb(107, 114, 128)' || el.style.color === '#6b7280') {
+                            el.style.color = '#9ca3af';
+                        }
+                    });
+                });
+                
+                // Apply dark mode to mentor grid background
+                const mentorGrid = document.getElementById('mentorOverviewGrid');
+                if (mentorGrid) {
+                    mentorGrid.style.background = '#0f172a';
+                    mentorGrid.style.borderBottomColor = '#2d3748';
+                }
+                
+                // Apply dark mode to main content area
+                const mainContentDivs = document.querySelectorAll('#chartZoomModalContent > div');
+                mainContentDivs.forEach(div => {
+                    if (div.style.background && div.style.background.includes('#f8f9fa')) {
+                        div.style.background = '#0f172a';
+                    }
+                });
+            } else {
+                modal.classList.remove('dark');
+                modalContent.style.background = 'var(--card-bg-light)';
+                
+                // Reset mentor grid panels to light mode
+                const mentorPanels = document.querySelectorAll('.mentor-grid-panel');
+                mentorPanels.forEach(panel => {
+                    panel.style.background = '#fff';
+                    panel.style.borderColor = '#d1d5db';
+                    
+                    // Reset text colors
+                    const textElements = panel.querySelectorAll('div[style*="color"]');
+                    textElements.forEach(el => {
+                        if (el.style.color === 'rgb(156, 163, 175)' || el.style.color === '#9ca3af') {
+                            // Restore original colors
+                            const originalStyle = el.getAttribute('style');
+                            if (originalStyle && originalStyle.includes('374151')) {
+                                el.style.color = '#374151';
+                            } else if (originalStyle && originalStyle.includes('6b7280')) {
+                                el.style.color = '#6b7280';
+                            }
+                        }
+                    });
+                });
+                
+                // Reset mentor grid background
+                const mentorGrid = document.getElementById('mentorOverviewGrid');
+                if (mentorGrid) {
+                    mentorGrid.style.background = '#f1f3f5';
+                    mentorGrid.style.borderBottomColor = '#d1d5db';
+                }
+                
+                // Reset main content area
+                const mainContentDivs = document.querySelectorAll('#chartZoomModalContent > div');
+                mainContentDivs.forEach(div => {
+                    if (div.style.background && div.style.background.includes('#0f172a')) {
+                        div.style.background = '#f8f9fa';
+                    }
+                });
+            }
+        }
+
         function openChartZoom(chartTitle, chartInstance) {
             const modal = document.getElementById('chartZoomModal');
             const title = document.getElementById('chartZoomTitle');
-            const modalContent = modal.querySelector('div');
             const chartContainer = document.getElementById('chartZoomContainer');
             const scatterControls = document.getElementById('zoomScatterControls');
-            
-            // Detect if this is a scatter plot (correlation analysis chart)
-            const isScatterPlot = chartTitle.includes('Throughput vs') || chartTitle.includes('MCS vs CQI');
-            
-            // Show/hide the scatter plot controls based on chart type
-            if (scatterControls) {
-                scatterControls.style.display = isScatterPlot ? 'flex' : 'none';
-            }
-            
-            // Clean up multi-KPI charts if they exist
+            const mentorGrid = document.getElementById('mentorOverviewGrid');
+            const modalContent = document.getElementById('chartZoomModalContent') || modal.querySelector('div');
+
+            modal.classList.add('enterprise-modal');
+            updateModalTheme();
+
             if (window.multiKpiCharts && window.multiKpiCharts.length > 0) {
                 window.multiKpiCharts.forEach(chart => chart.destroy());
                 window.multiKpiCharts = [];
             }
-            
-            // Reset container to original single-chart structure
-            chartContainer.innerHTML = '<canvas id="chartZoomCanvas"></canvas>';
-            chartContainer.style.flex = '1';
-            chartContainer.style.border = '3px solid white';
-            chartContainer.style.padding = '20px';
-            chartContainer.style.overflow = 'hidden';
-            chartContainer.style.display = 'block'; // Reset from flex
-            chartContainer.style.flexDirection = ''; // Clear flex direction
-            chartContainer.style.gap = ''; // Clear gap
-            chartContainer.style.overflowY = ''; // Clear overflow-y
-            chartContainer.style.overflowX = ''; // Clear overflow-x
-            
-            // Now get the canvas (it exists after innerHTML reset)
+
+            if (zoomedChart) {
+                zoomedChart.destroy();
+                zoomedChart = null;
+            }
+
+            const isScatterPlot = chartTitle.includes('Throughput vs') || chartTitle.includes('MCS vs CQI');
+            if (scatterControls) {
+                scatterControls.style.display = isScatterPlot ? 'flex' : 'none';
+            }
+
+            if (chartContainer) {
+                chartContainer.innerHTML = '<canvas id="chartZoomCanvas"></canvas>';
+                chartContainer.style.flex = '1';
+                chartContainer.style.border = '3px solid white';
+                chartContainer.style.padding = '20px';
+                chartContainer.style.overflow = 'hidden';
+                chartContainer.style.display = 'block';
+                chartContainer.style.flexDirection = '';
+                chartContainer.style.gap = '';
+                chartContainer.style.overflowY = '';
+                chartContainer.style.overflowX = '';
+            }
+
             const canvas = document.getElementById('chartZoomCanvas');
-            
             title.textContent = chartTitle;
             modal.style.display = 'flex';
-            
-            // Synchronize control values with current state AFTER modal is displayed (for scatter plots)
+
+            if (mentorGrid) mentorGrid.style.display = 'grid';
+
             if (isScatterPlot) {
-                // Use setTimeout to ensure DOM is ready
                 setTimeout(() => {
-                    // Sync polynomial degree dropdown
                     const degreeSelector = document.getElementById('polynomialDegreeSelector');
                     if (degreeSelector) {
                         degreeSelector.value = polynomialDegree.toString();
                     }
-                    
-                    // Sync include idle samples checkbox
                     const idleSamplesCheckbox = document.getElementById('includeIdleSamples');
                     if (idleSamplesCheckbox) {
                         idleSamplesCheckbox.checked = document.getElementById('includeIdleSamples')?.checked || false;
                     }
-                    
-                    // Sync show overall trend checkbox
                     const rawTrendCheckbox = document.getElementById('showRawTrendlineZoom');
                     if (rawTrendCheckbox) {
                         rawTrendCheckbox.checked = window.showRawTrendlineState || false;
                     }
                 }, 10);
             }
-            
+
             const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
             const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
             const tickColor = kpiTheme === 'dark' ? '#9ca3af' : '#4b5563';
-            
-            if (kpiTheme === 'light') {
-                modal.style.background = 'rgba(255,255,255,0.95)';
-                modalContent.style.background = '#f3f4f6';
-                chartContainer.style.background = '#ffffff';
-                title.style.color = '#1f2937';
-            } else {
-                modal.style.background = 'rgba(0,0,0,0.95)';
-                modalContent.style.background = '#1f2937';
-                chartContainer.style.background = '#374151';
-                title.style.color = '#fff';
+
+            if (canvas) {
+                canvas.width = canvas.offsetWidth || 800;
+                canvas.height = canvas.offsetHeight || 500;
             }
             
-            if (zoomedChart) zoomedChart.destroy();
+            // Extract values - handle both regular arrays and scatter plot {x,y} objects
+            const data = chartInstance.data.datasets[0].data;
+            let values;
             
+            // Check if this is a scatter plot (data contains {x, y} objects)
+            const isScatterPlot = data.length > 0 && typeof data[0] === 'object' && data[0].hasOwnProperty('x');
+            
+            if (isScatterPlot) {
+                // For scatter plots, extract y values for statistics
+                values = data.map(d => d.y).filter(v => v !== null && v !== undefined && !isNaN(v));
+            } else {
+                // For regular charts, use values directly
+                values = data.filter(v => v !== null && v !== undefined && !isNaN(v));
+            }
+            
+            if (values.length > 0) {
+                // Update modal statistics with mentor-style design
+                updateMentorModalStatistics(values, currentKpiType);
+
+                // Render mentor charts - mentorChart2 will show the clicked chart
+                try { renderMentorChartsWithClickedChart(parsedData, currentKpiType, chartInstance); } catch (e) { console.warn('renderMentorCharts error:', e); }
+                
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                const current = values[values.length - 1];
+                
+                // Percentiles
+                const sorted = [...values].sort((a, b) => a - b);
+                const p10 = sorted[Math.floor(sorted.length * 0.1)];
+                const p50 = sorted[Math.floor(sorted.length * 0.5)];
+                const p90 = sorted[Math.floor(sorted.length * 0.9)];
+                
+                // Update percentiles
+                document.getElementById('modalP10').textContent = p10.toFixed(1);
+                document.getElementById('modalP50').textContent = p50.toFixed(1);
+                document.getElementById('modalP90').textContent = p90.toFixed(1);
+                
+                // Status badge - Enhanced to handle all metric types
+                let status = 'UNKNOWN';
+                let statusClass = 'poor';
+                
+                // Signal metrics (RSRP, RSCP, RxLev, RSRQ, Ec/No, RxQual, SINR)
+                if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
+                    if (current >= -80) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= -90) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= -100) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                } else if (chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual')) {
+                    if (current >= -10) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= -15) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= -20) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                } else if (chartTitle.includes('SINR')) {
+                    if (current >= 20) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 13) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 0) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // CQI metric (0-15 scale)
+                else if (chartTitle.includes('CQI')) {
+                    if (current >= 12) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 9) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 6) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // MCS metric (0-28 for LTE, 0-31 for NR)
+                else if (chartTitle.includes('MCS')) {
+                    if (current >= 20) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 15) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 10) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // BLER metric (percentage, lower is better)
+                else if (chartTitle.includes('BLER')) {
+                    if (current <= 2) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current <= 5) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current <= 10) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                // Throughput metrics (Mbps, higher is better)
+                else if (chartTitle.includes('Throughput') || chartTitle.includes('Mbps')) {
+                    if (current >= 50) { status = 'EXCELLENT'; statusClass = 'excellent'; }
+                    else if (current >= 20) { status = 'GOOD'; statusClass = 'good'; }
+                    else if (current >= 5) { status = 'FAIR'; statusClass = 'fair'; }
+                    else { status = 'POOR'; statusClass = 'poor'; }
+                }
+                
+                const statusBadge = document.getElementById('modalStatusBadge');
+                statusBadge.textContent = status;
+                statusBadge.className = `status-badge ${statusClass}`;
+                
+                // Quality distribution for signal charts
+                const isSignalChart = chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev') || chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual') || chartTitle.includes('SINR');
+                
+                const qualityCard = document.getElementById('modalQualityCard');
+                if (isSignalChart) {
+                    qualityCard.style.display = 'block';
+                    
+                    let excellent = 0, good = 0, fair = 0, poor = 0;
+                    
+                    if (chartTitle.includes('RSRP') || chartTitle.includes('RSCP') || chartTitle.includes('RxLev')) {
+                        values.forEach(v => {
+                            if (v >= -80) excellent++;
+                            else if (v >= -90) good++;
+                            else if (v >= -100) fair++;
+                            else poor++;
+                        });
+                    } else if (chartTitle.includes('RSRQ') || chartTitle.includes('Ec/No') || chartTitle.includes('RxQual')) {
+                        values.forEach(v => {
+                            if (v >= -10) excellent++;
+                            else if (v >= -15) good++;
+                            else if (v >= -20) fair++;
+                            else poor++;
+                        });
+                    } else if (chartTitle.includes('SINR')) {
+                        values.forEach(v => {
+                            if (v >= 20) excellent++;
+                            else if (v >= 13) good++;
+                            else if (v >= 0) fair++;
+                            else poor++;
+                        });
+                    }
+                    
+                    const total = values.length;
+                    const exPct = (excellent / total * 100).toFixed(0);
+                    const gdPct = (good / total * 100).toFixed(0);
+                    const frPct = (fair / total * 100).toFixed(0);
+                    const prPct = (poor / total * 100).toFixed(0);
+                    const goodOrBetter = ((excellent + good) / total * 100).toFixed(0);
+                    
+                    document.getElementById('qualityExcellent').style.width = exPct + '%';
+                    document.getElementById('qualityExcellent').textContent = exPct > 2 ? exPct + '%' : '';
+                    document.getElementById('qualityGood').style.width = gdPct + '%';
+                    document.getElementById('qualityGood').textContent = gdPct > 2 ? gdPct + '%' : '';
+                    document.getElementById('qualityFair').style.width = frPct + '%';
+                    document.getElementById('qualityFair').textContent = frPct > 2 ? frPct + '%' : '';
+                    document.getElementById('qualityPoor').style.width = prPct + '%';
+                    document.getElementById('qualityPoor').textContent = prPct > 2 ? prPct + '%' : '';
+                    document.getElementById('qualityText').textContent = `${goodOrBetter}% Good or Better`;
+                } else {
+                    qualityCard.style.display = 'none';
+                }
+                
+                // Update network status based on technology
+                const tech = detectedTechnology || 'LTE';
+                let networkStatus = 'OPERATIONAL';
+                let networkStatusColor = '#10b981';
+                
+                if (tech === 'GSM') {
+                    networkStatus = '2G GSM Network Active';
+                } else if (tech === 'UMTS') {
+                    networkStatus = '3G UMTS Network Active';
+                } else if (tech === 'NR') {
+                    networkStatus = '5G NR Network Active';
+                } else {
+                    networkStatus = '4G LTE Network Active';
+                }
+                
+                if (current < -110) {
+                    networkStatus = 'DEGRADED - Poor Coverage';
+                    networkStatusColor = '#ef4444';
+                } else if (current < -100) {
+                    networkStatus = 'WARNING - Weak Signal';
+                    networkStatusColor = '#f59e0b';
+                }
+                
+                document.getElementById('networkStatus').textContent = networkStatus;
+                document.getElementById('networkStatus').style.color = networkStatusColor;
+                
+                // Calculate real Coverage percentage (samples with good signal / total)
+                let coverageThreshold = -100; // Default for LTE/NR
+                if (tech === 'GSM') coverageThreshold = -95;
+                else if (tech === 'UMTS') coverageThreshold = -105;
+                
+                const samplesWithCoverage = values.filter(v => v >= coverageThreshold).length;
+                const coveragePct = ((samplesWithCoverage / values.length) * 100).toFixed(1);
+                const coverageEl = document.getElementById('networkCoverage');
+                coverageEl.textContent = `${coveragePct}% ${coveragePct >= 95 ? '✓' : '⚠'}`;
+                coverageEl.style.color = coveragePct >= 95 ? '#10b981' : coveragePct >= 85 ? '#f59e0b' : '#ef4444';
+                
+                // Calculate real Handover success rate from parsedData events
+                const handoverEvents = parsedData.filter(d => d.event && d.event.toLowerCase().includes('handover'));
+                const totalHandovers = handoverEvents.length;
+                let handoverSuccessPct = 100; // Default if no handovers
+                
+                if (totalHandovers > 0) {
+                    // Assume handovers are successful unless followed by RLF within next few samples
+                    // For simplicity, we'll use a high success rate based on absence of RLF
+                    const rlfEvents = parsedData.filter(d => d.event && d.event.toLowerCase().includes('rlf')).length;
+                    handoverSuccessPct = Math.max(0, ((totalHandovers - rlfEvents) / totalHandovers) * 100).toFixed(1);
+                }
+                
+                const handoverEl = document.getElementById('networkHandovers');
+                if (totalHandovers === 0) {
+                    handoverEl.textContent = 'N/A (no handovers)';
+                    handoverEl.style.color = '#6b7280';
+                } else {
+                    handoverEl.textContent = `${handoverSuccessPct}% ${handoverSuccessPct >= 98 ? '✓' : '⚠'}`;
+                    handoverEl.style.color = handoverSuccessPct >= 98 ? '#10b981' : handoverSuccessPct >= 95 ? '#f59e0b' : '#ef4444';
+                }
+                
+                // Calculate real Error rate (RLF + failures / total samples)
+                const rlfCount = parsedData.filter(d => d.event && d.event.toLowerCase().includes('rlf')).length;
+                const detachCount = parsedData.filter(d => d.event && d.event.toLowerCase().includes('detach')).length;
+                const totalErrors = rlfCount + detachCount;
+                const errorPct = ((totalErrors / parsedData.length) * 100).toFixed(2);
+                
+                const errorEl = document.getElementById('networkErrors');
+                errorEl.textContent = `${errorPct}% ${errorPct <= 0.5 ? '✓' : '✗'}`;
+                errorEl.style.color = errorPct <= 0.5 ? '#10b981' : errorPct <= 2 ? '#f59e0b' : '#ef4444';
+                
+                // Dynamic Alerts - only show relevant alerts
+                const alertsContainer = document.getElementById('alertsContainer');
+                alertsContainer.innerHTML = ''; // Clear existing alerts
+                
+                // Alert 1: Signal Degradation (only if samples below threshold exist)
+                let signalThreshold = -100; // Default for LTE/NR
+                let signalMetricName = 'RSRP';
+                if (tech === 'GSM') {
+                    signalThreshold = -100;
+                    signalMetricName = 'RxLev';
+                } else if (tech === 'UMTS') {
+                    signalThreshold = -105;
+                    signalMetricName = 'RSCP';
+                } else if (tech === 'NR') {
+                    signalMetricName = 'NR-RSRP';
+                }
+                
+                const poorSignalSamples = values.filter(v => v < signalThreshold).length;
+                const poorSignalPct = ((poorSignalSamples / values.length) * 100).toFixed(1);
+                
+                if (poorSignalSamples > 0 && isSignalChart) {
+                    const alertType = poorSignalPct > 20 ? 'error' : 'warning';
+                    alertsContainer.innerHTML += `
+                        <div class="alert-item ${alertType}">
+                            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <div class="alert-content">
+                                <div class="alert-title">Signal Degradation</div>
+                                <div class="alert-description">${poorSignalSamples} samples (${poorSignalPct}%) with ${signalMetricName} below ${signalThreshold} dBm</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Alert 2: High Error Rate (only if errors exist)
+                if (totalErrors > 0) {
+                    const errorAlertType = errorPct > 2 ? 'error' : 'warning';
+                    alertsContainer.innerHTML += `
+                        <div class="alert-item ${errorAlertType}">
+                            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="alert-content">
+                                <div class="alert-title">Network Errors Detected</div>
+                                <div class="alert-description">${totalErrors} errors (${rlfCount} RLF, ${detachCount} Detach) - ${errorPct}% error rate</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Alert 3: Poor Coverage (only if coverage is low)
+                if (parseFloat(coveragePct) < 90) {
+                    alertsContainer.innerHTML += `
+                        <div class="alert-item warning">
+                            <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <div class="alert-content">
+                                <div class="alert-title">Low Coverage</div>
+                                <div class="alert-description">Only ${coveragePct}% of samples have acceptable signal strength</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Show "All Clear" message if no alerts
+                if (alertsContainer.innerHTML === '') {
+                    alertsContainer.innerHTML = `
+                        <div style="text-align:center; padding:16px; color:#10b981;">
+                            <svg style="width:24px; height:24px; margin:0 auto 8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div style="font-weight:600; font-size:12px;">All Systems Normal</div>
+                            <div style="font-size:10px; color:#6b7280; margin-top:4px;">No alerts detected</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Create enterprise-styled chart
             const ctx = canvas.getContext('2d');
             const cfg = chartInstance.config;
-            
-            // Clone data with updated labels from the original chart
             const clonedData = JSON.parse(JSON.stringify(cfg.data));
             
             zoomedChart = new Chart(ctx, {
@@ -4847,16 +5843,64 @@ function renderScatterPlots() {
                     maintainAspectRatio: false,
                     interaction: cfg.options.interaction,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { color: textColor, font: { family: 'JetBrains Mono', size: 10 } } },
-                        title: cfg.options.plugins?.title ? { display: true, text: cfg.options.plugins.title.text, color: textColor, font: { size: 14 } } : undefined,
+                        legend: { 
+                            display: true, 
+                            position: 'top', 
+                            labels: { 
+                                color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                                font: { family: 'Inter, system-ui, sans-serif', size: 11 } 
+                            } 
+                        },
+                        title: cfg.options.plugins?.title ? { 
+                            display: true, 
+                            text: cfg.options.plugins.title.text, 
+                            color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                            font: { family: 'Inter, system-ui, sans-serif', size: 14, weight: '600' } 
+                        } : undefined,
                         tooltip: cfg.options.plugins?.tooltip
                     },
                     scales: {
-                        x: cfg.options.scales?.x ? { ...cfg.options.scales.x, ticks: { ...cfg.options.scales.x.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.x.title ? { display: true, text: cfg.options.scales.x.title.text, color: textColor, font: { size: 12 } } : undefined } : undefined,
-                        y: cfg.options.scales?.y ? { ...cfg.options.scales.y, ticks: { ...cfg.options.scales.y.ticks, color: tickColor }, grid: { color: gridColor }, title: cfg.options.scales.y.title ? { display: true, text: cfg.options.scales.y.title.text, color: textColor, font: { size: 12 } } : undefined } : undefined
+                        x: cfg.options.scales?.x ? { 
+                            ...cfg.options.scales.x, 
+                            ticks: { 
+                                ...cfg.options.scales.x.ticks, 
+                                color: kpiTheme === 'dark' ? 'var(--text-secondary-dark)' : 'var(--text-secondary-light)',
+                                font: { family: 'Inter, system-ui, sans-serif', size: 10 }
+                            }, 
+                            grid: { color: kpiTheme === 'dark' ? 'var(--border-dark)' : 'var(--border-light)' },
+                            title: cfg.options.scales.x.title ? { 
+                                display: true, 
+                                text: cfg.options.scales.x.title.text, 
+                                color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                                font: { family: 'Inter, system-ui, sans-serif', size: 12, weight: '500' } 
+                            } : undefined 
+                        } : undefined,
+                        y: cfg.options.scales?.y ? { 
+                            ...cfg.options.scales.y, 
+                            ticks: { 
+                                ...cfg.options.scales.y.ticks, 
+                                color: kpiTheme === 'dark' ? 'var(--text-secondary-dark)' : 'var(--text-secondary-light)',
+                                font: { family: 'Inter, system-ui, sans-serif', size: 10 }
+                            }, 
+                            grid: { color: kpiTheme === 'dark' ? 'var(--border-dark)' : 'var(--border-light)' },
+                            title: cfg.options.scales.y.title ? { 
+                                display: true, 
+                                text: cfg.options.scales.y.title.text, 
+                                color: kpiTheme === 'dark' ? 'var(--text-primary-dark)' : 'var(--text-primary-light)', 
+                                font: { family: 'Inter, system-ui, sans-serif', size: 12, weight: '500' } 
+                            } : undefined 
+                        } : undefined
                     }
                 }
             });
+            
+            // Force chart resize after creation
+            setTimeout(() => {
+                if (zoomedChart) {
+                    zoomedChart.resize();
+                    zoomedChart.update('none');
+                }
+            }, 150);
         }
 
         // Download chart as PNG (high quality) - preserves theme (dark/light mode)
@@ -5265,7 +6309,7 @@ function renderScatterPlots() {
                 });
             }
 
-            // Comparison charts
+            // Comparison charts and scatter plots
             const compContainers = document.querySelectorAll('#kpiPanel .grid.grid-cols-1 > div');
             compContainers.forEach((container, index) => {
                 if (!container.classList.contains('chart-zoomable')) {
@@ -5274,40 +6318,46 @@ function renderScatterPlots() {
                         let chart = null;
                         let title = '';
                         
+                        // Find which canvas is inside this container
+                        const canvas = container.querySelector('canvas');
+                        if (!canvas) return;
+                        
+                        const canvasId = canvas.id;
+                        
                         // Time-series charts - use technology-aware labels
                         const tech = detectedTechnology || 'LTE';
                         const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
                         const rsrqLabel = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
                         const sinrLabel = tech === 'NR' ? 'NR-SINR' : 'SINR';
-                        
-                        if (index === 0 && compRsrpOnly) { chart = compRsrpOnly; title = rsrpLabel; }
-                        else if (index === 1 && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; }
-                        else if (index === 2 && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; }
-                        else if (index === 3 && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; }
-                        else if (index === 4 && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; }
-                        else if (index === 5 && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; }
-                        else if (index === 6 && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; }
-                        else if (index === 7 && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; }
-                        else if (index === 8 && compTxPowerOnly) { chart = compTxPowerOnly; title = 'Tx Power'; }
-                        
-                        // Scatter plots (indices shifted by 1 due to TxPower addition)
-                        else if (index === 9 && scatterTputSinr) { 
-                            chart = scatterTputSinr; 
+
+                        if (canvasId === 'compRsrpOnly' && compRsrpOnly) { chart = compRsrpOnly; title = rsrpLabel; currentKpiType = 'rsrp'; }
+                        else if (canvasId === 'compRsrqOnly' && compRsrqOnly) { chart = compRsrqOnly; title = rsrqLabel; currentKpiType = 'rsrq'; }
+                        else if (canvasId === 'compSinrOnly' && compSinrOnly) { chart = compSinrOnly; title = sinrLabel; currentKpiType = 'sinr'; }
+                        else if (canvasId === 'compTputOnly' && compTputOnly) { chart = compTputOnly; title = 'Throughput DL'; currentKpiType = 'throughput_dl_mbps'; }
+                        else if (canvasId === 'compTputUlOnly' && compTputUlOnly) { chart = compTputUlOnly; title = 'Throughput UL'; currentKpiType = 'throughput_ul_mbps'; }
+                        else if (canvasId === 'compBlerOnly' && compBlerOnly) { chart = compBlerOnly; title = 'BLER'; currentKpiType = 'bler'; }
+                        else if (canvasId === 'compCqiOnly' && compCqiOnly) { chart = compCqiOnly; title = 'CQI'; currentKpiType = 'cqi'; }
+                        else if (canvasId === 'compMcsOnly' && compMcsOnly) { chart = compMcsOnly; title = 'MCS'; currentKpiType = 'mcs'; }
+                        else if (canvasId === 'compTxPowerOnly' && compTxPowerOnly) { chart = compTxPowerOnly; title = 'Tx Power'; currentKpiType = 'txpower'; }
+                        else if (canvasId === 'scatterTputSinr' && scatterTputSinr) {
+                            chart = scatterTputSinr;
                             const xLabel = tech === 'UMTS' || tech === 'GSM' ? (tech === 'UMTS' ? 'RSCP' : 'RxLev') : (tech === 'NR' ? 'NR-SINR' : 'SINR');
-                            title = `Throughput vs ${xLabel}`; 
+                            title = `Throughput vs ${xLabel}`;
+                            currentKpiType = tech === 'UMTS' ? 'wcdma_rscp' : (tech === 'GSM' ? 'gsm_rxlev' : 'sinr');
                         }
-                        else if (index === 10 && scatterTputRsrp) { 
-                            chart = scatterTputRsrp; 
-                            const rsrpLabel = tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
-                            title = `Throughput vs ${rsrpLabel}`; 
+                        else if (canvasId === 'scatterTputRsrp' && scatterTputRsrp) {
+                            chart = scatterTputRsrp;
+                            title = `Throughput vs ${rsrpLabel}`;
+                            currentKpiType = 'rsrp';
                         }
-                        else if (index === 11 && scatterTputRsrq) { 
-                            chart = scatterTputRsrq; 
-                            const rsrqLabel = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
-                            title = `Throughput vs ${rsrqLabel}`; 
+                        else if (canvasId === 'scatterTputRsrq' && scatterTputRsrq) {
+                            chart = scatterTputRsrq;
+                            const rsrqDisplay = tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                            title = `Throughput vs ${rsrqDisplay}`;
+                            currentKpiType = 'rsrq';
                         }
-                        else if (index === 12 && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; }
-                        else if (index === 13 && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; }
+                        else if (canvasId === 'scatterMcsCqi' && scatterMcsCqi) { chart = scatterMcsCqi; title = 'MCS vs CQI'; currentKpiType = 'cqi'; }
+                        else if (canvasId === 'scatterBlerTput' && scatterBlerTput) { chart = scatterBlerTput; title = 'Throughput vs BLER'; currentKpiType = 'bler'; }
                         
                         if (chart) {
                             openChartZoom(`📊 ${title}`, chart);
@@ -5449,6 +6499,16 @@ function renderScatterPlots() {
                     const values = parsedData.map(d => parseFloat(d[currentKpiType]) || 0);
                     renderKPIHistogram(currentKpiType, values);
                 }
+                // Re-render mentor charts if modal is open
+                try {
+                    const modal = document.getElementById('chartZoomModal');
+                    if (modal && modal.style.display === 'flex') {
+                        renderMentorCharts(parsedData, currentKpiType);
+                        
+                        // Update modal theme dynamically
+                        updateModalTheme();
+                    }
+                } catch (err) { console.warn('mentor charts update after theme change failed', err); }
             }
         });
     
@@ -5464,32 +6524,21 @@ function renderScatterPlots() {
          * Prepare multi-KPI dataset for comparison chart
          * @param {Array} selectedKpis - Array of KPI objects: [{kpi: 'rsrp', unit: 'dBm', axis: 'left'}, ...]
          * @returns {Object} - {labels, datasets, axisConfig}
-    
          */
         function prepareMultiKpiData(selectedKpis) {
             if (parsedData.length === 0 || selectedKpis.length === 0) {
                 return null;
             }
             
-            // Extract shared time labels
-            const labels = parsedData.map((d, i) => 
-                getShortTimestamp(d) || `Point ${i+1}`
-            );
-            
-            // Technology detection
+            const labels = parsedData.map((d, i) => getShortTimestamp(d) || `Point ${i+1}`);
             const tech = detectedTechnology || 'LTE';
+            const kpiColor = '#3b82f6';
             
-            // Use consistent blue color for all KPIs in multi-KPI comparison
-            const kpiColor = '#3b82f6'; // Blue
-            
-            // Build datasets
-            const datasets = selectedKpis.map((kpiObj, index) => {
+            const datasets = selectedKpis.map((kpiObj) => {
                 const { kpi, unit, axis } = kpiObj;
-                
                 let values = [];
                 let label = kpi.toUpperCase();
                 
-                // Technology-specific field mapping (match single KPI behavior with || 0)
                 if (kpi === 'rsrp') {
                     if (tech === 'NR') {
                         values = parsedData.map(d => parseFloat(d.nr_rsrp) || 0);
@@ -5527,22 +6576,17 @@ function renderScatterPlots() {
                         label = 'SINR';
                     }
                 } else if (kpi === 'txpower') {
-                    // TxPower extraction - handle case variations
                     values = parsedData.map(d => {
                         const val = parseFloat(d.TxPower || d.txpower || d.TXPOWER || d.tx_power);
-                        return isNaN(val) ? 0 : val; // Use 0 for consistency with other KPIs in multi-KPI mode
+                        return isNaN(val) ? 0 : val;
                     });
                     label = 'Tx Power';
                 } else {
-                    // Generic KPI extraction
                     values = parsedData.map(d => parseFloat(d[kpi]) || 0);
                 }
                 
-                // Add unit to label
-                const fullLabel = unit ? `${label} (${unit})` : label;
-                
                 return {
-                    label: fullLabel,
+                    label: unit ? `${label} (${unit})` : label,
                     data: values,
                     borderColor: kpiColor,
                     backgroundColor: 'transparent',
@@ -5553,15 +6597,12 @@ function renderScatterPlots() {
                     pointHoverRadius: 6,
                     pointHoverBorderWidth: 2,
                     yAxisID: axis,
-                    spanGaps: false // Match single KPI behavior - show all data points including zeros
+                    spanGaps: false
                 };
             });
             
-            // Determine axis configuration
             const hasLeftAxis = selectedKpis.some(k => k.axis === 'left');
             const hasRightAxis = selectedKpis.some(k => k.axis === 'right');
-            
-            // Get units for axis labels
             const leftUnits = [...new Set(selectedKpis.filter(k => k.axis === 'left').map(k => k.unit).filter(u => u))];
             const rightUnits = [...new Set(selectedKpis.filter(k => k.axis === 'right').map(k => k.unit).filter(u => u))];
             
@@ -5575,29 +6616,14 @@ function renderScatterPlots() {
             return { labels, datasets, axisConfig };
         }
         
-        /**
-         * Update the observation panel with data at the given index
-         * @param {number} index - Data index
-         * @param {Array} labels - Time labels
-         * @param {Array} selectedKpis - Selected KPI objects
-         * @param {Array} datasets - Chart datasets
-         */
         function updateObservationPanel(index, labels, selectedKpis, datasets) {
             const panel = document.getElementById('observationPanel');
             const content = document.getElementById('observationContent');
-            
             if (!panel || !content) return;
+            if (panel.style.display === 'none') panel.style.display = 'block';
             
-            // Show panel if hidden
-            if (panel.style.display === 'none') {
-                panel.style.display = 'block';
-            }
-            
-            // Get data point
             const point = parsedData[index];
             const fullTimestamp = getFullTimestamp(point);
-            
-            // Apply theme colors
             const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
             const mutedColor = kpiTheme === 'dark' ? '#9ca3af' : '#6b7280';
             const bgColor = kpiTheme === 'dark' ? '#374151' : '#f9fafb';
@@ -5606,16 +6632,12 @@ function renderScatterPlots() {
             panel.style.color = textColor;
             panel.style.borderColor = kpiTheme === 'dark' ? '#fff' : '#000';
             
-            // Build observation HTML
             let html = '';
-            
-            // Timestamp section
             html += `<div style="background:${bgColor}; padding:10px; border-radius:4px; margin-bottom:12px; border:1px solid ${borderColor};">`;
             html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Timestamp</div>`;
             html += `<div style="font-size:13px; font-weight:700; font-family:'JetBrains Mono';">${fullTimestamp || 'N/A'}</div>`;
             html += `</div>`;
             
-            // GPS Coordinates section
             if (point) {
                 const lat = parseFloat(point.latitude || point.lat);
                 const lon = parseFloat(point.longitude || point.lon);
@@ -5628,37 +6650,27 @@ function renderScatterPlots() {
                 }
             }
             
-            // KPI Values section
             html += `<div style="margin-bottom:12px;">`;
             html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:700;">KPI Values</div>`;
-            
-            datasets.forEach((dataset, idx) => {
+            datasets.forEach((dataset) => {
                 const value = dataset.data[index];
-                const displayValue = (value !== null && value !== undefined && !isNaN(value)) 
-                    ? value.toFixed(2) 
-                    : 'N/A';
-                
+                const displayValue = (value !== null && value !== undefined && !isNaN(value)) ? value.toFixed(2) : 'N/A';
                 html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:${bgColor}; border-left:3px solid ${dataset.borderColor}; margin-bottom:6px; border-radius:2px;">`;
                 html += `<span style="font-size:11px; font-weight:600;">${dataset.label.split('(')[0].trim()}</span>`;
                 html += `<span style="font-size:12px; font-weight:700; font-family:'JetBrains Mono';">${displayValue}</span>`;
                 html += `</div>`;
             });
-            
             html += `</div>`;
             
-            // Metadata section (PCI, Technology, Events)
             if (point) {
                 html += `<div style="border-top:1px solid ${borderColor}; padding-top:12px;">`;
                 html += `<div style="font-size:10px; color:${mutedColor}; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; font-weight:700;">Metadata</div>`;
-                
-                // Technology
                 const tech = point.technology || detectedTechnology || 'LTE';
                 html += `<div style="display:flex; justify-content:space-between; padding:6px 8px; background:${bgColor}; margin-bottom:4px; border-radius:2px; font-size:11px;">`;
                 html += `<span style="color:${mutedColor};">Technology</span>`;
                 html += `<span style="font-weight:600;">${tech}</span>`;
                 html += `</div>`;
                 
-                // PCI/PSC/BSIC
                 let pci = '';
                 let pciLabel = 'PCI';
                 if (tech === 'NR') {
@@ -5678,26 +6690,19 @@ function renderScatterPlots() {
                 html += `<span style="color:${mutedColor};">${pciLabel}</span>`;
                 html += `<span style="font-weight:600; font-family:'JetBrains Mono';">${pci}</span>`;
                 html += `</div>`;
-                
-                // Check for events at this index
                 const eventTimeline = extractEventTimeline(parsedData);
                 const eventsAtIndex = eventTimeline.filter(e => e.index === index);
                 
                 if (eventsAtIndex.length > 0) {
                     eventsAtIndex.forEach(event => {
                         const icon = getEventIcon(event.type);
-                        
-                        // Distinguish between real CSV events and detected changes
                         const isRealEvent = event.type !== 'pci_change' && event.type !== 'tech_change' && event.type !== 'release';
-                        
                         if (isRealEvent) {
-                            // Real CSV event - Yellow background
                             html += `<div style="background:#fef3c7; color:#92400e; padding:8px; border-radius:4px; margin-top:8px; border-left:3px solid #f59e0b; font-size:11px;">`;
                             html += `<div style="font-weight:700; margin-bottom:2px;">${icon} Event: ${event.type.toUpperCase()}</div>`;
                             html += `<div style="font-size:10px;">${event.details}</div>`;
                             html += `</div>`;
                         } else {
-                            // Detected change - Blue/Info background
                             html += `<div style="background:#dbeafe; color:#1e40af; padding:8px; border-radius:4px; margin-top:8px; border-left:3px solid #3b82f6; font-size:11px;">`;
                             html += `<div style="font-weight:700; margin-bottom:2px;">ℹ️ Info</div>`;
                             html += `<div style="font-size:10px;">${event.details}</div>`;
@@ -5705,72 +6710,40 @@ function renderScatterPlots() {
                         }
                     });
                 }
-                
-                html += `</div>`;
-            } else {
-                // No data available
-                html += `<div style="border-top:1px solid ${borderColor}; padding-top:12px; text-align:center; color:${mutedColor}; font-size:11px;">`;
-                html += `No metadata available`;
                 html += `</div>`;
             }
-            
             content.innerHTML = html;
         }
         
-        /**
-         * Render multi-KPI comparison chart in zoom modal (STACKED CHARTS VERSION)
-         * Each KPI gets its own chart with its own Y-axis, all sharing the same X-axis
-         * @param {Array} selectedKpis - Array of selected KPI objects
-         */
         function renderMultiKpiChart(selectedKpis) {
             const data = prepareMultiKpiData(selectedKpis);
-            
             if (!data) {
                 alert('⚠️ No data available for selected KPIs');
                 return;
             }
             
             const { labels, datasets } = data;
-            
-            // Extract event timeline for event markers
             const eventTimeline = extractEventTimeline(parsedData);
-            console.log(`📍 Rendering ${eventTimeline.length} event markers on multi-KPI charts`);
-            
-            // Open modal
             const modal = document.getElementById('chartZoomModal');
             const title = document.getElementById('chartZoomTitle');
             const modalContent = modal.querySelector('div');
             const chartContainer = document.getElementById('chartZoomContainer');
             
-            // Set title
             const tech = detectedTechnology || 'LTE';
             const kpiNames = selectedKpis.map(k => {
-                if (k.kpi === 'rsrp') {
-                    return tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
-                } else if (k.kpi === 'rsrq') {
-                    return tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
-                } else if (k.kpi === 'sinr') {
-                    return tech === 'NR' ? 'NR-SINR' : 'SINR';
-                } else if (k.kpi === 'throughput_dl_mbps') {
-                    return 'DL Tput';
-                } else if (k.kpi === 'throughput_ul_mbps') {
-                    return 'UL Tput';
-                }
+                if (k.kpi === 'rsrp') return tech === 'NR' ? 'NR-RSRP' : tech === 'UMTS' ? 'RSCP' : tech === 'GSM' ? 'RxLev' : 'RSRP';
+                if (k.kpi === 'rsrq') return tech === 'NR' ? 'NR-RSRQ' : tech === 'UMTS' ? 'Ec/No' : tech === 'GSM' ? 'RxQual' : 'RSRQ';
+                if (k.kpi === 'sinr') return tech === 'NR' ? 'NR-SINR' : 'SINR';
+                if (k.kpi === 'throughput_dl_mbps') return 'DL Tput';
+                if (k.kpi === 'throughput_ul_mbps') return 'UL Tput';
                 return k.kpi.toUpperCase();
             }).join(' + ');
             
             title.textContent = `📊 Multi-KPI Analysis: ${kpiNames}`;
-            
-            // Hide scatter plot controls for multi-KPI (only show DOWNLOAD and CLOSE buttons)
             const scatterControls = document.getElementById('zoomScatterControls');
-            if (scatterControls) {
-                scatterControls.style.display = 'none';
-            }
-            
-            // Show modal
+            if (scatterControls) scatterControls.style.display = 'none';
             modal.style.display = 'flex';
             
-            // Apply theme
             const textColor = kpiTheme === 'dark' ? '#fff' : '#1f2937';
             const gridColor = kpiTheme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
             const tickColor = kpiTheme === 'dark' ? '#9ca3af' : '#4b5563';
@@ -5786,37 +6759,20 @@ function renderScatterPlots() {
                 title.style.color = '#fff';
             }
             
-            // Clear existing content and create stacked charts container
             chartContainer.innerHTML = '';
             chartContainer.style.background = bgColor;
             chartContainer.style.overflowY = 'auto';
             chartContainer.style.overflowX = 'hidden';
             chartContainer.style.display = 'flex';
             chartContainer.style.flexDirection = 'column';
-            chartContainer.style.gap = '8px'; // Reduced from 15px to 8px
-            chartContainer.style.padding = '12px'; // Reduced from 20px to 12px
-            
-            // Destroy existing chart if any
-            if (zoomedChart) {
-                zoomedChart.destroy();
-                zoomedChart = null;
-            }
-            
-            // Store all chart instances for cleanup
-            if (!window.multiKpiCharts) {
-                window.multiKpiCharts = [];
-            }
-            // Destroy previous charts
+            chartContainer.style.gap = '8px';
+            chartContainer.style.padding = '12px';
+            if (zoomedChart) { zoomedChart.destroy(); zoomedChart = null; }
+            if (!window.multiKpiCharts) window.multiKpiCharts = [];
             window.multiKpiCharts.forEach(chart => chart.destroy());
             window.multiKpiCharts = [];
             
-            // Shared state for synchronized crosshair
-            const syncState = {
-                activeIndex: null,
-                isHovering: false
-            };
-            
-            // Custom plugin for vertical crosshair line
+            const syncState = { activeIndex: null, isHovering: false };
             const crosshairPlugin = {
                 id: 'crosshair',
                 afterDraw: (chart) => {
@@ -5824,17 +6780,13 @@ function renderScatterPlots() {
                         const ctx = chart.ctx;
                         const xAxis = chart.scales.x;
                         const yAxis = chart.scales.y;
-                        
-                        // Get x position for the active index
                         const x = xAxis.getPixelForValue(syncState.activeIndex);
-                        
-                        // Draw vertical line
                         ctx.save();
                         ctx.beginPath();
                         ctx.moveTo(x, yAxis.top);
                         ctx.lineTo(x, yAxis.bottom);
                         ctx.lineWidth = 2;
-                        ctx.strokeStyle = kpiTheme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.3)';
+                        ctx.strokeStyle = kpiTheme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)';
                         ctx.setLineDash([5, 5]);
                         ctx.stroke();
                         ctx.restore();
@@ -5842,185 +6794,107 @@ function renderScatterPlots() {
                 }
             };
             
-            // Calculate height per chart (improved dynamic calculation)
             const numCharts = datasets.length;
-            const availableHeight = window.innerHeight * 0.88; // Use 88% of viewport
-            const titleHeight = 30; // Title + margins
-            const containerPadding = 24; // Top + bottom padding (12px each)
-            const gapTotal = (numCharts - 1) * 8; // Gaps between charts
-            const borderTotal = numCharts * 4; // 2px border top + bottom per chart
-            const wrapperPaddingTotal = numCharts * 16; // 8px top + 8px bottom per chart
-            
-            // Calculate available height per chart
+            const availableHeight = window.innerHeight * 0.88;
+            const titleHeight = 30;
+            const containerPadding = 24;
+            const gapTotal = (numCharts - 1) * 8;
+            const borderTotal = numCharts * 4;
+            const wrapperPaddingTotal = numCharts * 16;
             const totalOverhead = containerPadding + gapTotal + borderTotal + wrapperPaddingTotal + (numCharts * titleHeight);
             const chartHeight = Math.max(120, Math.floor((availableHeight - totalOverhead) / numCharts));
             
-            console.log(`📊 Multi-KPI Layout: ${numCharts} charts, ${chartHeight}px each, total overhead: ${totalOverhead}px`);
-            
-            // Create a separate chart for each KPI
             datasets.forEach((dataset, index) => {
-                // Create container for this chart
                 const chartWrapper = document.createElement('div');
                 chartWrapper.style.background = bgColor;
                 chartWrapper.style.border = `2px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
                 chartWrapper.style.borderRadius = '4px';
-                chartWrapper.style.padding = '8px 15px 8px 60px'; // Reduced padding: 8px top/bottom, 60px left for Y-axis
+                chartWrapper.style.padding = '8px 15px 8px 60px';
                 chartWrapper.style.minHeight = `${chartHeight + titleHeight}px`;
                 chartWrapper.style.position = 'relative';
                 chartWrapper.style.boxSizing = 'border-box';
                 
-                // Add KPI title
                 const chartTitle = document.createElement('div');
                 chartTitle.textContent = dataset.label;
                 chartTitle.style.color = textColor;
                 chartTitle.style.fontFamily = 'JetBrains Mono';
-                chartTitle.style.fontSize = '11px'; // Reduced from 13px to 11px
+                chartTitle.style.fontSize = '11px';
                 chartTitle.style.fontWeight = 'bold';
-                chartTitle.style.marginBottom = '6px'; // Reduced from 10px to 6px
-                chartTitle.style.paddingBottom = '4px'; // Reduced from 8px to 4px
+                chartTitle.style.marginBottom = '6px';
+                chartTitle.style.paddingBottom = '4px';
                 chartTitle.style.borderBottom = `1px solid ${kpiTheme === 'dark' ? '#4b5563' : '#e5e7eb'}`;
                 chartWrapper.appendChild(chartTitle);
                 
-                // Create canvas wrapper with overflow control
                 const canvasWrapper = document.createElement('div');
                 canvasWrapper.style.position = 'relative';
                 canvasWrapper.style.width = '100%';
-                canvasWrapper.style.height = `${chartHeight}px`; // Use calculated height directly
-                canvasWrapper.style.overflow = 'visible'; // Allow labels to show
-                
-                // Create canvas
+                canvasWrapper.style.height = `${chartHeight}px`;
+                canvasWrapper.style.overflow = 'visible';
                 const canvas = document.createElement('canvas');
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
                 canvasWrapper.appendChild(canvas);
                 chartWrapper.appendChild(canvasWrapper);
-                
                 chartContainer.appendChild(chartWrapper);
                 
-                // Calculate Y-axis range for this dataset
                 const validData = dataset.data.filter(v => v !== null && v !== undefined && !isNaN(v) && isFinite(v));
                 let yMin, yMax;
                 const kpiName = selectedKpis[index].kpi;
                 
-                // Apply technology-aware ranges for specific KPIs
-                // Use actual data range with padding for better visibility
                 if (kpiName === 'rsrp') {
-                    // RSRP / RSCP / RxLev - Technology-specific ranges
-                    if (tech === 'NR' || tech === 'LTE') {
-                        yMin = -110;
-                        yMax = -50;
-                    } else if (tech === 'UMTS') {
-                        yMin = -120; // RSCP can go lower than RSRP
-                        yMax = -25;  // RSCP can go higher than RSRP
-                    } else if (tech === 'GSM') {
-                        // RxLev: Use actual data range (0 to -99 dBm typical, but can vary)
+                    if (tech === 'NR' || tech === 'LTE') { yMin = -110; yMax = -50; }
+                    else if (tech === 'UMTS') { yMin = -120; yMax = -25; }
+                    else if (tech === 'GSM') {
                         if (validData.length > 0) {
                             const dataMin = Math.min(...validData);
                             const dataMax = Math.max(...validData);
-                            yMin = Math.min(dataMin - 10, -110); // Extend below, cap at -110
-                            yMax = Math.max(dataMax + 10, 5);     // Extend above, ensure room for peaks
-                        } else {
-                            yMin = -110;
-                            yMax = 5;
-                        }
-                    } else {
-                        yMin = -110;
-                        yMax = -50;
-                    }
-                    console.log(`📊 RSRP/RSCP/RxLev Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                            yMin = Math.min(dataMin - 10, -110);
+                            yMax = Math.max(dataMax + 10, 5);
+                        } else { yMin = -110; yMax = 5; }
+                    } else { yMin = -110; yMax = -50; }
                 } else if (kpiName === 'rsrq') {
-                    // RSRQ / Ec/No / RxQual - Technology-specific ranges
-                    if (tech === 'NR' || tech === 'LTE') {
-                        yMin = -20;
-                        yMax = -3;
-                    } else if (tech === 'UMTS') {
-                        yMin = -24; // Ec/No can go lower in poor conditions
-                        yMax = 5;   // Ec/No can go positive in excellent conditions
-                    } else if (tech === 'GSM') {
-                        // RxQual: Handle non-standard negative values and flat lines
+                    if (tech === 'NR' || tech === 'LTE') { yMin = -20; yMax = -3; }
+                    else if (tech === 'UMTS') { yMin = -24; yMax = 5; }
+                    else if (tech === 'GSM') {
                         if (validData.length > 0) {
                             const dataMin = Math.min(...validData);
                             const dataMax = Math.max(...validData);
                             const range = dataMax - dataMin;
-                            
                             if (range < 1) {
-                                // Flat line - create visible range around the value
                                 const center = (dataMax + dataMin) / 2;
                                 yMin = center - 5;
                                 yMax = center + 5;
                             } else {
-                                // Use actual range with padding
                                 yMin = Math.floor(dataMin - 2);
                                 yMax = Math.ceil(dataMax + 2);
                             }
-                        } else {
-                            yMin = 0;   // Standard RxQual range
-                            yMax = 7;
-                        }
-                    } else {
-                        yMin = -20;
-                        yMax = -3;
-                    }
-                    console.log(`📊 RSRQ/Ec/No/RxQual Y-axis: ${yMin} to ${yMax} (Tech: ${tech})`);
+                        } else { yMin = 0; yMax = 7; }
+                    } else { yMin = -20; yMax = -3; }
                 } else if (kpiName === 'sinr') {
-                    // SINR - Only for LTE/NR (3G/2G don't have SINR)
-                    if (tech === 'NR' || tech === 'LTE') {
-                        yMin = -5;
-                        yMax = 31;
-                    } else {
-                        // Fallback to auto-scale if SINR somehow appears in 2G/3G
-                        if (validData.length > 0) {
-                            yMin = Math.min(...validData);
-                            yMax = Math.max(...validData);
-                        } else {
-                            yMin = -5;
-                            yMax = 31;
-                        }
-                    }
-                } else if (kpiName === 'bler') {
-                    // BLER: 0 to 120% (can exceed 100% in poor conditions)
-                    yMin = 0;
-                    yMax = 120;
-                } else if (kpiName === 'cqi') {
-                    // CQI: 0 to 15 (LTE/NR standard)
-                    yMin = 0;
-                    yMax = 15;
-                } else if (kpiName === 'mcs') {
-                    // MCS: 0 to 33 (covers both LTE 0-28 and 5G NR up to 33)
-                    yMin = 0;
-                    yMax = 33;
-                } else if (kpiName === 'throughput_dl_mbps' || kpiName === 'throughput_ul_mbps') {
-                    // Auto-scale for throughput (high variability: 0-500+ Mbps)
+                    if (tech === 'NR' || tech === 'LTE') { yMin = -5; yMax = 31; }
+                    else if (validData.length > 0) { yMin = Math.min(...validData); yMax = Math.max(...validData); }
+                    else { yMin = -5; yMax = 31; }
+                } else if (kpiName === 'bler') { yMin = 0; yMax = 120; }
+                else if (kpiName === 'cqi') { yMin = 0; yMax = 15; }
+                else if (kpiName === 'mcs') { yMin = 0; yMax = 33; }
+                else if (kpiName === 'throughput_dl_mbps' || kpiName === 'throughput_ul_mbps') {
                     if (validData.length > 0) {
                         yMin = Math.min(...validData);
                         yMax = Math.max(...validData);
-                        
-                        // Add 10% padding for better visualization
                         const range = yMax - yMin;
                         const padding = range * 0.1;
-                        yMin = Math.max(0, yMin - padding); // Don't go below 0
+                        yMin = Math.max(0, yMin - padding);
                         yMax = yMax + padding;
-                    } else {
-                        yMin = 0;
-                        yMax = 100; // Default fallback
-                    }
-                } else {
-                    // Default auto-scale for any other KPIs
-                    if (validData.length > 0) {
-                        yMin = Math.min(...validData);
-                        yMax = Math.max(...validData);
-                        
-                        const range = yMax - yMin;
-                        const padding = range * 0.1;
-                        yMin = yMin - padding;
-                        yMax = yMax + padding;
-                    } else {
-                        yMin = undefined;
-                        yMax = undefined;
-                    }
+                    } else { yMin = 0; yMax = 100; }
+                } else if (validData.length > 0) {
+                    yMin = Math.min(...validData);
+                    yMax = Math.max(...validData);
+                    const range = yMax - yMin;
+                    const padding = range * 0.1;
+                    yMin = yMin - padding;
+                    yMax = yMax + padding;
                 }
                 
-                // Create chart
                 const ctx = canvas.getContext('2d');
                 const chart = new Chart(ctx, {
                     type: 'line',
@@ -6036,180 +6910,78 @@ function renderScatterPlots() {
                             tension: 0.3,
                             pointRadius: 1,
                             pointHoverRadius: 5,
-                            spanGaps: false // Match single KPI behavior
+                            spanGaps: false
                         }]
                     },
-                    plugins: [crosshairPlugin, multiKpiEventMarkerPlugin], // Register event marker plugin
+                    plugins: [crosshairPlugin, multiKpiEventMarkerPlugin],
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        layout: {
-                            padding: {
-                                left: 20, // Reduced from 30 to 20
-                                right: 15, // Reduced from 20 to 15
-                                top: 22, // Reduced from 25 to 22 (still room for event icons)
-                                bottom: 10 // Reduced from 15 to 10
-                            }
-                        },
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                enabled: false // Disable default tooltip overlay
-                            },
-                            multiKpiEventMarkers: {
-                                events: eventTimeline // Pass event data to plugin
-                            }
-                        },
+                        layout: { padding: { left: 20, right: 15, top: 22, bottom: 10 } },
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { display: false }, tooltip: { enabled: false }, multiKpiEventMarkers: { events: eventTimeline } },
                         scales: {
-                            x: {
-                                display: index === datasets.length - 1,
-                                ticks: { 
-                                    color: tickColor, 
-                                    font: { size: 8, family: 'JetBrains Mono' }, // Reduced from 9 to 8
-                                    maxRotation: 45,
-                                    minRotation: 45,
-                                    autoSkip: true,
-                                    maxTicksLimit: 10 // Reduced from 12 to 10
-                                },
-                                grid: { 
-                                    color: gridColor,
-                                    display: true,
-                                    drawBorder: true
-                                },
-                                title: {
-                                    display: index === datasets.length - 1,
-                                    text: 'Time',
-                                    color: textColor,
-                                    font: { size: 10, family: 'JetBrains Mono', weight: 'bold' } // Reduced from 11 to 10
-                                }
-                            },
-                            y: {
-                                type: 'linear',
-                                position: 'left',
-                                min: yMin,
-                                max: yMax,
-                                ticks: { 
-                                    color: tickColor,
-                                    font: { family: 'JetBrains Mono', size: 8 }, // Reduced from 9 to 8
-                                    autoSkip: true,
-                                    maxTicksLimit: 6, // Reduced from 8 to 6
-                                    padding: 8, // Reduced from 10 to 8
-                                    align: 'end'
-                                },
-                                grid: { 
-                                    color: gridColor,
-                                    drawBorder: true,
-                                    offset: false
-                                },
-                                offset: false,
-                                beginAtZero: false
-                            }
+                            x: { display: index === datasets.length - 1, ticks: { color: tickColor, font: { size: 8, family: 'JetBrains Mono' }, maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor, display: true, drawBorder: true }, title: { display: index === datasets.length - 1, text: 'Time', color: textColor, font: { size: 10, family: 'JetBrains Mono', weight: 'bold' } } },
+                            y: { type: 'linear', position: 'left', min: yMin, max: yMax, ticks: { color: tickColor, font: { family: 'JetBrains Mono', size: 8 }, autoSkip: true, maxTicksLimit: 6, padding: 8, align: 'end' }, grid: { color: gridColor, drawBorder: true, offset: false }, offset: false, beginAtZero: false }
                         }
                     },
                     plugins: [crosshairPlugin]
                 });
                 
-                // Add mouse event listeners for synchronization
-                // Throttle mousemove for better performance with large datasets
                 const throttledMouseMove = throttle((e) => {
                     const rect = canvas.getBoundingClientRect();
                     const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    // Get the data index at mouse position
                     const xAxis = chart.scales.x;
                     const xValue = xAxis.getValueForPixel(x);
-                    
                     if (xValue !== undefined && xValue >= 0 && xValue < labels.length) {
                         syncState.activeIndex = Math.round(xValue);
                         syncState.isHovering = true;
-                        
-                        // Update observation panel
                         updateObservationPanel(syncState.activeIndex, labels, selectedKpis, datasets);
-                        
-                        // Update all charts (crosshair only, no tooltips)
-                        window.multiKpiCharts.forEach(c => {
-                            c.update('none'); // Update without animation
-                        });
+                        window.multiKpiCharts.forEach(c => c.update('none'));
                     }
-                }, 16); // ~60fps throttle
-                
+                }, 16);
                 canvas.addEventListener('mousemove', throttledMouseMove);
-                
-                canvas.addEventListener('mouseleave', (e) => {
-                    // Don't clear observation panel immediately - give time to move to download button
-                    // Check if mouse is moving to modal header (download button area)
+                canvas.addEventListener('mouseleave', () => {
                     setTimeout(() => {
-                        // Only clear if mouse is not hovering over any chart or modal header
                         const modal = document.getElementById('chartZoomModal');
                         const isMouseInModal = modal && modal.matches(':hover');
-                        
                         if (!isMouseInModal || !syncState.isHovering) {
                             syncState.isHovering = false;
                             syncState.activeIndex = null;
-                            
-                            // Clear all tooltips and crosshairs
                             window.multiKpiCharts.forEach(c => {
                                 c.tooltip.setActiveElements([]);
                                 c.update('none');
                             });
-                            
-                            // Reset observation panel to default state
                             const observationContent = document.getElementById('observationContent');
                             if (observationContent) {
                                 const textColor = kpiTheme === 'dark' ? '#9ca3af' : '#6b7280';
-                                observationContent.innerHTML = `<div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px; color:${textColor};">
-                                    Hover over the charts to view detailed observations
-                                </div>`;
+                                observationContent.innerHTML = `<div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px; color:${textColor};">Hover over the charts to view detailed observations</div>`;
                             }
                         }
-                    }, 300); // 300ms delay to allow mouse movement to download button
+                    }, 300);
                 });
-                
-                // Store chart instance
                 window.multiKpiCharts.push(chart);
             });
-            
-            console.log('✅ Multi-KPI stacked charts rendered:', datasets.length, 'charts');
         }
         
-        /**
-         * Initialize multi-KPI comparison feature
-         */
         function initMultiKpiComparison() {
             const checkboxes = document.querySelectorAll('.kpi-selector');
             const compareBtn = document.getElementById('compareKpisBtn');
             const countSpan = document.getElementById('selectedKpiCount');
-            
             if (!compareBtn || !countSpan) {
                 console.warn('Multi-KPI comparison UI not found');
                 return;
             }
             
-            // Update selected KPIs array
             function updateSelectedKpis() {
                 selectedKpis = [];
                 checkboxes.forEach(checkbox => {
                     if (checkbox.checked && checkbox.parentElement.style.display !== 'none') {
-                        selectedKpis.push({
-                            kpi: checkbox.dataset.kpi,
-                            unit: checkbox.dataset.unit,
-                            axis: checkbox.dataset.axis
-                        });
+                        selectedKpis.push({ kpi: checkbox.dataset.kpi, unit: checkbox.dataset.unit, axis: checkbox.dataset.axis });
                     }
                 });
-                
-                // Update button state - Enable only for 2-6 KPIs
                 countSpan.textContent = selectedKpis.length;
                 compareBtn.disabled = selectedKpis.length < 2 || selectedKpis.length > 6;
-                
-                // Update button appearance
                 if (selectedKpis.length < 2 || selectedKpis.length > 6) {
                     compareBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     compareBtn.classList.remove('hover:bg-blue-700');
@@ -6217,26 +6989,13 @@ function renderScatterPlots() {
                     compareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     compareBtn.classList.add('hover:bg-blue-700');
                 }
-                
-                // Warn user visually when exceeding 6
-                if (selectedKpis.length > 6) {
-                    countSpan.style.color = '#ef4444'; // Red
-                } else {
-                    countSpan.style.color = '';
-                }
+                countSpan.style.color = selectedKpis.length > 6 ? '#ef4444' : '';
             }
             
-            // Expose globally so updateMultiKpiLabels can call it
             window.updateMultiKpiSelectedCount = updateSelectedKpis;
-            
-            // Update selected KPIs on checkbox change
             checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    updateSelectedKpis();
-                });
+                checkbox.addEventListener('change', updateSelectedKpis);
             });
-            
-            // Compare button click handler
             compareBtn.addEventListener('click', function() {
                 if (selectedKpis.length < 2) {
                     alert('⚠️ Please select at least 2 KPIs to compare');
@@ -6246,19 +7005,297 @@ function renderScatterPlots() {
                     alert('⚠️ Maximum 9 KPIs allowed. Please deselect ' + (selectedKpis.length - 9) + ' KPI(s) to continue.');
                     return;
                 }
-                
                 renderMultiKpiChart(selectedKpis);
             });
-            
-            // Initial update
             updateSelectedKpis();
-            
-            console.log('✅ Multi-KPI comparison initialized');
         }
         
-        // Initialize on DOM ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initMultiKpiComparison);
         } else {
             initMultiKpiComparison();
         }
+
+        // =====================================================
+        // MENTOR-STYLE SPARKLINE RENDERING FOR KPI CARDS
+        // =====================================================
+        function renderMentorSparkline(canvasId, data, color) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = 60;
+    canvas.height = 24;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Get last 20 data points for sparkline
+    const sparkData = data.slice(-20);
+    if (sparkData.length < 2) return;
+    
+    // Calculate min/max for scaling
+    const min = Math.min(...sparkData);
+    const max = Math.max(...sparkData);
+    const range = max - min || 1;
+    
+    // Calculate points with minimal padding
+    const padding = 2;
+    const chartHeight = height - (padding * 2);
+    const chartWidth = width - (padding * 2);
+    
+    const points = sparkData.map((value, index) => ({
+        x: padding + (index / (sparkData.length - 1)) * chartWidth,
+        y: padding + chartHeight - ((value - min) / range) * chartHeight
+    }));
+    
+    // Draw mentor-style line (clean, thin, colored)
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    points.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    
+    // Add small end point
+    const lastPoint = points[points.length - 1];
+    ctx.beginPath();
+    ctx.arc(lastPoint.x, lastPoint.y, 1.5, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+// Update modal statistics with mentor-style individual trend percentages
+function updateMentorModalStatistics(values, kpiType) {
+    if (!values || values.length === 0) return;
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const current = values[values.length - 1];
+    
+    // Update DOM elements with proper formatting
+    document.getElementById('modalCurrent').textContent = current.toFixed(1);
+    document.getElementById('modalMin').textContent = min.toFixed(1);
+    document.getElementById('modalAvg').textContent = avg.toFixed(1);
+    document.getElementById('modalMax').textContent = max.toFixed(1);
+    
+    // Calculate temporal trends for all cards
+    const segmentSize = Math.max(1, Math.floor(values.length * 0.1));
+    const recentSegment = values.slice(-segmentSize);
+    const previousSegment = values.slice(-segmentSize * 2, -segmentSize);
+    
+    if (previousSegment.length === 0) {
+        // Not enough data for trends, set all to neutral
+        updateTrendBadge('modalTrendBadge', 'trendArrow', 'trendPct', 0, null, true);
+        updateTrendBadge('modalMinBadge', 'minArrow', 'minPct', 0, null, true);
+        updateTrendBadge('modalAvgBadge', 'avgArrow', 'avgPct', 0, null, true);
+        updateTrendBadge('modalMaxBadge', 'maxArrow', 'maxPct', 0, null, true);
+    } else {
+        // Determine if this is a signal metric (RSRP/RSCP/RxLev/RSRQ/etc.)
+        const isSignalMetric = kpiType === 'rsrp' || kpiType.includes('rsrp') || 
+                               kpiType.includes('rscp') || kpiType.includes('rxlev') ||
+                               kpiType.includes('rsrq') || kpiType.includes('ecno') ||
+                               kpiType.includes('rxqual') || kpiType.includes('sinr');
+        
+        // CURRENT trend: recent average vs previous average
+        const recentAvg = recentSegment.reduce((a, b) => a + b, 0) / recentSegment.length;
+        const previousAvg = previousSegment.reduce((a, b) => a + b, 0) / previousSegment.length;
+        const currentAbsChange = recentAvg - previousAvg;
+        const currentTrendPercent = previousAvg !== 0 ? (currentAbsChange / Math.abs(previousAvg) * 100) : 0;
+        
+        // MIN trend: recent minimum vs previous minimum
+        const recentMin = Math.min(...recentSegment);
+        const previousMin = Math.min(...previousSegment);
+        const minAbsChange = recentMin - previousMin;
+        const minTrendPercent = previousMin !== 0 ? (minAbsChange / Math.abs(previousMin) * 100) : 0;
+        
+        // AVG trend: recent average vs previous average (same as current but for clarity)
+        const avgAbsChange = currentAbsChange;
+        const avgTrendPercent = currentTrendPercent;
+        
+        // MAX trend: recent maximum vs previous maximum
+        const recentMax = Math.max(...recentSegment);
+        const previousMax = Math.max(...previousSegment);
+        const maxAbsChange = recentMax - previousMax;
+        const maxTrendPercent = previousMax !== 0 ? (maxAbsChange / Math.abs(previousMax) * 100) : 0;
+        
+        // Update all trend badges with absolute changes and signal metric flag
+        updateTrendBadge('modalTrendBadge', 'trendArrow', 'trendPct', currentTrendPercent, currentAbsChange, isSignalMetric);
+        updateTrendBadge('modalMinBadge', 'minArrow', 'minPct', minTrendPercent, minAbsChange, isSignalMetric);
+        updateTrendBadge('modalAvgBadge', 'avgArrow', 'avgPct', avgTrendPercent, avgAbsChange, isSignalMetric);
+        updateTrendBadge('modalMaxBadge', 'maxArrow', 'maxPct', maxTrendPercent, maxAbsChange, isSignalMetric);
+    }
+    
+    // Generate rolling statistics for sparklines
+    const windowSize = 20;
+    const currentSparkline = values.slice(-20); // Last 20 actual values
+    
+    // Rolling minimum sparkline
+    const minSparkline = [];
+    for (let i = 0; i < values.length; i++) {
+        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        minSparkline.push(Math.min(...window));
+    }
+    
+    // Rolling average sparkline
+    const avgSparkline = [];
+    for (let i = 0; i < values.length; i++) {
+        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        const windowAvg = window.reduce((a, b) => a + b, 0) / window.length;
+        avgSparkline.push(windowAvg);
+    }
+    
+    // Rolling maximum sparkline
+    const maxSparkline = [];
+    for (let i = 0; i < values.length; i++) {
+        const window = values.slice(Math.max(0, i - windowSize + 1), i + 1);
+        maxSparkline.push(Math.max(...window));
+    }
+    
+    // Define sparkline colors based on card type
+    const sparklineColors = {
+        current: '#3b82f6',
+        min: '#ef4444', 
+        avg: '#6b7280',
+        max: '#10b981'
+    };
+    
+    // Render mentor-style sparklines with proper data
+    renderMentorSparkline('sparklineCurrent', currentSparkline, sparklineColors.current);
+    renderMentorSparkline('sparklineMin', minSparkline.slice(-20), sparklineColors.min);
+    renderMentorSparkline('sparklineAvg', avgSparkline.slice(-20), sparklineColors.avg);
+    renderMentorSparkline('sparklineMax', maxSparkline.slice(-20), sparklineColors.max);
+    
+    // Update status dots with technology-specific thresholds
+    const tech = detectedTechnology || 'LTE';
+    if (kpiType === 'rsrp' || kpiType.includes('rsrp') || kpiType.includes('rscp') || kpiType.includes('rxlev')) {
+        updateMentorStatusDot('statusDotCurrent', current, tech);
+        updateMentorStatusDot('statusDotMin', min, tech);
+        updateMentorStatusDot('statusDotAvg', avg, tech);
+        updateMentorStatusDot('statusDotMax', max, tech);
+    }
+}
+
+// Universal function to update trend badges with proper arrows, colors, and quality indicators
+function updateTrendBadge(badgeId, arrowId, pctId, percentage, absoluteChange = null, isSignalMetric = false) {
+    const badge = document.getElementById(badgeId);
+    const arrow = document.getElementById(arrowId);
+    const pct = document.getElementById(pctId);
+    
+    if (!badge || !arrow || !pct) return;
+    
+    // Remove existing classes
+    badge.classList.remove('positive', 'negative', 'neutral');
+    
+    // Determine quality indicator text for signal metrics
+    let qualityText = '';
+    if (isSignalMetric && Math.abs(percentage) > 0.5) {
+        // For signal metrics (RSRP/RSCP/RxLev), positive change = better signal
+        qualityText = percentage > 0 ? ' BETTER' : ' WORSE';
+    }
+    
+    // Set arrow and class based on percentage value
+    if (Math.abs(percentage) > 0.5) {
+        if (percentage > 0) {
+            badge.classList.add('positive');
+            arrow.textContent = '↗';
+        } else {
+            badge.classList.add('negative');
+            arrow.textContent = '↘';
+        }
+    } else {
+        badge.classList.add('neutral');
+        arrow.textContent = '▬';
+        qualityText = ' STABLE';
+    }
+    
+    // Format percentage and absolute change
+    let displayText = Math.abs(percentage).toFixed(1) + '%';
+    
+    // Add absolute change if provided
+    if (absoluteChange !== null) {
+        const absValue = Math.abs(absoluteChange).toFixed(1);
+        const sign = absoluteChange >= 0 ? '+' : '-';
+        displayText += ` (${sign}${absValue} dBm)`;
+    }
+    
+    // Add quality indicator
+    displayText += qualityText;
+    
+    pct.textContent = displayText;
+}
+
+// Update mentor-style status dot with proper classes and technology-specific thresholds
+function updateMentorStatusDot(dotId, value, tech = 'LTE') {
+    const dot = document.getElementById(dotId);
+    if (!dot) return;
+    
+    // Remove existing status classes
+    dot.classList.remove('excellent', 'good', 'fair', 'poor', 'critical', 'neutral');
+    
+    // Apply technology-specific thresholds
+    if (tech === 'GSM') {
+        if (value >= -70) {
+            dot.classList.add('excellent');
+        } else if (value >= -85) {
+            dot.classList.add('good');
+        } else if (value >= -95) {
+            dot.classList.add('fair');
+        } else if (value >= -105) {
+            dot.classList.add('poor');
+        } else {
+            dot.classList.add('critical');
+        }
+    } else if (tech === 'UMTS') {
+        if (value >= -85) {
+            dot.classList.add('excellent');
+        } else if (value >= -95) {
+            dot.classList.add('good');
+        } else if (value >= -105) {
+            dot.classList.add('fair');
+        } else if (value >= -115) {
+            dot.classList.add('poor');
+        } else {
+            dot.classList.add('critical');
+        }
+    } else { // LTE/NR
+        if (value >= -80) {
+            dot.classList.add('excellent');
+        } else if (value >= -90) {
+            dot.classList.add('good');
+        } else if (value >= -100) {
+            dot.classList.add('fair');
+        } else if (value >= -110) {
+            dot.classList.add('poor');
+        } else {
+            dot.classList.add('critical');
+        }
+    }
+}
+
+// Enhanced updateModalStatistics to use mentor-style design
+const originalUpdateModalStatistics = updateMentorModalStatistics;
+updateModalStatistics = function(values, kpiType) {
+    originalUpdateModalStatistics(values, kpiType);
+    
+    if (!values || values.length === 0) return;
+    
+    // Add animation classes for smooth updates
+    const modalCurrent = document.getElementById('modalCurrent');
+    if (modalCurrent) {
+        modalCurrent.classList.add('kpi-value-updated');
+        setTimeout(() => modalCurrent.classList.remove('kpi-value-updated'), 300);
+    }
+    
+    const trendArrowEl = document.getElementById('trendArrow');
+    if (trendArrowEl) {
+        trendArrowEl.classList.add('trend-arrow-animated');
+        setTimeout(() => trendArrowEl.classList.remove('trend-arrow-animated'), 500);
+    }
+};

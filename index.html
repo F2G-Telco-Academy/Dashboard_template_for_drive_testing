@@ -132,8 +132,11 @@
                             <div class="w-4 h-4 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-[10px]">⚠</div> RLF
                         </div>
                         <div class="flex items-center gap-2 mb-1">📶 Cell Reselection</div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 mb-1">
                             <div class="w-4 h-4 rounded-full bg-[#a855f7] border border-white flex items-center justify-center text-[10px]">📞</div> CSFB
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-full bg-[#10b981] border border-white flex items-center justify-center text-[10px]">☎️</div> Voice Call
                         </div>
                     </div>
                 </div>
@@ -597,14 +600,12 @@
     </div>
 
     <!-- Chart Zoom Modal -->
-    <div id="chartZoomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; justify-content:center; align-items:center; animation:fadeIn 0.2s;">
-        <div style="padding:20px; border:4px solid white; width:95%; height:95%; max-width:1400px; max-height:900px; font-family:'JetBrains Mono',monospace; display:flex; flex-direction:column;">
+    <div id="chartZoomModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; justify-content:center; align-items:center; animation:fadeIn 0.2s; background:rgba(0,0,0,0.8);">
+        <div style="padding:20px; border:4px solid white; width:95%; height:95%; max-width:1400px; max-height:900px; font-family:'JetBrains Mono',monospace; display:flex; flex-direction:column; background:var(--card-bg-light); border-radius:8px; overflow:hidden;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
                 <h2 id="chartZoomTitle" style="margin:0; font-size:20px; font-weight:800;">📊 Chart View</h2>
                 <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
-                    <!-- Scatter Plot Controls (only for scatter plots) -->
                     <div id="zoomScatterControls" style="display:none; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                        <!-- Polynomial Degree Selector -->
                         <div style="display:flex; align-items:center; gap:8px; background:#f3f4f6; border:2px solid #d1d5db; padding:6px 12px; border-radius:4px;">
                             <label style="font-size:12px; font-weight:700; color:#374151;">TRENDLINE:</label>
                             <select id="polynomialDegreeSelector" style="background:#ffffff; border:2px solid #9ca3af; color:#111827; padding:4px 8px; font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; cursor:pointer; border-radius:3px;" title="Select polynomial degree for trendline fitting. Higher degrees may overfit data.">
@@ -616,58 +617,301 @@
                                 <option value="6">Sextic (Degree 6) ⚠️</option>
                             </select>
                         </div>
-                        <!-- Include Idle Samples Toggle -->
                         <div style="background:#fef3c7; border:2px solid #fbbf24; padding:6px 12px; border-radius:4px;" title="When unchecked, excludes idle UE samples (throughput=0 with no active session) to show realistic network correlation">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#92400e; cursor:pointer;">
                                 <input type="checkbox" id="includeIdleSamples" style="width:16px; height:16px; cursor:pointer;">
                                 <span>Include idle samples (Tput=0)</span>
                             </label>
                         </div>
-                        <!-- Overall Trend Toggle -->
                         <div id="zoomRawTrendControl" style="background:#f5f3ff; border:2px solid #d8b4fe; padding:6px 12px; border-radius:4px;">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#6b21a8; cursor:pointer;">
                                 <input type="checkbox" id="showRawTrendlineZoom" style="width:16px; height:16px; cursor:pointer;">
-                                <span>Show overall trend </span>
+                                <span>Show overall trend</span>
                             </label>
                         </div>
                     </div>
-                    <!-- Download Button with Format Dropdown -->
                     <div style="position:relative; display:inline-block;">
                         <button id="downloadChartBtn" style="background:#3b82f6; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:14px; border-radius:4px; display:flex; align-items:center; gap:8px;" title="Download chart as image">
                             <span style="font-size:16px;">⬇</span>
                             <span>DOWNLOAD</span>
                             <span style="font-size:10px;">▼</span>
                         </button>
-                        <!-- Dropdown Menu -->
                         <div id="downloadDropdown" style="display:none; position:absolute; top:100%; right:0; margin-top:5px; background:white; border:3px solid #3b82f6; border-radius:4px; box-shadow:0 4px 6px rgba(0,0,0,0.3); z-index:10001; min-width:120px;">
-                            <button class="download-option" data-format="png" style="width:100%; padding:12px 20px; text-align:center; background:white; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#1f2937; transition:background 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='white'">
-                                PNG
-                            </button>
+                            <button class="download-option" data-format="png" style="width:100%; padding:12px 20px; text-align:center; background:white; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#1f2937; transition:background 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='white'">PNG</button>
                             <div style="height:2px; background:#e5e7eb;"></div>
-                            <button class="download-option" data-format="svg" style="width:100%; padding:12px 20px; text-align:center; background:white; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#1f2937; transition:background 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='white'">
-                                SVG
-                            </button>
+                            <button class="download-option" data-format="svg" style="width:100%; padding:12px 20px; text-align:center; background:white; border:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#1f2937; transition:background 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='white'">SVG</button>
                         </div>
                     </div>
                     <button id="closeChartZoomBtn" style="background:#ef4444; color:white; padding:10px 20px; border:3px solid white; font-weight:800; cursor:pointer; font-size:16px; border-radius:4px;">✕ CLOSE</button>
                 </div>
             </div>
-            <!-- Main content area with charts and observation panel -->
             <div style="flex:1; display:flex; gap:15px; overflow:hidden;">
-                <!-- Charts container (left side) -->
                 <div id="chartZoomContainer" style="flex:1; border:3px solid white; padding:20px; overflow:hidden;">
                     <canvas id="chartZoomCanvas"></canvas>
                 </div>
-                <!-- Observation panel (right side) -->
                 <div id="observationPanel" style="width:320px; border:3px solid white; padding:15px; overflow-y:auto; display:none; flex-shrink:0;">
                     <div style="border-bottom:2px solid; padding-bottom:8px; margin-bottom:12px;">
                         <h3 style="margin:0; font-size:14px; font-weight:800; letter-spacing:0.5px;">OBSERVATION</h3>
                     </div>
                     <div id="observationContent">
-                        <div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px;">
-                            Hover over the charts to view detailed observations
+                        <div style="text-align:center; padding:40px 20px; opacity:0.6; font-size:12px;">Hover over the charts to view detailed observations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+            
+            <!-- Top Metrics Row - Exact Mentor Style Background -->
+            <div id="topMetricsRow" style="padding:16px 24px; background:#f5f6fa; border-bottom:1px solid #e1e5e9; flex-shrink:0;">
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
+                    <!-- Current Value Card -->
+                    <div class="enterprise-kpi-card">
+                        <div class="card-header">
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <h3 class="card-title">CURRENT</h3>
+                            </div>
+                            <div id="statusDotCurrent" class="status-dot good"></div>
+                        </div>
+                        <div id="modalCurrent" class="card-value">-</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalTrendBadge" class="trend-badge positive">
+                                    <span id="trendArrow">↗</span>
+                                    <span id="trendPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">LATEST READING</div>
+                            </div>
+                            <canvas id="sparklineCurrent" class="card-sparkline" width="60" height="24"></canvas>
                         </div>
                     </div>
+                    <!-- Minimum Card -->
+                    <div class="enterprise-kpi-card">
+                        <div class="card-header">
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                </svg>
+                                <h3 class="card-title">MINIMUM</h3>
+                            </div>
+                            <div id="statusDotMin" class="status-dot poor"></div>
+                        </div>
+                        <div id="modalMin" class="card-value">-</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalMinBadge" class="trend-badge negative">
+                                    <span id="minArrow">↘</span>
+                                    <span id="minPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">WORST SIGNAL</div>
+                            </div>
+                            <canvas id="sparklineMin" class="card-sparkline" width="60" height="24"></canvas>
+                        </div>
+                    </div>
+                    <!-- Average Card -->
+                    <div class="enterprise-kpi-card">
+                        <div class="card-header">
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                <h3 class="card-title">AVERAGE</h3>
+                            </div>
+                            <div id="statusDotAvg" class="status-dot fair"></div>
+                        </div>
+                        <div id="modalAvg" class="card-value">-</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalAvgBadge" class="trend-badge neutral">
+                                    <span id="avgArrow">▬</span>
+                                    <span id="avgPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">MEAN SIGNAL</div>
+                            </div>
+                            <canvas id="sparklineAvg" class="card-sparkline" width="60" height="24"></canvas>
+                        </div>
+                    </div>
+                    <!-- Maximum Card -->
+                    <div class="enterprise-kpi-card">
+                        <div class="card-header">
+                            <div class="card-header-left">
+                                <svg class="card-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                </svg>
+                                <h3 class="card-title">MAXIMUM</h3>
+                            </div>
+                            <div id="statusDotMax" class="status-dot excellent"></div>
+                        </div>
+                        <div id="modalMax" class="card-value">-</div>
+                        <div class="card-bottom">
+                            <div class="card-trend">
+                                <div id="modalMaxBadge" class="trend-badge positive">
+                                    <span id="maxArrow">↗</span>
+                                    <span id="maxPct">0.0%</span>
+                                </div>
+                                <div class="trend-secondary">BEST SIGNAL</div>
+                            </div>
+                            <canvas id="sparklineMax" class="card-sparkline" width="60" height="24"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mentor-Style 2x2 Overview Grid -->
+            <div id="mentorOverviewGrid" style="padding:16px 24px 16px 24px; background:#f1f3f5; border-bottom:1px solid #d1d5db; display:grid; grid-template-columns:1fr 1fr; gap:16px; flex-shrink:0; overflow:visible;">
+
+                <!-- TOP-LEFT: Signal Quality Distribution -->
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em;">SIGNAL_QUALITY</div>
+                    <div style="font-size:9px; color:#6b7280; margin-bottom:8px;">QUALITY_DISTRIBUTION</div>
+                    <div style="position:relative; height:185px; overflow:visible;"><canvas id="mentorChart1"></canvas></div>
+                </div>
+
+                <!-- TOP-RIGHT: DL + UL Throughput -->
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <div id="mentorChart2Title" style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em;">THROUGHPUT_I/O</div>
+                            <div id="mentorChart2Subtitle" style="font-size:9px; color:#6b7280; margin-bottom:8px;">DL_UL_ANALYSIS</div>
+                        </div>
+                        <div style="display:flex; gap:12px; font-size:9px; font-weight:600; color:#6b7280;">
+                            <span>&#9632; DL</span><span style="opacity:.6;">&#9675; UL</span>
+                        </div>
+                    </div>
+                    <div style="position:relative; height:185px; overflow:visible;"><canvas id="mentorChart2"></canvas></div>
+                </div>
+
+                <!-- BOTTOM-LEFT: Signal by Band histogram -->
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <div>
+                            <div id="mentorChart3Title" style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em;">SIGNAL_LOAD</div>
+                            <div style="font-size:9px; color:#6b7280;">BAND_DISTRIBUTION</div>
+                        </div>
+                        <div id="mentorChart3Badge" style="font-size:8px; font-weight:700; padding:3px 8px; background:#10b981; color:#fff; border-radius:4px;">HEALTHY</div>
+                    </div>
+                    <div style="position:relative; height:185px; overflow:visible;"><canvas id="mentorChart3"></canvas></div>
+                </div>
+
+                <!-- BOTTOM-RIGHT: Active Events ranked list -->
+                <div class="mentor-grid-panel" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:16px; height:240px; box-shadow:0 1px 3px rgba(0,0,0,0.08); position:relative; overflow:visible; z-index:10;">
+                    <div style="font-size:10px; font-weight:700; color:#374151; letter-spacing:.08em; margin-bottom:10px;">ACTIVE_EVENTS</div>
+                    <div id="mentorEventsList" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:195px;"></div>
+                </div>
+
+            </div>
+
+            <!-- Main Content Area -->
+            <div style="flex:1; display:flex; padding:24px; gap:24px; overflow:visible; background:#f8f9fa;">
+                <!-- Chart Container (70%) - HIDDEN to avoid duplication with mentor grid -->
+                <div style="display:none; flex:0 0 70%;">
+                    <div class="enterprise-chart-container" style="flex:1; position:relative;">
+                        <canvas id="chartZoomCanvas" style="width:100%; height:100%;"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Sidebar (Full Width since chart is hidden) -->
+                <div id="chartZoomSidebar" style="flex:1; display:flex; flex-direction:column; gap:16px;">
+                    
+                    <!-- Status Badge -->
+                    <div class="enterprise-sidebar-panel">
+                        <div class="panel-title">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            STATUS
+                        </div>
+                        <div class="panel-content">
+                            <div id="modalStatusBadge" class="status-badge excellent">EXCELLENT</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Percentiles -->
+                    <div class="enterprise-sidebar-panel">
+                        <div class="panel-title">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            PERCENTILES
+                        </div>
+                        <div class="percentile-grid">
+                            <div class="percentile-item">
+                                <div class="percentile-label">P10</div>
+                                <div id="modalP10" class="percentile-value">-</div>
+                            </div>
+                            <div class="percentile-item">
+                                <div class="percentile-label">P50</div>
+                                <div id="modalP50" class="percentile-value">-</div>
+                            </div>
+                            <div class="percentile-item">
+                                <div class="percentile-label">P90</div>
+                                <div id="modalP90" class="percentile-value">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Signal Quality Distribution -->
+                    <div id="modalQualityCard" class="enterprise-sidebar-panel">
+                        <div class="panel-title">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span id="modalQualityTitle">SIGNAL QUALITY</span>
+                        </div>
+                        <div class="panel-content">
+                            <div class="quality-bar">
+                                <div id="qualityExcellent" class="quality-segment excellent" style="width:25%;">25%</div>
+                                <div id="qualityGood" class="quality-segment good" style="width:35%;">35%</div>
+                                <div id="qualityFair" class="quality-segment fair" style="width:25%;">25%</div>
+                                <div id="qualityPoor" class="quality-segment poor" style="width:15%;">15%</div>
+                            </div>
+                            <div id="qualityText" style="font-size:12px; font-weight:600; text-align:center; margin-top:8px;">60% Good or Better</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Network Status -->
+                    <div class="enterprise-sidebar-panel">
+                        <div class="panel-title">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                            </svg>
+                            NETWORK STATUS
+                        </div>
+                        <div class="panel-content">
+                            <div class="network-status-item">
+                                <span class="status-label">Status</span>
+                                <span id="networkStatus" class="status-value" style="color:#10b981;">4G LTE Network Active</span>
+                            </div>
+                            <div class="network-status-item">
+                                <span class="status-label">Coverage</span>
+                                <span id="networkCoverage" class="status-value">-</span>
+                            </div>
+                            <div class="network-status-item">
+                                <span class="status-label">Handovers</span>
+                                <span id="networkHandovers" class="status-value">-</span>
+                            </div>
+                            <div class="network-status-item">
+                                <span class="status-label">Errors</span>
+                                <span id="networkErrors" class="status-value">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Alerts -->
+                    <div class="enterprise-sidebar-panel">
+                        <div class="panel-title">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            ALERTS
+                        </div>
+                        <div id="alertsContainer" class="panel-content">
+                            <!-- Alerts will be dynamically populated -->
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
         </div>

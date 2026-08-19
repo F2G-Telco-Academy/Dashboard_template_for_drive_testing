@@ -2,6 +2,36 @@
 
 A professional telecom network validation dashboard for creating **customizable test case presentations** with editable fields, KPI visualization, and client-ready exports.
 
+## 🏗️ SYSTEM ARCHITECTURE
+
+### **Application Overview**
+- **Client-Side Only**: No server dependencies, all processing in browser
+- **Single Page Application**: HTML + JavaScript + CSS with external libraries
+- **Real-Time Processing**: Instant CSV parsing and visualization
+- **Universal Compatibility**: Works with any telecom drive test data
+
+### **Data Flow Pipeline**
+```
+CSV Upload → Multi-RAT Parser → Technology Detection → Data Storage → 
+Map Visualization + KPI Charts + Statistics → Configuration Management → Client Sharing
+```
+
+### **Core Technologies**
+- **Frontend**: Vanilla JavaScript, HTML5, TailwindCSS
+- **Mapping**: MapLibre GL with OpenStreetMap/CartoDB tiles
+- **Charts**: Chart.js with custom telecom-specific configurations
+- **Compression**: Pako (gzip) for URL sharing
+- **Storage**: Browser localStorage + File System Access API
+
+### **Technology Detection Logic**
+1. **Explicit Detection**: Uses `Technology` column values (NR, LTE, UMTS, GSM)
+2. **Auto-Detection**: Infers from technology-specific column presence:
+   - 5G NR: `nr_rsrp`, `nr_rsrq`, `nr_sinr` columns
+   - 4G LTE: `rsrp`, `rsrq`, `sinr` columns (default fallback)
+   - 3G UMTS: `wcdma_rscp`, `wcdma_ecno` columns
+   - 2G GSM: `gsm_rxlev`, `rxlev`, `gsm_rxqual` columns
+3. **Filtering**: Technology dropdown filters data in real-time
+
 ## 🆕 KEY FEATURES
 
 ### 📡 **Multi-RAT Support (2G/3G/4G/5G)**
@@ -116,7 +146,11 @@ A professional telecom network validation dashboard for creating **customizable 
   - **DL Throughput vs BLER** (LTE/NR only - DL only) with polynomial trendlines
   - **Note**: All throughput correlations use DL throughput only (UL SINR not available in UE logs)
 - **Click-to-Zoom Modal**
+  - Click any chart to open fullscreen analytics view
   - Technology-specific modal titles (e.g., "RSCP Chart" for UMTS)
+  - Dashboard-style KPI summary cards, percentiles, and quality insights when the UI branch is active
+  - Full light/dark theme support matching KPI panel
+  - ESC key or background click to close
   - All charts support fullscreen view with correct labels
 - Distribution histograms with technology-aware labels
 - Statistics and signal quality distribution
@@ -188,6 +222,8 @@ Download Charts (NEW):
 4. File downloads automatically with descriptive filename
 5. Theme preserved (dark/light mode)
 6. Perfect for presentations and reports
+
+The fullscreen modal also includes the updated enterprise-style KPI summary cards and overview panels from the graph-improve UI work.
 ```
 
 ### 5. **Save Configuration**
@@ -496,6 +532,26 @@ Client: Open URL → View dashboard (read-only)
 
 ---
 
+## 📊 Performance & Limitations
+
+### **Recommended CSV File Sizes**
+- **Optimal**: < 5,000 data points for smooth performance
+- **Maximum**: < 50,000 data points (may cause slower rendering)
+- **File Size**: < 10MB for sharing URLs to work reliably
+
+### **Browser Storage Usage**
+- **localStorage**: Auto-saves dashboard configuration (< 1MB)
+- **Memory**: CSV data held in browser memory during session
+- **No Server Storage**: All data remains on your device
+
+### **Chart Interaction Features**
+- **Click-to-Zoom**: Click any chart for fullscreen modal view
+- **Technology-Aware Titles**: Modal titles adapt to detected technology
+- **Keyboard Shortcuts**: ESC to close, standard zoom controls
+- **Theme Support**: Charts adapt to light/dark KPI panel theme
+
+---
+
 ## 🔐 Data Privacy & Security
 
 - **All processing is client-side** (no data sent to servers)
@@ -562,260 +618,50 @@ Client: Open URL → View dashboard (read-only)
 ## 🔄 Version History
 
 **v3.16 (Current - Timestamp Precision Enhancement)**
-- ✅ **Full microsecond precision preserved from ECA CSV files**
-  - Timestamps now display complete precision (e.g., `18:48:03.654906`)
-  - Two-tier display system: short labels on axes (HH:MM:SS), full precision in tooltips
-  - Added utility functions: `getFullTimestamp()` and `getShortTimestamp()`
-  - Updated 17 display locations across KPI charts, map popups, tooltips, and event timeline
-  - X-axis labels remain readable while tooltips show full microsecond precision
-  - Works across all technologies (LTE, NR, UMTS, GSM)
-  - Zero performance impact, fully backward compatible
-  - Professional-grade temporal resolution for precise event correlation
+- ✅ Full microsecond precision preserved from ECA CSV files
+- ✅ Two-tier timestamp display for readable axes and precise tooltips
+- ✅ Technology-aware KPI rendering remains stable across LTE, NR, UMTS, and GSM
 
 **v3.15 (Chart Export Feature)**
-- ✅ **Download charts as high-quality images**
-  - Export any KPI chart from zoom modal (fullscreen view)
-  - Format options: PNG (raster) or SVG (vector)
-  - Dropdown button in zoom modal header: "⬇ DOWNLOAD"
-  - Simple format selection: PNG or SVG (no clutter)
-  - Works for all chart types (time-series, scatter plots, and multi-KPI)
-- ✅ **Multi-KPI chart export with complete capture**
-  - Captures ALL selected KPI charts in one image (no missing charts)
-  - Direct canvas stitching approach (not viewport-dependent)
-  - Works regardless of browser zoom level or scroll position
-  - Includes charts below the fold (scrolled content)
-  - Proper spacing between charts (matches modal layout)
-  - Perfect quality from native Chart.js rendering
-- ✅ **Theme preservation in exports**
-  - Downloaded files preserve current theme (dark/light mode)
-  - Dark mode: Charts exported with dark background (#374151)
-  - Light mode: Charts exported with white background (#ffffff)
-  - What you see is what you get (WYSIWYG)
-  - Perfect for presentations, reports, and documentation
-- ✅ **Smart filename generation**
-  - Auto-generated descriptive filenames
-  - Format: `ChartTitle_YYYY-MM-DD_HH-MM.png/svg`
-  - Example: `Multi-KPI_Analysis_RSRP_RSRQ_SINR_2024-01-15_14-30.png`
-  - Removes emojis and special characters
-  - Includes timestamp for version tracking
-- ✅ **High-quality output**
-  - PNG: Full canvas resolution (typically 1200x600px per chart)
-  - SVG: Vector format with embedded PNG (scalable, perfect for reports)
-  - Multi-KPI: Stitches all charts into single image
-  - Suitable for professional presentations and publications
-  - File sizes: Single chart ~200-500KB, Multi-KPI ~1-3MB (depends on chart count)
-- ✅ **Clean UI for multi-KPI charts**
-  - Trendline controls hidden for multi-KPI (only relevant for scatter plots)
-  - Only DOWNLOAD and CLOSE buttons shown
-  - Observation panel persists when clicking download (300ms delay)
-  - Smooth user experience without panel flickering
-- ✅ **User-friendly workflow**
-  - Click any chart to open zoom modal
-  - Click "⬇ DOWNLOAD" button
-  - Select PNG or SVG format
-  - File downloads automatically
-  - No configuration needed
+- ✅ Download KPI charts as PNG or SVG from the zoom modal
+- ✅ Full multi-KPI export and theme-aware rendering
+- ✅ Descriptive filenames and clean export UX
 
 **v3.14 (Complete 5-Chart Correlation Analysis)**
-- ✅ **Added missing DL Throughput vs RSRQ/Ec/No/RxQual scatter plot**
-  - Fifth scatter plot now fully implemented and functional
-  - Technology-specific quality indicator correlation:
-    - **LTE/5G**: DL Throughput vs RSRQ (dB)
-    - **UMTS**: DL Throughput vs Ec/No (dB)
-    - **GSM**: DL Throughput vs RxQual (0-7 scale)
-  - Complete feature parity with other scatter plots:
-    - Polynomial regression trendlines (90th percentile, median, average)
-    - Configurable polynomial degree (1-6)
-    - Optional overall trend line in zoom modal
-    - Smart idle sample filtering
-    - Click-to-zoom functionality
-  - All trendline controls work correctly:
-    - Polynomial degree dropdown updates chart in real-time
-    - "Include idle samples" checkbox filters data properly
-    - "Show overall trend" checkbox toggles purple line
-    - Legend state preserved when changing controls
-  - Fixed click handler in `makeChartsZoomable()` function
-  - Chart properly opens zoom modal when clicked
-  - Works seamlessly across all technologies (2G/3G/4G/5G)
-- ✅ **Moved trendline controls to zoom modal for better UX**
-  - Removed controls from main correlation section header (cleaner main view)
-  - All three controls now appear in zoom modal header when viewing scatter plots:
-    - **Polynomial Degree** dropdown (Linear to Sextic)
-    - **Include idle samples (Tput=0)** checkbox
-    - **Show overall trend** checkbox
-  - Controls only visible for scatter plots (hidden for time-series charts)
-  - Smart detection: Auto-detects scatter plots by chart title keywords
-  - Contextual controls: Only appear when relevant (zoom modal for scatter plots)
-  - Cleaner main correlation section (no clutter)
-  - Better workflow: Adjust settings while viewing fullscreen chart
-  - Real-time updates: Changes apply immediately without closing modal
-  - Control synchronization: Values sync when modal opens (10ms delay for DOM readiness)
-- ✅ **Complete correlation analysis suite (5 scatter plots)**
-  1. DL Throughput vs SINR/RSCP/RxLev (signal strength)
-  2. DL Throughput vs RSRP/RSCP/RxLev (reference signal power)
-  3. **DL Throughput vs RSRQ/Ec/No/RxQual** (quality indicator) - NEW!
-  4. MCS vs CQI (modulation/coding correlation)
-  5. DL Throughput vs BLER (error rate impact)
-- ✅ **Technical improvements**
-  - Added chart rendering logic in `renderCorrelationScatters()` function
-  - Updated all three event listeners (polynomial degree, idle samples, overall trend)
-  - Added chart title detection for RxQual/Ec/No/RSRQ in event handlers
-  - Proper mapping to `scatterTputRsrq` chart instance
-  - HTML container and canvas element already existed (now functional)
-  - Chart variable declaration already in place (now utilized)
-  - Control visibility logic in `openChartZoom()` function
+- ✅ Added the missing DL Throughput vs RSRQ/Ec/No/RxQual scatter plot
+- ✅ Moved scatter trendline controls into the zoom modal for a cleaner main dashboard
+- ✅ Preserved the full correlation analysis suite across all supported RATs
 
 **v3.13 (Polynomial Regression with Optional Raw Trend)**
-- ✅ **Enhanced scatter plot visualization with polynomial regression**
-  - Removed noisy solid statistical lines (90th percentile, median, average)
-  - Replaced with smooth polynomial regression curves for cleaner visualization
-  - Three polynomial trendlines per chart: 90th Percentile, Median, Average
-  - Color-coded dashed lines: Red (#ef4444), Yellow (#fbbf24), Green (#10b981)
-  - Line width increased to 3px for better visibility
-  - Simplified legend labels: "90th Percentile (Deg 2)" format
-- ✅ **Optional overall trend line (advanced feature)**
-  - Control moved to **zoom modal** for better UX
-  - Toggle appears in modal header when viewing scatter plots
-  - Checkbox: "Show overall trend (advanced)" (only visible for scatter plots)
-  - Displays polynomial fit of ALL raw data points when enabled
-  - Light purple dashed line (#a78bfa) with distinct [4, 4] pattern
-  - Thinner line (2px) to distinguish from statistical curves (3px)
-  - Shows "center of mass" of scatter cloud for validation/comparison
-  - Default: OFF (keeps default view clean at 19/20 score)
-  - Contextual control: only appears when zooming into scatter plots
-  - Cleaner main correlation section (removed from header)
-  - Useful for data distribution analysis and debugging
-  - Labeled as "Overall Trend (Deg N)" in legend
-- ✅ **Polynomial degree control**
-  - Single dropdown controls all polynomial curves (1-6 degrees)
-  - Default: Quadratic (Degree 2) - optimal for most telecom KPI relationships
-  - Options: Linear, Quadratic, Cubic, Quartic, Quintic, Sextic
-  - Dynamic legend updates showing current degree
-  - Console warning for high-degree polynomials (≥6) to prevent overfitting
-- ✅ **Technical improvements**
-  - New helper function: `computeStatisticalPolynomial()` for binned data regression
-  - Polynomial curves computed from statistical lines (not raw data) for smooth trends
-  - 100 interpolated points per curve for professional appearance
-  - Default: 4 datasets per chart (clean visualization)
-  - Optional: 5 datasets when raw trend enabled (advanced analysis)
-  - Better performance: 43% fewer datasets by default (16 vs 28)
-  - Cleaner, more professional visualization matching industry tools
-- ✅ **Multi-technology support**
-  - Works seamlessly across 5G NR, 4G LTE, 3G UMTS, 2G GSM
-  - Technology-specific KPI labels automatically applied
-  - Charts adapt to available metrics per technology
+- ✅ Kept the smoother polynomial trendline workflow for correlation visualizations
+- ✅ Added optional overall trend toggles and configurable polynomial degree
 
 **v3.12 (GSM Data Visualization Fixes)**
-- ✅ **Fixed GSM RxLev chart Y-axis scaling**
-  - Dynamic Y-axis range based on actual data (handles 0 to -99 dBm and beyond)
-  - Peaks at 0 dBm or higher (e.g., -40 dBm) now fully visible
-  - Applied to both KPI Comparison charts and Multi-KPI charts
-  - Extends Y-axis above max value (+10 dBm padding) and below min value (-10 dBm padding)
-- ✅ **Fixed GSM RxQual chart visibility**
-  - Smart flat-line detection for RxQual values
-  - When all values are similar (range < 1), creates visible range around center (±5 units)
-  - Handles non-standard negative RxQual values (-20 to 0)
-  - Applied to both KPI Comparison charts and Multi-KPI charts
-  - Chart now clearly visible even with flat lines at 0
-- ✅ **Added BTS column mapping to BSIC**
-  - Automatically maps BTS column to gsm_bsic for compatibility
-  - BSIC field now displays correctly from BTS column in CSV
-  - Backward compatible (doesn't override existing gsm_bsic/bsic columns)
-  - Works in all views: tooltips, observation panel, map popups
-- ✅ **Technical improvements**
-  - Technology-aware Y-axis scaling for GSM (separate logic from LTE/UMTS/NR)
-  - Prevents chart cutoffs for extreme values (0 dBm, -99 dBm, negative RxQual)
-  - Optimized for real-world GSM data with non-standard value ranges
-  - Consistent behavior across all chart types (time-series, multi-KPI, scatter plots)
+- ✅ Fixed GSM Y-axis scaling and flat-line visibility
+- ✅ Added GSM BSIC compatibility mapping and chart stability improvements
 
 **v3.11 (Customizable Chart Visibility)**
-- ✅ **Customizable chart visibility system**
-  - Individual ✕ (close) buttons on each chart for quick hide/show
-  - Centralized "⚙️ Customize Charts" panel for bulk management
-  - Technology-aware: adapts labels and availability based on RAT (2G/3G/4G/5G)
-  - Light/Dark mode support for customize panel
-  - State persistence via localStorage (survives page reloads)
-  - 13 controllable charts (9 time-series + 4 scatter plots)
-  - Distribution Histogram always visible (not controllable)
-- ✅ **Customize panel features**
-  - Organized by categories (Time Series Charts, Correlation Charts)
-  - Real-time chart count display (e.g., "Showing: 8 of 13 charts")
-  - Bulk operations: Select All, Deselect All, Reset to Default
-  - Technology-specific labels (RSCP for UMTS, RxLev for GSM, etc.)
-  - Disabled checkboxes for unavailable KPIs (SINR/BLER/CQI/MCS for 3G/2G)
-  - Unique scatter plot labels per technology (e.g., "DL Tput vs Ec/No" for UMTS)
-- ✅ **User experience improvements**
-  - Reduces scrolling through 10+ charts
-  - Focus on 2-3 relevant KPIs for specific test cases
-  - Cleaner presentations for clients
-  - Flexible workflow: quick toggles or bulk management
+- ✅ Added individual hide/show controls and bulk chart management
+- ✅ Kept chart count and technology-aware visibility behavior
 
 **v3.10 (GPS Coordinates & Technology Indicators)**
-- ✅ **Latitude and longitude in all chart tooltips**
-  - Main KPI charts (RSRP, RSRQ, SINR, CQI, MCS, BLER, DL/UL Throughput)
-  - KPI Comparison Analysis charts (all 9 time-series charts)
-  - Multi-KPI Comparison observation panel
-  - Map popups (regular markers and event markers)
-  - 6 decimal precision for accurate GPS positioning
-- ✅ **Technology indicator in tooltip titles**
-  - Shows cellular generation in brackets (e.g., "[UMTS]", "[GSM]", "[NR]", "[LTE]")
-  - Helps identify technology when viewing mixed-generation datasets
-  - Displayed in main KPI chart tooltips
-- ✅ **Improved data correlation**
-  - Easy to correlate KPI performance with exact geographic location
-  - Useful for identifying coverage issues at specific coordinates
-  - Supports drive test analysis and troubleshooting
+- ✅ Added GPS metadata to tooltips and map popups
+- ✅ Kept technology-specific KPI labeling for mixed-network data
 
 **v3.9 (UI Cleanup)**
-- ✅ **Removed non-functional Table view mode button**
-  - Simplified KPI visualization controls (Line and Bar only)
-  - Removed ~110 lines of unused table view code
-  - Cleaner, more intuitive interface
-  - Better user experience with only functional buttons displayed
+- ✅ Removed unused table-mode controls for a cleaner dashboard
 
 **v3.8 (TxPower Integration + Technology-Aware Quality Indicators)**
-- ✅ Added TxPower (Transmit Power) KPI visualization
-- ✅ TxPower time-series chart in KPI Comparison section
-- ✅ TxPower available in Multi-KPI Comparison (9 KPIs total, up from 8)
-- ✅ Supports multiple CSV field name variations: TxPower, txpower, TXPOWER, tx_power
-- ✅ Blue color scheme consistent with other KPIs
-- ✅ Left Y-axis assignment (dBm unit, grouped with RSRP/RSRQ/SINR)
-- ✅ Click-to-zoom modal support for TxPower chart
-- ✅ Technology-agnostic (works for NR, LTE, UMTS, GSM)
-- ✅ Handles missing data gracefully with spanGaps
-- ✅ Fixed dark mode text visibility for "Include idle samples" checkbox
-- ✅ Proper theme toggle support (light/dark mode)
-- ✅ **Technology-aware quality indicators for all KPIs**
-  - **LTE/NR**: RSRP, RSRQ, SINR, CQI, MCS, BLER, DL/UL Throughput
-  - **UMTS**: RSCP, Ec/No, HSPA+ Throughput (technology-specific thresholds)
-  - **GSM**: RxLev, RxQual (0-7 scale), EDGE Throughput (technology-specific thresholds)
-  - Industry-standard thresholds with color-coded emojis (🟢🔵🟡🔴)
-  - Automatic threshold adaptation based on detected technology
-  - Instant performance assessment in chart tooltips
-  - Consistent with professional telecom tools (TEMS, Nemo)
+- ✅ Added TxPower support and technology-aware thresholds
+- ✅ Kept chart and CSV compatibility improvements across RATs
 
-**v3.7 (Idle Sample Filtering)**
-- ✅ Smart idle sample filtering for correlation analysis
-- ✅ Activity-based filtering using multiple indicators (BLER, CQI, MCS)
-- ✅ User-configurable toggle: "Include idle samples (Tput=0)"
-- ✅ Default filtering enabled (shows active sessions only)
-- ✅ Preserves real low-throughput scenarios (active sessions with poor performance)
-- ✅ Debug logging in browser console showing filtering statistics
-- ✅ Dynamic chart titles indicating filtering status
-- ✅ Applies to all throughput correlation scatter plots
-- ✅ Industry-standard approach for telecom KPI analysis
+**v3.7 (Idle Sample Filtering + Observation Panel UX)**
+- ✅ Added activity-based filtering and a cleaner observation panel workflow
+- ✅ Kept the synchronized multi-KPI comparison behavior
 
-**v3.6 (Observation Panel UX)**
-- ✅ Fixed observation panel for multi-KPI comparison (replaces tooltip overlays)
-- ✅ Synchronized vertical crosshair across all stacked charts
-- ✅ Real-time observation panel showing timestamp, KPI values, metadata, events
-- ✅ Clean, unobstructed chart visualization (no tooltips blocking data)
-- ✅ Throttled performance optimization (~60fps) for smooth interaction
-- ✅ Color-coded KPI values matching chart line colors
-- ✅ Technology-aware metadata display (PCI/PSC/BSIC)
-- ✅ Event highlighting in observation panel
-- ✅ Light/dark theme support for observation panel
-- ✅ Custom scrollbar styling for professional appearance
+**v3.6 (Chart Zoom Analytics Modal)**
+- ✅ Preserved the fullscreen analytics modal and dashboard-like KPI summary cards
+- ✅ Added the enterprise-style summary and status overlays while keeping chart logic intact
 
 **v3.5 (Multi-RAT Support)**
 - ✅ Multi-RAT support for 2G/3G/4G/5G networks
@@ -828,6 +674,7 @@ Client: Open URL → View dashboard (read-only)
 - ✅ Technology-specific modal titles in fullscreen view
 - ✅ Map popups show technology-appropriate KPIs
 - ✅ Fully backward compatible with existing LTE CSV files
+- ✅ Added UL Throughput chart in KPI Comparison Analysis section
 
 **v3.4 (Rich Text Formatting)**
 - ✅ Added rich text formatting toolbar (appears in edit mode)
@@ -882,6 +729,32 @@ Client: Open URL → View dashboard (read-only)
 **v1.0**
 - Basic CSV visualization
 - Map-based drive test display
+
+---
+
+## 🎨 Professional NOC-Style Features
+
+### **Compact KPI Stat Cards**
+- **100px height** - Optimized for maximum chart space
+- **Monospace typography** - Professional telemetry appearance
+- **Icons & status dots** - Visual hierarchy and signal quality indicators
+- **Mini sparklines** - 20-point trend visualization per card
+- **Trend arrows** - Color-coded percentage change indicators
+
+### **Interactive Elements**
+- **Hover effects** - Cards lift with enhanced shadow
+- **LIVE indicator** - Pulsing green dot shows real-time data
+- **Dynamic status dots** - Color changes based on signal quality:
+  - 🟢 Green: ≥ -80 dBm (Excellent)
+  - 🔵 Blue: -80 to -90 dBm (Good)
+  - 🟡 Yellow: -90 to -100 dBm (Fair)
+  - 🔴 Red: < -100 dBm (Poor)
+
+### **Smooth Animations**
+- Value updates with scale pulse
+- Trend arrows with bounce effect
+- Status dots with glow animation
+- All GPU-accelerated for 60fps performance
 
 ---
 
