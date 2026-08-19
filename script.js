@@ -3976,13 +3976,34 @@ function renderScatterPlots() {
                     const val = values[i]?.trim();
                     
                     // Handle signal strength values
-                    if (h === 'rsrp' || h === 'rsrq' || h === 'sinr' || 
+                    if (h === 'rsrp' || h === 'rsrq' || h === 'sinr' || h === 'dl_sinr' ||
                         h === 'wcdma_rscp' || h === 'wcdma_ecno' || 
                         h === 'gsm_rxlev' || h === 'gsm_rxqual' || h === 'rxlev' || h === 'rxqual' ||
                         h === 'nr_rsrp' || h === 'nr_rsrq' || h === 'nr_sinr') {
                         obj[h] = val && val !== '' ? val : '0';
                     } else {
                         obj[h] = val;
+                    }
+                });
+
+                // Normalize common CSV alias headers used by OEM exports
+                const aliasMap = {
+                    dl_sinr: 'sinr',
+                    dl_cqi: 'cqi',
+                    dl_mcs: 'mcs',
+                    dl_bler: 'bler',
+                    dl_ri: 'ri',
+                    modulation: 'modulation',
+                    downlink_sinr: 'sinr',
+                    downlink_cqi: 'cqi',
+                    downlink_mcs: 'mcs',
+                    downlink_bler: 'bler',
+                    downlink_ri: 'ri'
+                };
+
+                Object.entries(aliasMap).forEach(([source, target]) => {
+                    if (source in obj && !(target in obj)) {
+                        obj[target] = obj[source];
                     }
                 });
                 
