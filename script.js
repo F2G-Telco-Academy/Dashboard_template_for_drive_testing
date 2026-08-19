@@ -33,6 +33,58 @@
             return fullTime.slice(0, 8);
         }
 
+        /**
+         * Resolve the technology-aware carrier frequency field from a parsed CSV row.
+         * This keeps the popup values aligned with the current RAT and supports common
+         * alias names used by CSV exports from different tools.
+         * @param {Object} row - Parsed CSV row
+         * @param {string} techOverride - Optional technology override
+         * @returns {{ label: string, value: string }}
+         */
+        function resolveTechFrequencyInfo(row, techOverride) {
+            const tech = (techOverride || row?.technology || 'LTE').toUpperCase();
+            const aliasesByTech = {
+                NR: ['nr_arfcn', 'nr_arfcn_dl', 'nr_arfcn_ul', 'nr-arfcn', 'nr-arfcn-dl', 'nr-arfcn-ul', 'nrarfcn', 'arfcn', 'earfcn', 'e_arfcn', 'e-arfcn'],
+                LTE: ['earfcn', 'e_arfcn', 'e-arfcn', 'earfcn_id', 'cell_earfcn', 'lte_earfcn', 'arfcn', 'lte-arfcn'],
+                UMTS: ['uarfcn', 'u_arfcn', 'u-arfcn', 'wcdma_uarfcn', 'uarfcn_dl', 'uarfcn_ul', 'arfcn'],
+                GSM: ['gsm_bcch_arfcn', 'bcch_arfcn', 'bcch-arfcn', 'gsm_arfcn', 'gsm-arfcn', 'arfcn']
+            };
+
+            const labelsByTech = {
+                NR: 'NR-ARFCN',
+                LTE: 'EARFCN',
+                UMTS: 'UARFCN',
+                GSM: 'ARFCN'
+            };
+
+            const aliases = aliasesByTech[tech] || aliasesByTech.LTE;
+            const label = labelsByTech[tech] || 'EARFCN';
+
+            for (const alias of aliases) {
+                const rawValue = row?.[alias];
+                if (rawValue !== undefined && rawValue !== null) {
+                    const value = String(rawValue).trim();
+                    if (value !== '' && value !== '0') {
+                        return { label, value };
+                    }
+                }
+            }
+
+            // Fallback: if the row contains a generic frequency field, use it.
+            const genericCandidates = ['frequency', 'carrier_frequency', 'freq', 'cell_id'];
+            for (const candidate of genericCandidates) {
+                const rawValue = row?.[candidate];
+                if (rawValue !== undefined && rawValue !== null) {
+                    const value = String(rawValue).trim();
+                    if (value !== '' && value !== '0') {
+                        return { label, value };
+                    }
+                }
+            }
+
+            return { label, value: '-' };
+        }
+
         // =====================================================
         // CONFIGURATION STATE
         // =====================================================
@@ -3787,7 +3839,10 @@ function renderScatterPlots() {
 
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace('#', 'number'));
+            const headers = lines[0].split(',').map(h => {
+                const normalized = h.trim().toLowerCase().replace(/#/g, 'number');
+                return normalized.replace(/[\s\-]+/g, '_');
+            });
             
             // Detect technology type from headers
             const hasNR = headers.includes('nr_rsrp') || headers.includes('nr_pci');
@@ -3953,31 +4008,35 @@ function renderScatterPlots() {
                     const tech = row.technology || 'LTE';
                     let kpiContent = '';
                     
+                    const frequencyInfo = resolveTechFrequencyInfo(row, tech);
+
                     if (tech === 'NR') {
                         kpiContent = `
                             <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
                             <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
                             <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
                             <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
+                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>
                             <div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
                     } else if (tech === 'LTE') {
                         kpiContent = `
                             <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                             <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                             <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>`;
+                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                     } else if (tech === 'UMTS') {
                         kpiContent = `
                             <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
                             <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
                             <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
-                            <div style="margin:4px 0;"><b>UARFCN:</b> ${row.uarfcn || '-'}</div>`;
+                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                     } else if (tech === 'GSM') {
                         kpiContent = `
                             <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
                             <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
                             <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
-                            <div style="margin:4px 0;"><b>ARFCN:</b> ${row.gsm_bcch_arfcn || row['bcch-arfcn'] || '-'}</div>`;
+                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                     }
                     
                     const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
@@ -4009,6 +4068,7 @@ function renderScatterPlots() {
                 
                 // Build KPI content based on technology
                 const tech = row.technology || 'LTE';
+                const frequencyInfo = resolveTechFrequencyInfo(row, tech);
                 let kpiContent = '';
                 
                 if (tech === 'NR') {
@@ -4016,24 +4076,28 @@ function renderScatterPlots() {
                         <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>`;
+                        <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
+                        <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                 } else if (tech === 'LTE') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
                         <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
                         <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
+                        <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>
                         <div style="margin:4px 0;"><b>Band:</b> ${row.band || '-'}</div>`;
                 } else if (tech === 'UMTS') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
-                        <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>`;
+                        <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
+                        <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                 } else if (tech === 'GSM') {
                     kpiContent = `
                         <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
                         <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
-                        <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>`;
+                        <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
+                        <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                 }
 
                 const popup = new maplibregl.Popup({ offset: 15 }).setHTML(`
