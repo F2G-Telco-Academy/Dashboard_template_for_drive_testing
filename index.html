@@ -138,8 +138,17 @@
                     </div>
                 </div>
 
-                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; max-width: 280px;">
+                <div style="position: absolute; top: 8px; right: 8px; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; max-width: 520px; white-space: nowrap;">
                     <span class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold">POINTS: <span id="pointCount">0</span></span>
+                    <div class="relative">
+                        <button id="eventStatsToggle" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all" type="button">
+                            EVENTS: <span id="eventCountTotal">0</span> ▾
+                        </button>
+                        <div id="eventStatsDropdown" class="hidden absolute right-0 top-full mt-1 min-w-[220px] bg-black text-white border border-white shadow-lg z-[1100]">
+                            <div class="px-2 py-1 text-[10px] font-bold uppercase border-b border-gray-700 text-gray-300">Event Summary</div>
+                            <div id="eventStatsList" class="max-h-[220px] overflow-y-auto text-[10px]"></div>
+                        </div>
+                    </div>
                     <button id="mapViewBtn" class="bg-black text-white px-1 sm:px-2 py-1 text-[10px] sm:text-xs font-bold border border-white hover:bg-white hover:text-black transition-all">
                         ☀️
                     </button>

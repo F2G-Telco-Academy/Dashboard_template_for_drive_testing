@@ -711,6 +711,10 @@
                     if (techFilterEl) techFilterEl.value = 'all';
                     const pc = document.getElementById('pointCount');
                     if (pc) pc.textContent = '0';
+                    const eventTotal = document.getElementById('eventCountTotal');
+                    if (eventTotal) eventTotal.textContent = '0';
+                    const eventList = document.getElementById('eventStatsList');
+                    if (eventList) eventList.innerHTML = '<div class="px-2 py-2 text-gray-300 text-center">No events</div>';
                     if (map && typeof map.setCenter === 'function') {
                         map.setCenter([11.5021, 3.8480]);
                         map.setZoom(12);
@@ -3837,6 +3841,120 @@ function renderScatterPlots() {
             layerIds = [];
         }
 
+        function getTechnologyEventOptions(tech) {
+            const base = {
+                handover: 'Handover',
+                cell_reselection: 'Cell Reselection',
+                attach: 'Attach',
+                detach: 'Detach',
+                rlf: 'RLF',
+                csfb: 'CSFB',
+                pci_change: 'PCI Change',
+                release: 'Release',
+                tech_change: 'RAT Change',
+                drop: 'Drop'
+            };
+
+            if (tech === 'NR') {
+                return {
+                    handover: base.handover,
+                    cell_reselection: base.cell_reselection,
+                    attach: base.attach,
+                    detach: base.detach,
+                    rlf: base.rlf,
+                    pci_change: base.pci_change,
+                    tech_change: base.tech_change,
+                    drop: base.drop
+                };
+            }
+
+            if (tech === 'UMTS') {
+                return {
+                    handover: base.handover,
+                    cell_reselection: base.cell_reselection,
+                    attach: base.attach,
+                    detach: base.detach,
+                    csfb: base.csfb,
+                    rlf: base.rlf,
+                    pci_change: base.pci_change,
+                    release: base.release,
+                    tech_change: base.tech_change
+                };
+            }
+
+            if (tech === 'GSM') {
+                return {
+                    handover: base.handover,
+                    cell_reselection: base.cell_reselection,
+                    attach: base.attach,
+                    detach: base.detach,
+                    csfb: base.csfb,
+                    rlf: base.rlf,
+                    pci_change: base.pci_change,
+                    release: base.release,
+                    tech_change: base.tech_change
+                };
+            }
+
+            return base;
+        }
+
+        function updateEventStatsDisplay() {
+            const eventToggle = document.getElementById('eventStatsToggle');
+            const eventTotalEl = document.getElementById('eventCountTotal');
+            const eventDropdown = document.getElementById('eventStatsDropdown');
+            const eventListEl = document.getElementById('eventStatsList');
+
+            if (!eventToggle || !eventTotalEl || !eventDropdown || !eventListEl) return;
+
+            const sourceData = currentTechFilter === 'all' ? rawParsedData : rawParsedData.filter(row => row.technology === currentTechFilter);
+            const eventTimeline = extractEventTimeline(sourceData);
+            const eventCounts = {};
+
+            eventTimeline.forEach(event => {
+                const key = (event.type || 'unknown').toLowerCase();
+                eventCounts[key] = (eventCounts[key] || 0) + 1;
+            });
+
+            const tech = detectedTechnology || 'LTE';
+            const allowedLabels = getTechnologyEventOptions(tech);
+            const orderedEntries = Object.entries(eventCounts)
+                .filter(([eventType]) => allowedLabels[eventType] || eventType === 'pci_change' || eventType === 'tech_change')
+                .sort((a, b) => b[1] - a[1]);
+
+            eventTotalEl.textContent = eventTimeline.length;
+
+            if (orderedEntries.length === 0) {
+                eventListEl.innerHTML = '<div class="px-2 py-2 text-gray-300 text-center">No events</div>';
+                return;
+            }
+
+            eventListEl.innerHTML = orderedEntries.map(([eventType, count]) => {
+                const label = allowedLabels[eventType] || eventType.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+                return `
+                    <div class="flex justify-between items-center px-2 py-1 border-b border-gray-800 last:border-b-0">
+                        <span>${label}</span>
+                        <span class="font-bold">${count}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('eventStatsToggle')?.addEventListener('click', function () {
+            const dropdown = document.getElementById('eventStatsDropdown');
+            if (!dropdown) return;
+            dropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function (event) {
+            const toggle = document.getElementById('eventStatsToggle');
+            const dropdown = document.getElementById('eventStatsDropdown');
+            if (!toggle || !dropdown) return;
+            if (!toggle.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
             const headers = lines[0].split(',').map(h => {
@@ -4123,6 +4241,7 @@ function renderScatterPlots() {
             }
 
             document.getElementById('pointCount').textContent = coords.length;
+            updateEventStatsDisplay();
 
             if (coords.length > 0) {
                 const lngLats = coords.map(c => [c.lon, c.lat]);
