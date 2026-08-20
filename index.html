@@ -117,19 +117,10 @@
                     </select>
                     
                     <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
-                        <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="legendTitle">SIGNAL QUALITY</div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-green-500 border border-white"></div> Excellent
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-blue-500 border border-white"></div> Good
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-3 h-3 bg-amber-500 border border-white"></div> Fair
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-3 h-3 bg-red-500 border border-white"></div> Poor
-                        </div>
+                        <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="legendTitle">RSRP LEGEND</div>
+                        <div id="mapLegendProfileName" class="text-[10px] text-gray-300 mb-2">Default reference profile</div>
+                        <div id="mapLegendRanges"></div>
+                        <div id="mapLegendEditor" class="hidden mt-3 pt-2 border-t border-gray-600 text-[10px]"></div>
 
                         <div class="font-bold text-white mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
                         <div id="mapEventFilters" class="flex flex-col gap-1">Upload a CSV to select events</div>
