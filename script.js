@@ -4141,7 +4141,7 @@ function renderScatterPlots() {
 
                 if (!hasEvent) {
                     const el = document.createElement('div');
-                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:none;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
                     
                     // Build popup content based on technology
                     const tech = row.technology || 'LTE';
@@ -4200,7 +4200,7 @@ function renderScatterPlots() {
 
                 const el = document.createElement('div');
                 if (evt.circleIcon) {
-                    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${evt.color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
+                    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${evt.color};border:none;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 } else {
                     el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
