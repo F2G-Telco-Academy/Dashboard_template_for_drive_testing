@@ -102,6 +102,19 @@
                         <option value="UMTS">3G UMTS</option>
                         <option value="GSM">2G GSM</option>
                     </select>
+
+                    <select id="mapKpiSelector" class="bg-black text-white px-3 py-2 text-xs font-bold border-2 border-white" style="cursor: pointer;">
+                        <option value="rsrp">COLOR BY: RSRP</option>
+                        <option value="rsrq">COLOR BY: RSRQ</option>
+                        <option value="sinr">COLOR BY: SINR</option>
+                        <option value="mcs">COLOR BY: MCS</option>
+                        <option value="cqi">COLOR BY: CQI</option>
+                        <option value="ri">COLOR BY: RI</option>
+                        <option value="bler">COLOR BY: BLER</option>
+                        <option value="dl-throughput">COLOR BY: DL THROUGHPUT</option>
+                        <option value="ul-throughput">COLOR BY: UL THROUGHPUT</option>
+                        <option value="txpower">COLOR BY: TXPOWER</option>
+                    </select>
                     
                     <div class="bg-black/90 border border-orange-500 p-3 text-xs text-white max-w-xs backdrop-blur-sm shadow-xl">
                         <div class="font-bold text-white mb-2 border-b border-gray-600 pb-1" id="legendTitle">SIGNAL QUALITY</div>
@@ -119,22 +132,7 @@
                         </div>
 
                         <div class="font-bold text-white mt-3 mb-2 border-b border-gray-600 pb-1">EVENTS</div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#f97316] border border-white flex items-center justify-center text-[10px]">↔</div> Handover
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#3b82f6] border border-white flex items-center justify-center text-[10px]">⚡</div> Attach
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#9ca3af] border border-white flex items-center justify-center text-[10px]">🔌</div> Detach
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <div class="w-4 h-4 rounded-full bg-[#ef4444] border border-white flex items-center justify-center text-[10px]">⚠</div> RLF
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">📶 Cell Reselection</div>
-                        <div class="flex items-center gap-2">
-                            <div class="w-4 h-4 rounded-full bg-[#a855f7] border border-white flex items-center justify-center text-[10px]">📞</div> CSFB
-                        </div>
+                        <div id="mapEventFilters" class="flex flex-col gap-1">Upload a CSV to select events</div>
                     </div>
                 </div>
 
