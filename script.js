@@ -4251,16 +4251,6 @@ function renderScatterPlots() {
                 markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
             });
 
-            // Start/End markers
-            if (coords.length > 0) {
-                const startEl = document.createElement('div');
-                startEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🟢</div>';
-                markers.push(new maplibregl.Marker({ element: startEl }).setLngLat([coords[0].lon, coords[0].lat]).addTo(map));
-                const endEl = document.createElement('div');
-                endEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🏁</div>';
-                markers.push(new maplibregl.Marker({ element: endEl }).setLngLat([coords[coords.length - 1].lon, coords[coords.length - 1].lat]).addTo(map));
-            }
-
             document.getElementById('pointCount').textContent = coords.length;
             updateEventStatsDisplay();
 
