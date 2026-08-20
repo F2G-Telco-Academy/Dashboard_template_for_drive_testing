@@ -125,6 +125,8 @@
         let markers = []; // Store markers for cleanup
         let layerIds = []; // Track added layer ids for cleanup
         let mapReady = false; // Track if map is fully loaded
+        let selectedMapKpi = 'rsrp';
+        let visibleMapEvents = null; // null means all event types are visible
         let currentConfig = {
             title: "[Test Case Type] : [Test Case Name]",
             operator: "OPERATOR: [Operator Name]",
@@ -1411,6 +1413,125 @@
                 return '🔴 Poor';
             }
             return '-';
+        }
+
+        function getMapKpiValue(row, kpiType) {
+            const tech = (row?.technology || 'LTE').toUpperCase();
+            const fieldsByKpi = {
+                rsrp: tech === 'NR' ? 'nr_rsrp' : tech === 'UMTS' ? 'wcdma_rscp' : tech === 'GSM' ? 'gsm_rxlev' : 'rsrp',
+                rsrq: tech === 'NR' ? 'nr_rsrq' : tech === 'UMTS' ? 'wcdma_ecno' : tech === 'GSM' ? 'gsm_rxqual' : 'rsrq',
+                sinr: tech === 'NR' ? 'nr_sinr' : 'sinr',
+                cqi: 'cqi',
+                mcs: 'mcs',
+                ri: 'ri',
+                bler: 'bler',
+                'dl-throughput': 'throughput_dl_mbps',
+                'ul-throughput': 'throughput_ul_mbps',
+                txpower: 'txpower'
+            };
+            const field = fieldsByKpi[kpiType] || kpiType;
+            const rawValue = row?.[field] ?? (kpiType === 'rsrp' && tech === 'GSM' ? row?.rxlev : null);
+            const value = parseFloat(rawValue);
+            return Number.isFinite(value) ? value : null;
+        }
+
+        function getMapKpiColor(value, kpiType, row) {
+            if (value === null) return '#6b7280';
+            if (kpiType === 'rsrp' && row?.quality) return getColor(value, row);
+            if (kpiType === 'rsrp' || kpiType === 'rsrq' || kpiType === 'sinr') {
+                return getColorForValue(value, kpiType);
+            }
+            if (kpiType === 'bler') {
+                if (value <= 2) return '#22c55e';
+                if (value <= 5) return '#3b82f6';
+                if (value <= 10) return '#f59e0b';
+                return '#ef4444';
+            }
+            if (kpiType === 'cqi') {
+                if (value >= 12) return '#22c55e';
+                if (value >= 8) return '#3b82f6';
+                if (value >= 4) return '#f59e0b';
+                return '#ef4444';
+            }
+            if (kpiType === 'mcs') {
+                if (value >= 20) return '#22c55e';
+                if (value >= 12) return '#3b82f6';
+                if (value >= 6) return '#f59e0b';
+                return '#ef4444';
+            }
+            if (kpiType === 'ri') {
+                if (value >= 2) return '#22c55e';
+                if (value >= 1) return '#3b82f6';
+                return '#f59e0b';
+            }
+            if (kpiType === 'dl-throughput' || kpiType === 'ul-throughput') {
+                if (value >= 50) return '#22c55e';
+                if (value >= 10) return '#3b82f6';
+                if (value > 0) return '#f59e0b';
+                return '#ef4444';
+            }
+            if (kpiType === 'txpower') {
+                if (value <= 10) return '#22c55e';
+                if (value <= 20) return '#3b82f6';
+                if (value <= 26) return '#f59e0b';
+                return '#ef4444';
+            }
+            return '#9ca3af';
+        }
+
+        function getMapKpiLabel(kpiType) {
+            return {
+                rsrp: 'RSRP',
+                rsrq: 'RSRQ',
+                sinr: 'SINR',
+                cqi: 'CQI',
+                mcs: 'MCS',
+                ri: 'RI',
+                bler: 'BLER',
+                'dl-throughput': 'DL Throughput',
+                'ul-throughput': 'UL Throughput',
+                txpower: 'TxPower'
+            }[kpiType] || kpiType.toUpperCase();
+        }
+
+        function updateMapLegend() {
+            const title = document.getElementById('legendTitle');
+            if (title) title.textContent = `${getMapKpiLabel(selectedMapKpi)} QUALITY`;
+        }
+
+        function updateMapEventFilters() {
+            const container = document.getElementById('mapEventFilters');
+            if (!container) return;
+
+            const eventTypes = [...new Set(rawParsedData
+                .map(row => (row.event || '').trim())
+                .filter(Boolean))].sort();
+
+            if (eventTypes.length === 0) {
+                container.innerHTML = '<span class="text-gray-400">No events in file</span>';
+                return;
+            }
+
+            if (visibleMapEvents === null) {
+                visibleMapEvents = new Set(eventTypes);
+            } else {
+                visibleMapEvents = new Set(eventTypes.filter(eventType => visibleMapEvents.has(eventType)));
+            }
+
+            container.innerHTML = eventTypes.map((eventType, index) => {
+                const id = `map-event-${index}`;
+                const checked = visibleMapEvents.has(eventType) ? ' checked' : '';
+                return `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="${id}" data-event-type="${eventType.replace(/"/g, '&quot;')}"${checked}>${eventType}</label>`;
+            }).join('');
+
+            container.querySelectorAll('input[data-event-type]').forEach(input => {
+                input.addEventListener('change', event => {
+                    if (visibleMapEvents === null) visibleMapEvents = new Set(eventTypes);
+                    if (event.target.checked) visibleMapEvents.add(event.target.dataset.eventType);
+                    else visibleMapEvents.delete(event.target.dataset.eventType);
+                    renderMap();
+                });
+            });
         }
 
         function renderMultipleMetricsChart(labels) {
@@ -4071,6 +4192,7 @@ function renderScatterPlots() {
             if (csvText) {
                 const data = parseCSV(csvText);
                 rawParsedData = data; // Store unfiltered data
+                visibleMapEvents = null;
             }
             
             // Apply technology filter from stored raw data
@@ -4095,21 +4217,10 @@ function renderScatterPlots() {
                 
                 // Skip points with Unknown technology
                 if (!isNaN(lat) && !isNaN(lon) && tech !== 'Unknown') {
-                    // Get signal strength based on technology
-                    let signalValue = -100;
-                    const tech = row.technology || 'LTE';
-                    
-                    if (tech === 'NR') {
-                        signalValue = parseFloat(row.nr_rsrp) || -100;
-                    } else if (tech === 'LTE') {
-                        signalValue = parseFloat(row.rsrp) || -100;
-                    } else if (tech === 'UMTS') {
-                        signalValue = parseFloat(row.wcdma_rscp) || -100;
-                    } else if (tech === 'GSM') {
-                        signalValue = parseFloat(row.gsm_rxlev || row.rxlev) || -100;
-                    }
-                    
-                    coords.push({ lat, lon, rsrp: signalValue, color: getColor(signalValue, row), row, idx });
+                    const mapKpiValue = getMapKpiValue(row, selectedMapKpi);
+                    const signalValue = mapKpiValue ?? -100;
+                    const mapColor = getMapKpiColor(mapKpiValue, selectedMapKpi, row);
+                    coords.push({ lat, lon, rsrp: signalValue, mapKpiValue, color: mapColor, row, idx });
                 }
             });
 
@@ -4139,9 +4250,9 @@ function renderScatterPlots() {
                 const row = p.row;
                 const hasEvent = row.event && row.event.trim() !== '';
 
-                if (!hasEvent) {
+                {
                     const el = document.createElement('div');
-                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:1px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
+                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:none;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
                     
                     // Build popup content based on technology
                     const tech = row.technology || 'LTE';
@@ -4193,14 +4304,17 @@ function renderScatterPlots() {
             });
 
             // Event markers
-            coords.filter(p => p.row.event && p.row.event.trim() !== '').forEach((p, i) => {
+            coords.filter(p => {
+                const eventType = (p.row.event || '').trim();
+                return eventType && (visibleMapEvents === null || visibleMapEvents.has(eventType));
+            }).forEach((p, i) => {
                 const row = p.row;
                 const evtKey = row.event.toLowerCase().trim();
                 const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
 
                 const el = document.createElement('div');
                 if (evt.circleIcon) {
-                    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${evt.color};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
+                    el.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${evt.color};border:none;box-shadow:0 2px 8px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:14px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 } else {
                     el.innerHTML = `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));cursor:pointer;">${evt.icon}</div>`;
                 }
@@ -4251,18 +4365,10 @@ function renderScatterPlots() {
                 markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
             });
 
-            // Start/End markers
-            if (coords.length > 0) {
-                const startEl = document.createElement('div');
-                startEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🟢</div>';
-                markers.push(new maplibregl.Marker({ element: startEl }).setLngLat([coords[0].lon, coords[0].lat]).addTo(map));
-                const endEl = document.createElement('div');
-                endEl.innerHTML = '<div style="font-size:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">🏁</div>';
-                markers.push(new maplibregl.Marker({ element: endEl }).setLngLat([coords[coords.length - 1].lon, coords[coords.length - 1].lat]).addTo(map));
-            }
-
             document.getElementById('pointCount').textContent = coords.length;
             updateEventStatsDisplay();
+            updateMapLegend();
+            updateMapEventFilters();
 
             if (coords.length > 0) {
                 const lngLats = coords.map(c => [c.lon, c.lat]);
@@ -4463,6 +4569,15 @@ function renderScatterPlots() {
             currentTechFilter = e.target.value;
             if (csvData && rawParsedData.length > 0) {
                 renderMap(); // Call without csvText to re-filter existing data
+            }
+        });
+
+        document.getElementById('mapKpiSelector').addEventListener('change', function(e) {
+            selectedMapKpi = e.target.value;
+            if (csvData && rawParsedData.length > 0) {
+                renderMap();
+            } else {
+                updateMapLegend();
             }
         });
         
