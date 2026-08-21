@@ -806,8 +806,11 @@
                     rawParsedData = [];
                     detectedTechnology = null;
                     currentTechFilter = 'all';
+                    visibleMapEvents = null;
                     const techFilterEl = document.getElementById('techFilter');
                     if (techFilterEl) techFilterEl.value = 'all';
+                    const mapEventFilters = document.getElementById('mapEventFilters');
+                    if (mapEventFilters) mapEventFilters.innerHTML = 'Upload a CSV to select events';
                     const pc = document.getElementById('pointCount');
                     if (pc) pc.textContent = '0';
                     const eventTotal = document.getElementById('eventCountTotal');
@@ -1595,16 +1598,16 @@
             const profile = mapLegendProfiles[selectedMapKpi];
             editor.innerHTML = `
                 <div class="font-bold mb-1">USER-DEFINED ${getMapKpiLabel(selectedMapKpi)} PROFILE</div>
-                <input id="mapLegendProfileInput" class="w-full bg-white text-black border border-gray-400 px-1 py-1 mb-2" value="${profile.profileName || ''}" aria-label="Legend profile name">
+                <input id="mapLegendProfileInput" class="w-full box-border bg-white text-black border border-gray-400 px-1 py-1 mb-2" value="${profile.profileName || ''}" aria-label="Legend profile name">
                 ${profile.ranges.map((range, index) => `
-                    <div class="grid grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1fr)_20px] gap-1 items-center mb-1">
+                    <div class="grid w-full grid-cols-[minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.92fr)_24px] gap-1 items-center mb-1">
                         <input class="map-legend-min min-w-0 w-full box-border bg-white text-black border border-gray-400 px-1 py-1" data-index="${index}" type="number" value="${Number.isFinite(range.min) ? range.min : ''}" placeholder="min" aria-label="Minimum value">
                         <input class="map-legend-max min-w-0 w-full box-border bg-white text-black border border-gray-400 px-1 py-1" data-index="${index}" type="number" value="${Number.isFinite(range.max) ? range.max : ''}" placeholder="max" aria-label="Maximum value">
                         <input class="map-legend-label min-w-0 w-full box-border bg-white text-black border border-gray-400 px-1 py-1" data-index="${index}" value="${range.label}" aria-label="Range label">
-                        <input class="map-legend-color w-6 h-6 p-0 border-0" data-index="${index}" type="color" value="${range.color}" aria-label="Range color">
+                        <input class="map-legend-color w-6 h-6 max-w-full p-0 border-0" data-index="${index}" type="color" value="${range.color}" aria-label="Range color">
                     </div>
                 `).join('')}
-                <button id="applyMapLegendBtn" class="w-full bg-white text-black border border-white px-2 py-1 mt-1 font-bold" type="button">APPLY LEGEND</button>
+                <button id="applyMapLegendBtn" class="w-full box-border bg-white text-black border border-white px-2 py-1 mt-1 font-bold" type="button">APPLY LEGEND</button>
             `;
             document.getElementById('applyMapLegendBtn').addEventListener('click', () => {
                 const ranges = profile.ranges.map((range, index) => {
