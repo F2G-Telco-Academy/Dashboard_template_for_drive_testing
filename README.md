@@ -133,6 +133,16 @@ A professional telecom network validation dashboard for creating **customizable 
 - Technology filter dropdown (All/5G NR/4G LTE/3G UMTS/2G GSM)
 - Technology-specific map popups showing relevant KPIs
 - Event markers: Handover, Attach, Detach, RLF, Cell Reselection, CSFB
+- Dynamic map KPI selector for RSRP, RSRQ, SINR, MCS, CQI, RI, BLER, DL/UL Throughput, and TxPower
+- KPI-specific map legends with thresholds and units matched to the selected metric
+- User-defined DL and UL throughput legends with editable profile name, ranges, labels, and colors
+- Throughput profiles can represent operator- or test-scenario requirements such as bandwidth, MIMO layers, and modulation
+- Event filters are generated from the uploaded CSV and allow individual event types to be shown or hidden
+- Event legend rows display the same symbols, colors, circular badges, and shadows used by the map markers
+- KPI points remain visible independently from event overlays, so hiding events does not remove measurement samples
+- Legend panel keeps a fixed size; long throughput profiles scroll inside the panel without resizing or overflowing
+- Legend and event-filter state is cleared when the dashboard is reset
+- Unchecked event filters persist when entering or leaving map fullscreen and during basemap redraws
 - Legend positioned below upload button
 - Dark/Light mode toggle
 - Fullscreen support
@@ -146,13 +156,21 @@ A professional telecom network validation dashboard for creating **customizable 
 Click "📁 UPLOAD CSV" → Select your CSV file
 ```
 
-### 2. **Enable Edit Mode**
+### 2. **Configure the Map Analysis**
+- Use the **COLOR BY** selector to choose the KPI used for map point colors.
+- RSRP, RSRQ, SINR, CQI, MCS, RI, BLER, TxPower, and throughput use metric-specific thresholds.
+- Select **DL Throughput** or **UL Throughput** to edit the profile name, range boundaries, labels, and colors.
+- Throughput thresholds are not universal. Define them according to the operator requirement and test scenario, including bandwidth, MIMO configuration, modulation, and FDD/TDD allocation.
+- Use the event checkboxes to show only the events needed for the analysis, such as Handover, CSFB, or RLF.
+- Event symbols in the legend match the symbols displayed on the map.
+
+### 3. **Enable Edit Mode**
 ```
 Click "✏️ EDIT MODE: OFF" to toggle ON
 All editable fields will show orange dashed outlines
 ```
 
-### 3. **Customize Your Test Case**
+### 4. **Customize Your Test Case**
 - **Header**: Edit test case type, name, operator, route, status, reference, device
 - **4 Analysis Sections**: Add performance summary, impacts, analysis, recommendations
 - **Add Fields**: Use "+" buttons to add additional fields per section
@@ -161,7 +179,7 @@ All editable fields will show orange dashed outlines
   - Change font size or color from dropdowns
   - All formatting preserved when saving
 
-### 4. **View KPIs**
+### 5. **View KPIs**
 ```
 Click "📊 KPIs" button to view signal quality charts
 Toggle individual KPI visibility with checkboxes
@@ -190,19 +208,19 @@ Download Charts (NEW):
 6. Perfect for presentations and reports
 ```
 
-### 5. **Save Configuration**
+### 6. **Save Configuration**
 ```
 Click "💾 SAVE" → Choose location and filename
 Configuration saved as JSON file
 ```
 
-### 6. **Load Configuration**
+### 7. **Load Configuration**
 ```
 Click "📂 LOAD" → Select previously saved JSON file
 All fields restored including empty ones
 ```
 
-### 7. **Share with Client**
+### 8. **Share with Client**
 ```
 Click "🔗 SHARE" → Copy generated URL
 Send URL to client for read-only view
@@ -485,6 +503,9 @@ Client: Open URL → View dashboard (read-only)
 - Click **RESET** button to clear all customizations
 - Returns dashboard to clean template state
 - Clears localStorage cache
+- Clears uploaded CSV data, map event checkboxes, event statistics, and map-analysis selections
+- Restores the default RSRP map legend and the empty event-filter message
+- Map event selections are preserved during fullscreen transitions, but intentionally cleared by RESET
 
 ---
 
@@ -561,7 +582,27 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.16 (Current - Timestamp Precision Enhancement)**
+**v3.17 (Current - Configurable Map Analysis)**
+- ✅ **KPI-specific map legends**
+  - Select the KPI used to color map points: RSRP, RSRQ, SINR, MCS, CQI, RI, BLER, throughput, or TxPower
+  - Legend thresholds and units update with the selected KPI
+  - Map point colors and legend ranges use the same active profile
+- ✅ **User-defined throughput profiles**
+  - Separate DL and UL throughput profiles
+  - Editable scenario/profile name, minimum and maximum values, labels, and colors
+  - Supports operator-defined requirements for bandwidth, MIMO, modulation, and FDD/TDD scenarios
+- ✅ **Event overlay analysis**
+  - Dynamically generated event checkboxes from the uploaded CSV
+  - Show or hide individual events for focused analysis
+  - Event legend symbols match the map marker symbols and colors
+  - KPI points remain available independently from event overlays
+- ✅ **Map layout and state fixes**
+  - Fixed-size legend panel with internal scrolling for throughput editors
+  - Aligned profile fields, color controls, and apply button
+  - RESET clears dynamic event filters and restores the default map-analysis state
+  - Event selections persist when entering or leaving fullscreen and during basemap redraws
+
+**v3.16 (Timestamp Precision Enhancement)**
 - ✅ **Full microsecond precision preserved from ECA CSV files**
   - Timestamps now display complete precision (e.g., `18:48:03.654906`)
   - Two-tier display system: short labels on axes (HH:MM:SS), full precision in tooltips
