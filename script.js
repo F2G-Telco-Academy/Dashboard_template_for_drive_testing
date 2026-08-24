@@ -1634,6 +1634,15 @@
             const container = document.getElementById('mapEventFilters');
             if (!container) return;
 
+            const eventIcons = {
+                handover: { icon: '↔', color: '#f97316', circleIcon: true },
+                cell_reselection: { icon: '📶', color: '#8b5cf6' },
+                rlf: { icon: '⚠', color: '#ef4444', circleIcon: true },
+                attach: { icon: '⚡', color: '#3b82f6', circleIcon: true },
+                detach: { icon: '🔌', color: '#9ca3af', circleIcon: true },
+                csfb: { icon: '📞', color: '#a855f7', circleIcon: true }
+            };
+
             const eventTypes = [...new Set(rawParsedData
                 .map(row => (row.event || '').trim())
                 .filter(Boolean))].sort();
@@ -1652,7 +1661,12 @@
             container.innerHTML = eventTypes.map((eventType, index) => {
                 const id = `map-event-${index}`;
                 const checked = visibleMapEvents.has(eventType) ? ' checked' : '';
-                return `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="${id}" data-event-type="${eventType.replace(/"/g, '&quot;')}"${checked}>${eventType}</label>`;
+                const eventInfo = eventIcons[eventType.toLowerCase()] || { icon: '⚡', color: '#f97316', circleIcon: true };
+                const safeEventType = eventType.replace(/"/g, '&quot;');
+                const iconStyle = eventInfo.circleIcon
+                    ? `display:inline-flex;width:20px;height:20px;border-radius:50%;background:${eventInfo.color};box-shadow:0 2px 8px rgba(0,0,0,0.6);align-items:center;justify-content:center;color:#000;font-size:14px;font-weight:normal;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));`
+                    : `display:inline-flex;align-items:center;justify-content:center;color:${eventInfo.color};font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));`;
+                return `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="${id}" data-event-type="${safeEventType}"${checked}><span>${eventType}</span><span style="${iconStyle}">${eventInfo.icon}</span></label>`;
             }).join('');
 
             container.querySelectorAll('input[data-event-type]').forEach(input => {
@@ -5140,7 +5154,7 @@ function renderScatterPlots() {
                 // Re-render data after style change
                 map.once('styledata', () => {
                     if (csvData) {
-                        setTimeout(() => renderMap(csvData), 500);
+                        setTimeout(() => renderMap(), 500);
                     }
                 });
             } else {
@@ -5186,7 +5200,7 @@ function renderScatterPlots() {
                         map.once('styledata', () => {
                             if (csvData) {
                                 // Re-render overlays after style change
-                                setTimeout(() => renderMap(csvData), 200);
+                                setTimeout(() => renderMap(), 200);
                             }
                         });
                     }
