@@ -224,6 +224,41 @@
                 ]
             }
         };
+        function cloneMapLegendProfiles(profiles) {
+            return Object.fromEntries(Object.entries(profiles).map(([kpiType, profile]) => [kpiType, {
+                ...profile,
+                ranges: profile.ranges.map(range => ({ ...range }))
+            }]));
+        }
+
+        const defaultMapLegendProfiles = cloneMapLegendProfiles(mapLegendProfiles);
+
+        function saveMapLegendProfiles() {
+            localStorage.setItem('mapLegendProfiles', JSON.stringify(mapLegendProfiles, (key, value) => {
+                if (value === Infinity) return '__MAX__';
+                if (value === -Infinity) return '__MIN__';
+                return value;
+            }));
+        }
+
+        function loadMapLegendProfiles() {
+            const saved = localStorage.getItem('mapLegendProfiles');
+            if (!saved) return;
+            try {
+                const profiles = JSON.parse(saved, (key, value) => {
+                    if (value === '__MAX__') return Infinity;
+                    if (value === '__MIN__') return -Infinity;
+                    return value;
+                });
+                Object.keys(mapLegendProfiles).forEach(kpiType => {
+                    if (profiles[kpiType]?.ranges) mapLegendProfiles[kpiType] = profiles[kpiType];
+                });
+            } catch (error) {
+                console.warn('Unable to load saved map legend profiles:', error);
+            }
+        }
+
+        loadMapLegendProfiles();
         let currentConfig = {
             title: "[Test Case Type] : [Test Case Name]",
             operator: "OPERATOR: [Operator Name]",
@@ -807,8 +842,16 @@
                     detectedTechnology = null;
                     currentTechFilter = 'all';
                     visibleMapEvents = null;
+                    selectedMapKpi = 'rsrp';
+                    localStorage.removeItem('mapLegendProfiles');
+                    Object.keys(mapLegendProfiles).forEach(kpiType => {
+                        mapLegendProfiles[kpiType] = cloneMapLegendProfiles(defaultMapLegendProfiles)[kpiType];
+                    });
                     const techFilterEl = document.getElementById('techFilter');
                     if (techFilterEl) techFilterEl.value = 'all';
+                    const mapKpiSelectorEl = document.getElementById('mapKpiSelector');
+                    if (mapKpiSelectorEl) mapKpiSelectorEl.value = 'rsrp';
+                    updateMapLegend();
                     const mapEventFilters = document.getElementById('mapEventFilters');
                     if (mapEventFilters) mapEventFilters.innerHTML = 'Upload a CSV to select events';
                     const pc = document.getElementById('pointCount');
@@ -1539,7 +1582,7 @@
             if (value === null) return '#6b7280';
             const profile = mapLegendProfiles[kpiType];
             if (!profile) return '#9ca3af';
-            const matchingRange = profile.ranges.find(range => value >= range.min && value <= range.max);
+            const matchingRange = profile.ranges.find(range => value >= range.min && (range.max === Infinity || value < range.max));
             return matchingRange ? matchingRange.color : '#6b7280';
         }
 
@@ -1591,13 +1634,12 @@
         function updateMapLegendEditor() {
             const editor = document.getElementById('mapLegendEditor');
             if (!editor) return;
-            const isThroughput = selectedMapKpi === 'dl-throughput' || selectedMapKpi === 'ul-throughput';
-            editor.classList.toggle('hidden', !isThroughput);
-            if (!isThroughput) return;
+            editor.classList.remove('hidden');
 
             const profile = mapLegendProfiles[selectedMapKpi];
             editor.innerHTML = `
-                <div class="font-bold mb-1">USER-DEFINED ${getMapKpiLabel(selectedMapKpi)} PROFILE</div>
+                <div class="font-bold mb-1">USER-DEFINED ${getMapKpiLabel(selectedMapKpi)} LEGEND</div>
+                <div class="mb-2 text-gray-300">Set the ranges and colors for this analysis.</div>
                 <input id="mapLegendProfileInput" class="w-full box-border bg-white text-black border border-gray-400 px-1 py-1 mb-2" value="${profile.profileName || ''}" aria-label="Legend profile name">
                 ${profile.ranges.map((range, index) => `
                     <div class="grid w-full grid-cols-[minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.92fr)_24px] gap-1 items-center mb-1">
@@ -1619,12 +1661,16 @@
                     const max = maxInput.value === '' ? Infinity : parseFloat(maxInput.value);
                     return { min, max, label: labelInput.value.trim() || range.label, color: colorInput.value };
                 });
-                if (ranges.some(range => Number.isNaN(range.min) || Number.isNaN(range.max) || range.min > range.max)) {
-                    alert('Invalid legend range. Each minimum must be lower than or equal to its maximum.');
+                const orderedRanges = [...ranges].sort((first, second) => first.min - second.min);
+                const hasInvalidBounds = ranges.some(range => Number.isNaN(range.min) || Number.isNaN(range.max) || range.min > range.max);
+                const hasOverlappingRanges = orderedRanges.some((range, index) => index > 0 && range.min < orderedRanges[index - 1].max);
+                if (hasInvalidBounds || hasOverlappingRanges) {
+                    alert('Invalid legend ranges. Each minimum must be lower than its maximum, and ranges must not overlap.');
                     return;
                 }
                 profile.profileName = document.getElementById('mapLegendProfileInput').value.trim() || 'User-defined profile';
                 profile.ranges = ranges;
+                saveMapLegendProfiles();
                 updateMapLegend();
                 if (rawParsedData.length > 0) renderMap();
             });

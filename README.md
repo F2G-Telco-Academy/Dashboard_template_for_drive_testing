@@ -134,9 +134,10 @@ A professional telecom network validation dashboard for creating **customizable 
 - Technology-specific map popups showing relevant KPIs
 - Event markers: Handover, Attach, Detach, RLF, Cell Reselection, CSFB
 - Dynamic map KPI selector for RSRP, RSRQ, SINR, MCS, CQI, RI, BLER, DL/UL Throughput, and TxPower
-- KPI-specific map legends with thresholds and units matched to the selected metric
-- User-defined DL and UL throughput legends with editable profile name, ranges, labels, and colors
-- Throughput profiles can represent operator- or test-scenario requirements such as bandwidth, MIMO layers, and modulation
+- User-modifiable map legends for every map KPI, with editable profile name, ranges, labels, and colors
+- KPI selection changes which analyst-defined profile is displayed; thresholds are not calculated from CSV values
+- DL and UL throughput profiles can represent operator- or test-scenario requirements such as bandwidth, MIMO layers, modulation, and FDD/TDD allocation
+- Legend profiles are saved locally and restored after a page reload; RESET restores the built-in reference profiles
 - Event filters are generated from the uploaded CSV and allow individual event types to be shown or hidden
 - Event legend rows display the same symbols, colors, circular badges, and shadows used by the map markers
 - KPI points remain visible independently from event overlays, so hiding events does not remove measurement samples
@@ -158,9 +159,10 @@ Click "📁 UPLOAD CSV" → Select your CSV file
 
 ### 2. **Configure the Map Analysis**
 - Use the **COLOR BY** selector to choose the KPI used for map point colors.
-- RSRP, RSRQ, SINR, CQI, MCS, RI, BLER, TxPower, and throughput use metric-specific thresholds.
-- Select **DL Throughput** or **UL Throughput** to edit the profile name, range boundaries, labels, and colors.
-- Throughput thresholds are not universal. Define them according to the operator requirement and test scenario, including bandwidth, MIMO configuration, modulation, and FDD/TDD allocation.
+- RSRP, RSRQ, SINR, CQI, MCS, RI, BLER, TxPower, and throughput use editable analyst-defined profiles.
+- Select any map KPI to edit its profile name, range boundaries, labels, and colors.
+- Thresholds are not calculated from the CSV and are not universal. Define them according to the operator requirement and test scenario, including bandwidth, MIMO configuration, modulation, and FDD/TDD allocation.
+- Apply the legend to save it locally. The map and legend use the same profile ranges for coloring and display.
 - Use the event checkboxes to show only the events needed for the analysis, such as Handover, CSFB, or RLF.
 - Event symbols in the legend match the symbols displayed on the map.
 
