@@ -127,6 +127,138 @@
         let mapReady = false; // Track if map is fully loaded
         let selectedMapKpi = 'rsrp';
         let visibleMapEvents = null; // null means all event types are visible
+        const mapLegendProfiles = {
+            rsrp: {
+                unit: 'dBm',
+                ranges: [
+                    { min: -80, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: -90, max: -80, label: 'Good', color: '#3b82f6' },
+                    { min: -100, max: -90, label: 'Fair', color: '#f59e0b' },
+                    { min: -Infinity, max: -100, label: 'Poor', color: '#ef4444' }
+                ]
+            },
+            rsrq: {
+                unit: 'dB',
+                ranges: [
+                    { min: -10, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: -15, max: -10, label: 'Good', color: '#3b82f6' },
+                    { min: -20, max: -15, label: 'Fair', color: '#f59e0b' },
+                    { min: -Infinity, max: -20, label: 'Poor', color: '#ef4444' }
+                ]
+            },
+            sinr: {
+                unit: 'dB',
+                ranges: [
+                    { min: 20, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: 13, max: 20, label: 'Good', color: '#3b82f6' },
+                    { min: 0, max: 13, label: 'Fair', color: '#f59e0b' },
+                    { min: -Infinity, max: 0, label: 'Poor', color: '#ef4444' }
+                ]
+            },
+            cqi: {
+                unit: '',
+                ranges: [
+                    { min: 12, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: 8, max: 12, label: 'Good', color: '#3b82f6' },
+                    { min: 4, max: 8, label: 'Fair', color: '#f59e0b' },
+                    { min: -Infinity, max: 4, label: 'Poor', color: '#ef4444' }
+                ]
+            },
+            mcs: {
+                unit: '',
+                ranges: [
+                    { min: 20, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: 12, max: 20, label: 'Good', color: '#3b82f6' },
+                    { min: 6, max: 12, label: 'Fair', color: '#f59e0b' },
+                    { min: -Infinity, max: 6, label: 'Poor', color: '#ef4444' }
+                ]
+            },
+            ri: {
+                unit: '',
+                ranges: [
+                    { min: 2, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: 1, max: 2, label: 'Good', color: '#3b82f6' },
+                    { min: -Infinity, max: 1, label: 'Limited', color: '#f59e0b' }
+                ]
+            },
+            bler: {
+                unit: '%',
+                ranges: [
+                    { min: -Infinity, max: 2, label: 'Excellent', color: '#22c55e' },
+                    { min: 2, max: 5, label: 'Good', color: '#3b82f6' },
+                    { min: 5, max: 10, label: 'Fair', color: '#f59e0b' },
+                    { min: 10, max: Infinity, label: 'Poor', color: '#ef4444' }
+                ]
+            },
+            'dl-throughput': {
+                unit: 'Mbps',
+                profileName: 'LTE 20 MHz 2x2 MIMO 256QAM',
+                ranges: [
+                    { min: 160, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: 120, max: 160, label: 'Good', color: '#86efac' },
+                    { min: 90, max: 120, label: 'Fairly good', color: '#ca8a04' },
+                    { min: 40, max: 90, label: 'Fair', color: '#eab308' },
+                    { min: 15, max: 40, label: 'Poor', color: '#f97316' },
+                    { min: 0, max: 15, label: 'Very poor', color: '#ef4444' }
+                ]
+            },
+            'ul-throughput': {
+                unit: 'Mbps',
+                profileName: 'User-defined UL profile',
+                ranges: [
+                    { min: 50, max: Infinity, label: 'Excellent', color: '#22c55e' },
+                    { min: 25, max: 50, label: 'Good', color: '#86efac' },
+                    { min: 10, max: 25, label: 'Fairly good', color: '#ca8a04' },
+                    { min: 5, max: 10, label: 'Fair', color: '#eab308' },
+                    { min: 1, max: 5, label: 'Poor', color: '#f97316' },
+                    { min: 0, max: 1, label: 'Very poor', color: '#ef4444' }
+                ]
+            },
+            txpower: {
+                unit: 'dBm',
+                ranges: [
+                    { min: -Infinity, max: 10, label: 'Excellent', color: '#22c55e' },
+                    { min: 10, max: 20, label: 'Good', color: '#3b82f6' },
+                    { min: 20, max: 26, label: 'Fair', color: '#f59e0b' },
+                    { min: 26, max: Infinity, label: 'Poor', color: '#ef4444' }
+                ]
+            }
+        };
+        function cloneMapLegendProfiles(profiles) {
+            return Object.fromEntries(Object.entries(profiles).map(([kpiType, profile]) => [kpiType, {
+                ...profile,
+                ranges: profile.ranges.map(range => ({ ...range }))
+            }]));
+        }
+
+        const defaultMapLegendProfiles = cloneMapLegendProfiles(mapLegendProfiles);
+
+        function saveMapLegendProfiles() {
+            localStorage.setItem('mapLegendProfiles', JSON.stringify(mapLegendProfiles, (key, value) => {
+                if (value === Infinity) return '__MAX__';
+                if (value === -Infinity) return '__MIN__';
+                return value;
+            }));
+        }
+
+        function loadMapLegendProfiles() {
+            const saved = localStorage.getItem('mapLegendProfiles');
+            if (!saved) return;
+            try {
+                const profiles = JSON.parse(saved, (key, value) => {
+                    if (value === '__MAX__') return Infinity;
+                    if (value === '__MIN__') return -Infinity;
+                    return value;
+                });
+                Object.keys(mapLegendProfiles).forEach(kpiType => {
+                    if (profiles[kpiType]?.ranges) mapLegendProfiles[kpiType] = profiles[kpiType];
+                });
+            } catch (error) {
+                console.warn('Unable to load saved map legend profiles:', error);
+            }
+        }
+
+        loadMapLegendProfiles();
         let currentConfig = {
             title: "[Test Case Type] : [Test Case Name]",
             operator: "OPERATOR: [Operator Name]",
@@ -709,8 +841,19 @@
                     rawParsedData = [];
                     detectedTechnology = null;
                     currentTechFilter = 'all';
+                    visibleMapEvents = null;
+                    selectedMapKpi = 'rsrp';
+                    localStorage.removeItem('mapLegendProfiles');
+                    Object.keys(mapLegendProfiles).forEach(kpiType => {
+                        mapLegendProfiles[kpiType] = cloneMapLegendProfiles(defaultMapLegendProfiles)[kpiType];
+                    });
                     const techFilterEl = document.getElementById('techFilter');
                     if (techFilterEl) techFilterEl.value = 'all';
+                    const mapKpiSelectorEl = document.getElementById('mapKpiSelector');
+                    if (mapKpiSelectorEl) mapKpiSelectorEl.value = 'rsrp';
+                    updateMapLegend();
+                    const mapEventFilters = document.getElementById('mapEventFilters');
+                    if (mapEventFilters) mapEventFilters.innerHTML = 'Upload a CSV to select events';
                     const pc = document.getElementById('pointCount');
                     if (pc) pc.textContent = '0';
                     const eventTotal = document.getElementById('eventCountTotal');
@@ -1437,46 +1580,10 @@
 
         function getMapKpiColor(value, kpiType, row) {
             if (value === null) return '#6b7280';
-            if (kpiType === 'rsrp' && row?.quality) return getColor(value, row);
-            if (kpiType === 'rsrp' || kpiType === 'rsrq' || kpiType === 'sinr') {
-                return getColorForValue(value, kpiType);
-            }
-            if (kpiType === 'bler') {
-                if (value <= 2) return '#22c55e';
-                if (value <= 5) return '#3b82f6';
-                if (value <= 10) return '#f59e0b';
-                return '#ef4444';
-            }
-            if (kpiType === 'cqi') {
-                if (value >= 12) return '#22c55e';
-                if (value >= 8) return '#3b82f6';
-                if (value >= 4) return '#f59e0b';
-                return '#ef4444';
-            }
-            if (kpiType === 'mcs') {
-                if (value >= 20) return '#22c55e';
-                if (value >= 12) return '#3b82f6';
-                if (value >= 6) return '#f59e0b';
-                return '#ef4444';
-            }
-            if (kpiType === 'ri') {
-                if (value >= 2) return '#22c55e';
-                if (value >= 1) return '#3b82f6';
-                return '#f59e0b';
-            }
-            if (kpiType === 'dl-throughput' || kpiType === 'ul-throughput') {
-                if (value >= 50) return '#22c55e';
-                if (value >= 10) return '#3b82f6';
-                if (value > 0) return '#f59e0b';
-                return '#ef4444';
-            }
-            if (kpiType === 'txpower') {
-                if (value <= 10) return '#22c55e';
-                if (value <= 20) return '#3b82f6';
-                if (value <= 26) return '#f59e0b';
-                return '#ef4444';
-            }
-            return '#9ca3af';
+            const profile = mapLegendProfiles[kpiType];
+            if (!profile) return '#9ca3af';
+            const matchingRange = profile.ranges.find(range => value >= range.min && (range.max === Infinity || value < range.max));
+            return matchingRange ? matchingRange.color : '#6b7280';
         }
 
         function getMapKpiLabel(kpiType) {
@@ -1494,14 +1601,93 @@
             }[kpiType] || kpiType.toUpperCase();
         }
 
+        function formatLegendBound(value, isMin) {
+            if (value === Infinity) return 'max';
+            if (value === -Infinity) return 'min';
+            return Number.isInteger(value) ? String(value) : value.toFixed(2);
+        }
+
+        function formatLegendRange(range, unit) {
+            if (range.min === -Infinity) return `< ${formatLegendBound(range.max, false)} ${unit}`.trim();
+            if (range.max === Infinity) return `>= ${formatLegendBound(range.min, true)} ${unit}`.trim();
+            return `${formatLegendBound(range.min, true)}-${formatLegendBound(range.max, false)} ${unit}`.trim();
+        }
+
         function updateMapLegend() {
             const title = document.getElementById('legendTitle');
-            if (title) title.textContent = `${getMapKpiLabel(selectedMapKpi)} QUALITY`;
+            const rangesContainer = document.getElementById('mapLegendRanges');
+            const profileName = document.getElementById('mapLegendProfileName');
+            const profile = mapLegendProfiles[selectedMapKpi];
+            if (title) title.textContent = `${getMapKpiLabel(selectedMapKpi)} LEGEND`;
+            if (profileName) profileName.textContent = profile?.profileName ? `Profile: ${profile.profileName}` : 'Default reference profile';
+            if (rangesContainer && profile) {
+                rangesContainer.innerHTML = profile.ranges.map(range => `
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-3 h-3" style="background:${range.color};"></div>
+                        <span>${formatLegendRange(range, profile.unit)} - ${range.label}</span>
+                    </div>
+                `).join('');
+            }
+            updateMapLegendEditor();
+        }
+
+        function updateMapLegendEditor() {
+            const editor = document.getElementById('mapLegendEditor');
+            if (!editor) return;
+            editor.classList.remove('hidden');
+
+            const profile = mapLegendProfiles[selectedMapKpi];
+            editor.innerHTML = `
+                <div class="font-bold mb-1">USER-DEFINED ${getMapKpiLabel(selectedMapKpi)} LEGEND</div>
+                <div class="mb-2 text-gray-300">Set the ranges and colors for this analysis.</div>
+                <input id="mapLegendProfileInput" class="w-full box-border bg-white text-black border border-gray-400 px-1 py-1 mb-2" value="${profile.profileName || ''}" aria-label="Legend profile name">
+                ${profile.ranges.map((range, index) => `
+                    <div class="grid w-full grid-cols-[minmax(0,0.78fr)_minmax(0,0.78fr)_minmax(0,0.92fr)_24px] gap-1 items-center mb-1">
+                        <input class="map-legend-min min-w-0 w-full box-border bg-white text-black border border-gray-400 px-1 py-1" data-index="${index}" type="number" value="${Number.isFinite(range.min) ? range.min : ''}" placeholder="min" aria-label="Minimum value">
+                        <input class="map-legend-max min-w-0 w-full box-border bg-white text-black border border-gray-400 px-1 py-1" data-index="${index}" type="number" value="${Number.isFinite(range.max) ? range.max : ''}" placeholder="max" aria-label="Maximum value">
+                        <input class="map-legend-label min-w-0 w-full box-border bg-white text-black border border-gray-400 px-1 py-1" data-index="${index}" value="${range.label}" aria-label="Range label">
+                        <input class="map-legend-color w-6 h-6 max-w-full p-0 border-0" data-index="${index}" type="color" value="${range.color}" aria-label="Range color">
+                    </div>
+                `).join('')}
+                <button id="applyMapLegendBtn" class="w-full box-border bg-white text-black border border-white px-2 py-1 mt-1 font-bold" type="button">APPLY LEGEND</button>
+            `;
+            document.getElementById('applyMapLegendBtn').addEventListener('click', () => {
+                const ranges = profile.ranges.map((range, index) => {
+                    const minInput = editor.querySelector(`.map-legend-min[data-index="${index}"]`);
+                    const maxInput = editor.querySelector(`.map-legend-max[data-index="${index}"]`);
+                    const labelInput = editor.querySelector(`.map-legend-label[data-index="${index}"]`);
+                    const colorInput = editor.querySelector(`.map-legend-color[data-index="${index}"]`);
+                    const min = minInput.value === '' ? -Infinity : parseFloat(minInput.value);
+                    const max = maxInput.value === '' ? Infinity : parseFloat(maxInput.value);
+                    return { min, max, label: labelInput.value.trim() || range.label, color: colorInput.value };
+                });
+                const orderedRanges = [...ranges].sort((first, second) => first.min - second.min);
+                const hasInvalidBounds = ranges.some(range => Number.isNaN(range.min) || Number.isNaN(range.max) || range.min > range.max);
+                const hasOverlappingRanges = orderedRanges.some((range, index) => index > 0 && range.min < orderedRanges[index - 1].max);
+                if (hasInvalidBounds || hasOverlappingRanges) {
+                    alert('Invalid legend ranges. Each minimum must be lower than its maximum, and ranges must not overlap.');
+                    return;
+                }
+                profile.profileName = document.getElementById('mapLegendProfileInput').value.trim() || 'User-defined profile';
+                profile.ranges = ranges;
+                saveMapLegendProfiles();
+                updateMapLegend();
+                if (rawParsedData.length > 0) renderMap();
+            });
         }
 
         function updateMapEventFilters() {
             const container = document.getElementById('mapEventFilters');
             if (!container) return;
+
+            const eventIcons = {
+                handover: { icon: '↔', color: '#f97316', circleIcon: true },
+                cell_reselection: { icon: '📶', color: '#8b5cf6' },
+                rlf: { icon: '⚠', color: '#ef4444', circleIcon: true },
+                attach: { icon: '⚡', color: '#3b82f6', circleIcon: true },
+                detach: { icon: '🔌', color: '#9ca3af', circleIcon: true },
+                csfb: { icon: '📞', color: '#a855f7', circleIcon: true }
+            };
 
             const eventTypes = [...new Set(rawParsedData
                 .map(row => (row.event || '').trim())
@@ -1521,7 +1707,12 @@
             container.innerHTML = eventTypes.map((eventType, index) => {
                 const id = `map-event-${index}`;
                 const checked = visibleMapEvents.has(eventType) ? ' checked' : '';
-                return `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="${id}" data-event-type="${eventType.replace(/"/g, '&quot;')}"${checked}>${eventType}</label>`;
+                const eventInfo = eventIcons[eventType.toLowerCase()] || { icon: '⚡', color: '#f97316', circleIcon: true };
+                const safeEventType = eventType.replace(/"/g, '&quot;');
+                const iconStyle = eventInfo.circleIcon
+                    ? `display:inline-flex;width:20px;height:20px;border-radius:50%;background:${eventInfo.color};box-shadow:0 2px 8px rgba(0,0,0,0.6);align-items:center;justify-content:center;color:#000;font-size:14px;font-weight:normal;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));`
+                    : `display:inline-flex;align-items:center;justify-content:center;color:${eventInfo.color};font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));`;
+                return `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="${id}" data-event-type="${safeEventType}"${checked}><span>${eventType}</span><span style="${iconStyle}">${eventInfo.icon}</span></label>`;
             }).join('');
 
             container.querySelectorAll('input[data-event-type]').forEach(input => {
@@ -4580,6 +4771,7 @@ function renderScatterPlots() {
                 updateMapLegend();
             }
         });
+        updateMapLegend();
         
         // Polynomial degree selector change handler
         document.getElementById('polynomialDegreeSelector').addEventListener('change', function(e) {
@@ -5008,7 +5200,7 @@ function renderScatterPlots() {
                 // Re-render data after style change
                 map.once('styledata', () => {
                     if (csvData) {
-                        setTimeout(() => renderMap(csvData), 500);
+                        setTimeout(() => renderMap(), 500);
                     }
                 });
             } else {
@@ -5054,7 +5246,7 @@ function renderScatterPlots() {
                         map.once('styledata', () => {
                             if (csvData) {
                                 // Re-render overlays after style change
-                                setTimeout(() => renderMap(csvData), 200);
+                                setTimeout(() => renderMap(), 200);
                             }
                         });
                     }
