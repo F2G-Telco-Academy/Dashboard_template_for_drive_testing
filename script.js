@@ -4510,6 +4510,10 @@ function renderScatterPlots() {
                 } else if (tech === 'GSM') {
                     kpiContent = `<div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div><div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div><div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div><div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
                 }
+                const dlTput = parseFloat(row.throughput_dl_mbps);
+                const ulTput = parseFloat(row.throughput_ul_mbps);
+                const tputContent = `<div style="margin:4px 0;"><b>DL Tput:</b> ${isNaN(dlTput) ? '-' : dlTput.toFixed(2) + ' Mbps'}</div><div style="margin:4px 0;"><b>UL Tput:</b> ${isNaN(ulTput) ? '-' : ulTput.toFixed(2) + ' Mbps'}</div>`;
+                kpiContent += tputContent;
                 const popupHtml = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;"><div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div><div style="margin:4px 0;"><b>Time:</b> ${getFullTimestamp(row)}</div><div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div><div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>${kpiContent}${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}</div>`;
                 return {
                     type: 'Feature',
