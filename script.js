@@ -3132,7 +3132,7 @@ function renderScatterPlots() {
             data.forEach((point, index) => {
                 // 1. EXPLICIT EVENTS FROM CSV (handover, attach, detach, rlf, etc.)
                 if (point.event && point.event.trim() !== '') {
-                    const eventType = point.event.toLowerCase().trim();
+                    const eventType = point.event.toLowerCase().trim().replace(/[\s\-]+/g, '_');
                     
                     // Get PCI based on technology
                     let pci = '-';
