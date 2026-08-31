@@ -584,7 +584,15 @@ Client: Open URL → View dashboard (read-only)
 
 ## 🔄 Version History
 
-**v3.17 (Current - Configurable Map Analysis)**
+**v3.18 (Current - PCI Dominance Legend)**
+- ✅ **PCI/PSC/BSIC legend shows sample count and dominance percentage**
+  - Each cell entry displays: `PCI 357 (13.26%, 344 pts)`
+  - Sorted by sample count descending (dominant cell first, like TEMS/Nemo scanner footprint)
+  - Shows up to 20 cells; "Top 20 of N cells" note shown when more exist
+  - Percentages sum to 100% when all cells shown; less than 100% means cells beyond Top 20
+  - Tech-aware: PCI (LTE), NR-PCI (NR), PSC (UMTS), BSIC (GSM)
+
+**v3.17 (Configurable Map Analysis)**
 - ✅ **KPI-specific map legends**
   - Select the KPI used to color map points: RSRP, RSRQ, SINR, MCS, CQI, RI, BLER, throughput, or TxPower
   - Legend thresholds and units update with the selected KPI
