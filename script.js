@@ -3214,19 +3214,16 @@ function renderScatterPlots() {
                     
                     // Only add if both PCIs exist and are different
                     if (prevPci && currPci && prevPci !== '' && currPci !== '' && prevPci !== currPci) {
-                        // Check if there's already an event at this index (avoid duplicates)
-                        const existingEvent = events.find(e => e.index === index);
-                        if (!existingEvent) {
-                            events.push({
-                                time: point.time,
-                                index: index,
-                                type: 'pci_change',
-                                pci: currPci,
-                                prevPci: prevPci,
-                                technology: tech,
-                                details: `Cell change: ${prevPci} → ${currPci}`
-                            });
-                        }
+                        // pci_change always recorded, independent of other events on same row
+                        events.push({
+                            time: point.time,
+                            index: index,
+                            type: 'pci_change',
+                            pci: currPci,
+                            prevPci: prevPci,
+                            technology: tech,
+                            details: `Cell change: ${prevPci} → ${currPci}`
+                        });
                     }
                 }
                 
