@@ -1570,7 +1570,8 @@
                 bler: 'bler',
                 'dl-throughput': 'throughput_dl_mbps',
                 'ul-throughput': 'throughput_ul_mbps',
-                txpower: 'txpower'
+                txpower: 'txpower',
+                pci: tech === 'NR' ? 'nr_pci' : tech === 'UMTS' ? 'wcdma_psc' : tech === 'GSM' ? 'gsm_bsic' : 'pci'
             };
             const field = fieldsByKpi[kpiType] || kpiType;
             const rawValue = row?.[field] ?? (kpiType === 'rsrp' && tech === 'GSM' ? row?.rxlev : null);
@@ -1580,6 +1581,11 @@
 
         function getMapKpiColor(value, kpiType, row) {
             if (value === null) return '#6b7280';
+            if (kpiType === 'pci') {
+                // Categorical coloring: each unique PCI gets a distinct hue
+                const hue = (Math.abs(Math.round(value) * 137) % 360);
+                return `hsl(${hue},70%,55%)`;
+            }
             const profile = mapLegendProfiles[kpiType];
             if (!profile) return '#9ca3af';
             const matchingRange = profile.ranges.find(range => value >= range.min && (range.max === Infinity || value < range.max));
@@ -1587,6 +1593,8 @@
         }
 
         function getMapKpiLabel(kpiType) {
+            const tech = detectedTechnology || 'LTE';
+            const pciLabel = tech === 'NR' ? 'NR-PCI' : tech === 'UMTS' ? 'PSC' : tech === 'GSM' ? 'BSIC' : 'PCI';
             return {
                 rsrp: 'RSRP',
                 rsrq: 'RSRQ',
@@ -1597,7 +1605,8 @@
                 bler: 'BLER',
                 'dl-throughput': 'DL Throughput',
                 'ul-throughput': 'UL Throughput',
-                txpower: 'TxPower'
+                txpower: 'TxPower',
+                pci: pciLabel
             }[kpiType] || kpiType.toUpperCase();
         }
 
@@ -1617,8 +1626,38 @@
             const title = document.getElementById('legendTitle');
             const rangesContainer = document.getElementById('mapLegendRanges');
             const profileName = document.getElementById('mapLegendProfileName');
+            const editor = document.getElementById('mapLegendEditor');
             const profile = mapLegendProfiles[selectedMapKpi];
             if (title) title.textContent = `${getMapKpiLabel(selectedMapKpi)} LEGEND`;
+
+            if (selectedMapKpi === 'pci') {
+                if (profileName) profileName.textContent = 'Unique color per cell ID';
+                if (rangesContainer) {
+                    // Count samples per PCI, sort by count desc, show % and count
+                    const pciCounts = {};
+                    parsedData.forEach(row => {
+                        const tech = (row.technology || 'LTE').toUpperCase();
+                        const val = tech === 'NR' ? row.nr_pci : tech === 'UMTS' ? (row.wcdma_psc || row.psc) : tech === 'GSM' ? row.gsm_bsic : row.pci;
+                        if (val !== undefined && val !== '') pciCounts[String(val)] = (pciCounts[String(val)] || 0) + 1;
+                    });
+                    const total = parsedData.length || 1;
+                    const sorted = Object.entries(pciCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
+                    if (sorted.length > 0) {
+                        const pciLabel = getMapKpiLabel('pci');
+                        rangesContainer.innerHTML = sorted.map(([pci, count]) => {
+                            const hue = (Math.abs(Math.round(Number(pci)) * 137) % 360);
+                            const color = `hsl(${hue},70%,55%)`;
+                            const pct = ((count / total) * 100).toFixed(2);
+                            return `<div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${color};"></div><span>${pciLabel} ${pci} (${pct}%, ${count} pts)</span></div>`;
+                        }).join('') + (Object.keys(pciCounts).length > 20 ? `<div class="text-gray-400 text-[10px] mt-1">Top 20 of ${Object.keys(pciCounts).length} cells</div>` : '');
+                    } else {
+                        rangesContainer.innerHTML = '<span class="text-gray-400">Upload CSV to see cells</span>';
+                    }
+                }
+                if (editor) editor.classList.add('hidden');
+                return;
+            }
+
             if (profileName) profileName.textContent = profile?.profileName ? `Profile: ${profile.profileName}` : 'Default reference profile';
             if (rangesContainer && profile) {
                 rangesContainer.innerHTML = profile.ranges.map(range => `
@@ -1672,7 +1711,7 @@
                 profile.ranges = ranges;
                 saveMapLegendProfiles();
                 updateMapLegend();
-                if (rawParsedData.length > 0) renderMap();
+                if (rawParsedData.length > 0) renderMapDebounced();
             });
         }
 
@@ -1686,6 +1725,7 @@
                 rlf: { icon: '⚠', color: '#ef4444', circleIcon: true },
                 attach: { icon: '⚡', color: '#3b82f6', circleIcon: true },
                 detach: { icon: '🔌', color: '#9ca3af', circleIcon: true },
+                voice_call: { icon: '📱', color: '#06b6d4', circleIcon: true },
                 csfb: { icon: '📞', color: '#a855f7', circleIcon: true }
             };
 
@@ -1707,7 +1747,8 @@
             container.innerHTML = eventTypes.map((eventType, index) => {
                 const id = `map-event-${index}`;
                 const checked = visibleMapEvents.has(eventType) ? ' checked' : '';
-                const eventInfo = eventIcons[eventType.toLowerCase()] || { icon: '⚡', color: '#f97316', circleIcon: true };
+                const normalizedKey = eventType.toLowerCase().trim().replace(/[\s\-]+/g, '_');
+                const eventInfo = eventIcons[normalizedKey] || { icon: '⚡', color: '#f97316', circleIcon: true };
                 const safeEventType = eventType.replace(/"/g, '&quot;');
                 const iconStyle = eventInfo.circleIcon
                     ? `display:inline-flex;width:20px;height:20px;border-radius:50%;background:${eventInfo.color};box-shadow:0 2px 8px rgba(0,0,0,0.6);align-items:center;justify-content:center;color:#000;font-size:14px;font-weight:normal;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));`
@@ -1720,7 +1761,7 @@
                     if (visibleMapEvents === null) visibleMapEvents = new Set(eventTypes);
                     if (event.target.checked) visibleMapEvents.add(event.target.dataset.eventType);
                     else visibleMapEvents.delete(event.target.dataset.eventType);
-                    renderMap();
+                    renderMapDebounced();
                 });
             });
         }
@@ -3130,7 +3171,7 @@ function renderScatterPlots() {
             data.forEach((point, index) => {
                 // 1. EXPLICIT EVENTS FROM CSV (handover, attach, detach, rlf, etc.)
                 if (point.event && point.event.trim() !== '') {
-                    const eventType = point.event.toLowerCase().trim();
+                    const eventType = point.event.toLowerCase().trim().replace(/[\s\-]+/g, '_');
                     
                     // Get PCI based on technology
                     let pci = '-';
@@ -3176,19 +3217,16 @@ function renderScatterPlots() {
                     
                     // Only add if both PCIs exist and are different
                     if (prevPci && currPci && prevPci !== '' && currPci !== '' && prevPci !== currPci) {
-                        // Check if there's already an event at this index (avoid duplicates)
-                        const existingEvent = events.find(e => e.index === index);
-                        if (!existingEvent) {
-                            events.push({
-                                time: point.time,
-                                index: index,
-                                type: 'pci_change',
-                                pci: currPci,
-                                prevPci: prevPci,
-                                technology: tech,
-                                details: `Cell change: ${prevPci} → ${currPci}`
-                            });
-                        }
+                        // pci_change always recorded, independent of other events on same row
+                        events.push({
+                            time: point.time,
+                            index: index,
+                            type: 'pci_change',
+                            pci: currPci,
+                            prevPci: prevPci,
+                            technology: tech,
+                            details: `Cell change: ${prevPci} → ${currPci}`
+                        });
                     }
                 }
                 
@@ -3235,6 +3273,9 @@ function renderScatterPlots() {
                 'rlf': '⚠',
                 'attach': '✅',
                 'detach': '🔌',
+                'voice_call': '📱',
+                'cell_reselection': '📶',
+                'csfb': '📞',
                 'drop': '📉'
             };
             return icons[type] || '📍';
@@ -3272,6 +3313,9 @@ function renderScatterPlots() {
                 'rlf': '#dc2626',           // Dark red
                 'attach': '#10b981',        // Green
                 'detach': '#6b7280',        // Gray
+                'voice_call': '#06b6d4',    // Cyan
+                'cell_reselection': '#8b5cf6', // Purple
+                'csfb': '#a855f7',          // Magenta
                 'drop': '#ef4444'           // Red
             };
             return colors[type] || '#6b7280';
@@ -4144,8 +4188,19 @@ function renderScatterPlots() {
         }
 
         function clearMap() {
+            // Remove event markers (DOM-based, kept for emoji/circle icon support)
             markers.forEach(m => m.remove());
             markers = [];
+
+            // Remove fixed GeoJSON layers and sources
+            ['drive-path-layer', 'kpi-points-layer'].forEach(id => {
+                if (map.getLayer(id)) map.removeLayer(id);
+            });
+            ['drive-path', 'kpi-points'].forEach(id => {
+                if (map.getSource(id)) map.removeSource(id);
+            });
+
+            // Legacy cleanup: remove any individually-named seg-N layers from old renders
             layerIds.forEach(id => {
                 if (map.getLayer(id)) map.removeLayer(id);
                 if (map.getSource(id)) map.removeSource(id);
@@ -4160,6 +4215,7 @@ function renderScatterPlots() {
                 attach: 'Attach',
                 detach: 'Detach',
                 rlf: 'RLF',
+                voice_call: 'Voice Call',
                 csfb: 'CSFB',
                 pci_change: 'PCI Change',
                 release: 'Release',
@@ -4174,6 +4230,7 @@ function renderScatterPlots() {
                     attach: base.attach,
                     detach: base.detach,
                     rlf: base.rlf,
+                    voice_call: base.voice_call,
                     pci_change: base.pci_change,
                     tech_change: base.tech_change,
                     drop: base.drop
@@ -4186,8 +4243,9 @@ function renderScatterPlots() {
                     cell_reselection: base.cell_reselection,
                     attach: base.attach,
                     detach: base.detach,
-                    csfb: base.csfb,
                     rlf: base.rlf,
+                    voice_call: base.voice_call,
+                    csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
                     tech_change: base.tech_change
@@ -4200,8 +4258,9 @@ function renderScatterPlots() {
                     cell_reselection: base.cell_reselection,
                     attach: base.attach,
                     detach: base.detach,
-                    csfb: base.csfb,
                     rlf: base.rlf,
+                    voice_call: base.voice_call,
+                    csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
                     tech_change: base.tech_change
@@ -4415,17 +4474,78 @@ function renderScatterPlots() {
                 }
             });
 
-            // Draw path
+            // Draw path — single GeoJSON source with one feature per segment (color stored as property)
+            const pathFeatures = [];
             for (let i = 0; i < coords.length - 1; i++) {
                 const p1 = coords[i], p2 = coords[i + 1];
-                const srcId = `seg-${i}`;
-                map.addSource(srcId, {
-                    type: 'geojson',
-                    data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [[p1.lon, p1.lat], [p2.lon, p2.lat]] } }
+                pathFeatures.push({
+                    type: 'Feature',
+                    properties: { color: p1.color },
+                    geometry: { type: 'LineString', coordinates: [[p1.lon, p1.lat], [p2.lon, p2.lat]] }
                 });
-                map.addLayer({ id: srcId, type: 'line', source: srcId, paint: { 'line-color': p1.color, 'line-width': 6, 'line-opacity': 0.9 } });
-                layerIds.push(srcId);
             }
+            map.addSource('drive-path', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: pathFeatures }
+            });
+            map.addLayer({
+                id: 'drive-path-layer',
+                type: 'line',
+                source: 'drive-path',
+                paint: { 'line-color': ['get', 'color'], 'line-width': 6, 'line-opacity': 0.9 }
+            });
+
+            // KPI points — single GeoJSON circle layer (no DOM nodes per point)
+            const pointFeatures = coords.map((p, i) => {
+                const row = p.row;
+                const tech = row.technology || 'LTE';
+                const frequencyInfo = resolveTechFrequencyInfo(row, tech);
+                let kpiContent = '';
+                if (tech === 'NR') {
+                    kpiContent = `<div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div><div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div><div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div><div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div><div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div><div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
+                } else if (tech === 'LTE') {
+                    kpiContent = `<div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div><div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div><div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div><div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div><div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
+                } else if (tech === 'UMTS') {
+                    kpiContent = `<div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div><div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div><div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div><div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
+                } else if (tech === 'GSM') {
+                    kpiContent = `<div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div><div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div><div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div><div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
+                }
+                const dlTput = parseFloat(row.throughput_dl_mbps);
+                const ulTput = parseFloat(row.throughput_ul_mbps);
+                const tputContent = `<div style="margin:4px 0;"><b>DL Tput:</b> ${isNaN(dlTput) ? '-' : dlTput.toFixed(2) + ' Mbps'}</div><div style="margin:4px 0;"><b>UL Tput:</b> ${isNaN(ulTput) ? '-' : ulTput.toFixed(2) + ' Mbps'}</div>`;
+                kpiContent += tputContent;
+                const popupHtml = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;"><div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div><div style="margin:4px 0;"><b>Time:</b> ${getFullTimestamp(row)}</div><div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div><div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>${kpiContent}${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}</div>`;
+                return {
+                    type: 'Feature',
+                    properties: { color: p.color, popupHtml },
+                    geometry: { type: 'Point', coordinates: [p.lon, p.lat] }
+                };
+            });
+            map.addSource('kpi-points', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: pointFeatures }
+            });
+            map.addLayer({
+                id: 'kpi-points-layer',
+                type: 'circle',
+                source: 'kpi-points',
+                paint: {
+                    'circle-radius': 5,
+                    'circle-color': ['get', 'color'],
+                    'circle-opacity': 0.9,
+                    'circle-stroke-width': 0
+                }
+            });
+
+            // Single popup instance reused for all KPI point clicks
+            const kpiPopup = new maplibregl.Popup({ offset: 10, closeButton: true });
+            map.on('click', 'kpi-points-layer', (e) => {
+                const props = e.features[0].properties;
+                const coords = e.features[0].geometry.coordinates.slice();
+                kpiPopup.setLngLat(coords).setHTML(props.popupHtml).addTo(map);
+            });
+            map.on('mouseenter', 'kpi-points-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+            map.on('mouseleave', 'kpi-points-layer', () => { map.getCanvas().style.cursor = ''; });
 
             const eventIcons = {
                 'handover': { icon: '↔', color: '#f97316', label: 'Handover', circleIcon: true },
@@ -4433,66 +4553,9 @@ function renderScatterPlots() {
                 'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
+                'voice_call': { icon: '📱', color: '#06b6d4', label: 'Voice Call', circleIcon: true },
                 'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true }
             };
-
-            // Add markers
-            coords.forEach((p, i) => {
-                const row = p.row;
-                const hasEvent = row.event && row.event.trim() !== '';
-
-                {
-                    const el = document.createElement('div');
-                    el.innerHTML = `<div style="width:10px;height:10px;border-radius:50%;background:${p.color};border:none;box-shadow:0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:10px;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));cursor:pointer;"></div>`;
-                    
-                    // Build popup content based on technology
-                    const tech = row.technology || 'LTE';
-                    let kpiContent = '';
-                    
-                    const frequencyInfo = resolveTechFrequencyInfo(row, tech);
-
-                    if (tech === 'NR') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>NR-RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.nr_rsrp || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>NR-RSRQ:</b> ${row.nr_rsrq || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>NR-SINR:</b> ${row.nr_sinr || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>NR-PCI:</b> ${row.nr_pci || '-'}</div>
-                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>
-                            <div style="margin:4px 0;"><b>Beam ID:</b> ${row.beam_id || '-'}</div>`;
-                    } else if (tech === 'LTE') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>RSRP:</b> <span style="color:${p.color};font-weight:bold;">${row.rsrp || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>RSRQ:</b> ${row.rsrq || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>SINR:</b> ${row.sinr || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>PCI:</b> ${row.pci || '-'}</div>
-                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
-                    } else if (tech === 'UMTS') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>RSCP:</b> <span style="color:${p.color};font-weight:bold;">${row.wcdma_rscp || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>Ec/No:</b> ${row.wcdma_ecno || '-'} dB</div>
-                            <div style="margin:4px 0;"><b>PSC:</b> ${row.wcdma_psc || '-'}</div>
-                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
-                    } else if (tech === 'GSM') {
-                        kpiContent = `
-                            <div style="margin:4px 0;"><b>RxLev:</b> <span style="color:${p.color};font-weight:bold;">${row.gsm_rxlev || row.rxlev || '-'} dBm</span></div>
-                            <div style="margin:4px 0;"><b>RxQual:</b> ${row.gsm_rxqual || row.rxqual || '-'}</div>
-                            <div style="margin:4px 0;"><b>BSIC:</b> ${row.gsm_bsic || '-'}</div>
-                            <div style="margin:4px 0;"><b>${frequencyInfo.label}:</b> ${frequencyInfo.value}</div>`;
-                    }
-                    
-                    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
-                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;">
-                            <div style="font-weight:800;color:${p.color};margin-bottom:8px;border-bottom:2px solid ${p.color};padding-bottom:4px;">📍 ${tech} Point #${row['#'] || row.number || i + 1}</div>
-                            <div style="margin:4px 0;"><b>Time:</b> ${getFullTimestamp(row)}</div>
-                            <div style="margin:4px 0;"><b>Latitude:</b> ${p.lat.toFixed(6)}</div>
-                            <div style="margin:4px 0;"><b>Longitude:</b> ${p.lon.toFixed(6)}</div>
-                            ${kpiContent}
-                            ${row.quality ? `<div style="margin:4px 0;"><b>Quality:</b> ${row.quality}</div>` : ''}
-                        </div>
-                    `);
-                    markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).setPopup(popup).addTo(map));
-                }
-            });
 
             // Event markers
             coords.filter(p => {
@@ -4500,8 +4563,8 @@ function renderScatterPlots() {
                 return eventType && (visibleMapEvents === null || visibleMapEvents.has(eventType));
             }).forEach((p, i) => {
                 const row = p.row;
-                const evtKey = row.event.toLowerCase().trim();
-                const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
+                const evtKey = row.event.toLowerCase().trim().replace(/[\s\-]+/g, '_');
+                const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event, circleIcon: true };
 
                 const el = document.createElement('div');
                 if (evt.circleIcon) {
@@ -4559,6 +4622,7 @@ function renderScatterPlots() {
             document.getElementById('pointCount').textContent = coords.length;
             updateEventStatsDisplay();
             updateMapLegend();
+            updateMapKpiSelectorLabels(currentTechFilter !== 'all' ? currentTechFilter : detectedTechnology);
             updateMapEventFilters();
 
             if (coords.length > 0) {
@@ -4568,6 +4632,13 @@ function renderScatterPlots() {
             }
 
             // Auto-populate L3 messages (removed - no longer needed)
+        }
+
+        // Debounced renderMap for filter/KPI selector changes — prevents stacked re-renders
+        let _renderMapDebounceTimer = null;
+        function renderMapDebounced(csvText) {
+            clearTimeout(_renderMapDebounceTimer);
+            _renderMapDebounceTimer = setTimeout(() => renderMap(csvText), 80);
         }
 
         // =====================================================
@@ -4756,17 +4827,39 @@ function renderScatterPlots() {
         });
         
         // Technology filter change handler
+        function updateMapKpiSelectorLabels(tech) {
+            const labels = {
+                'NR':   { rsrp: 'NR-RSRP', rsrq: 'NR-RSRQ', sinr: 'NR-SINR', pci: 'NR-PCI' },
+                'LTE':  { rsrp: 'RSRP',    rsrq: 'RSRQ',    sinr: 'SINR',    pci: 'PCI'    },
+                'UMTS': { rsrp: 'RSCP',    rsrq: 'Ec/No',   sinr: 'SINR',    pci: 'PSC'    },
+                'GSM':  { rsrp: 'RxLev',   rsrq: 'RxQual',  sinr: 'SINR',    pci: 'BSIC'   }
+            };
+            const t = (tech === 'all' ? 'LTE' : tech) || 'LTE';
+            const map = labels[t] || labels['LTE'];
+            const sel = document.getElementById('mapKpiSelector');
+            if (!sel) return;
+            sel.querySelectorAll('option').forEach(opt => {
+                switch (opt.value) {
+                    case 'rsrp': opt.text = `COLOR BY: ${map.rsrp}`; break;
+                    case 'rsrq': opt.text = `COLOR BY: ${map.rsrq}`; break;
+                    case 'sinr': opt.text = `COLOR BY: ${map.sinr}`; break;
+                    case 'pci':  opt.text = `COLOR BY: ${map.pci}`;  break;
+                }
+            });
+        }
+
         document.getElementById('techFilter').addEventListener('change', function(e) {
             currentTechFilter = e.target.value;
+            updateMapKpiSelectorLabels(currentTechFilter);
             if (csvData && rawParsedData.length > 0) {
-                renderMap(); // Call without csvText to re-filter existing data
+                renderMapDebounced(); // debounced to avoid stacked re-renders
             }
         });
 
         document.getElementById('mapKpiSelector').addEventListener('change', function(e) {
             selectedMapKpi = e.target.value;
             if (csvData && rawParsedData.length > 0) {
-                renderMap();
+                renderMapDebounced();
             } else {
                 updateMapLegend();
             }
