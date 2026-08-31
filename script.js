@@ -1633,20 +1633,23 @@
             if (selectedMapKpi === 'pci') {
                 if (profileName) profileName.textContent = 'Unique color per cell ID';
                 if (rangesContainer) {
-                    // Build legend from unique PCI values in current data
-                    const uniquePcis = [...new Set(parsedData.map(row => {
+                    // Count samples per PCI, sort by count desc, show % and count
+                    const pciCounts = {};
+                    parsedData.forEach(row => {
                         const tech = (row.technology || 'LTE').toUpperCase();
                         const val = tech === 'NR' ? row.nr_pci : tech === 'UMTS' ? (row.wcdma_psc || row.psc) : tech === 'GSM' ? row.gsm_bsic : row.pci;
-                        return val !== undefined && val !== '' ? String(val) : null;
-                    }).filter(Boolean))].sort((a, b) => Number(a) - Number(b)).slice(0, 12);
-
-                    if (uniquePcis.length > 0) {
+                        if (val !== undefined && val !== '') pciCounts[String(val)] = (pciCounts[String(val)] || 0) + 1;
+                    });
+                    const total = parsedData.length || 1;
+                    const sorted = Object.entries(pciCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
+                    if (sorted.length > 0) {
                         const pciLabel = getMapKpiLabel('pci');
-                        rangesContainer.innerHTML = uniquePcis.map(pci => {
+                        rangesContainer.innerHTML = sorted.map(([pci, count]) => {
                             const hue = (Math.abs(Math.round(Number(pci)) * 137) % 360);
                             const color = `hsl(${hue},70%,55%)`;
-                            return `<div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 rounded-full" style="background:${color};"></div><span>${pciLabel} ${pci}</span></div>`;
-                        }).join('') + (parsedData.length > 0 && uniquePcis.length === 12 ? '<div class="text-gray-400 text-[10px] mt-1">Showing first 12 cells</div>' : '');
+                            const pct = ((count / total) * 100).toFixed(2);
+                            return `<div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${color};"></div><span>${pciLabel} ${pci} (${pct}%, ${count} pts)</span></div>`;
+                        }).join('') + (Object.keys(pciCounts).length > 20 ? `<div class="text-gray-400 text-[10px] mt-1">Top 20 of ${Object.keys(pciCounts).length} cells</div>` : '');
                     } else {
                         rangesContainer.innerHTML = '<span class="text-gray-400">Upload CSV to see cells</span>';
                     }
