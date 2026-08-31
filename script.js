@@ -1686,6 +1686,7 @@
                 rlf: { icon: '⚠', color: '#ef4444', circleIcon: true },
                 attach: { icon: '⚡', color: '#3b82f6', circleIcon: true },
                 detach: { icon: '🔌', color: '#9ca3af', circleIcon: true },
+                voice_call: { icon: '📱', color: '#06b6d4', circleIcon: true },
                 csfb: { icon: '📞', color: '#a855f7', circleIcon: true }
             };
 
@@ -1707,7 +1708,8 @@
             container.innerHTML = eventTypes.map((eventType, index) => {
                 const id = `map-event-${index}`;
                 const checked = visibleMapEvents.has(eventType) ? ' checked' : '';
-                const eventInfo = eventIcons[eventType.toLowerCase()] || { icon: '⚡', color: '#f97316', circleIcon: true };
+                const normalizedKey = eventType.toLowerCase().trim().replace(/[\s\-]+/g, '_');
+                const eventInfo = eventIcons[normalizedKey] || { icon: '⚡', color: '#f97316', circleIcon: true };
                 const safeEventType = eventType.replace(/"/g, '&quot;');
                 const iconStyle = eventInfo.circleIcon
                     ? `display:inline-flex;width:20px;height:20px;border-radius:50%;background:${eventInfo.color};box-shadow:0 2px 8px rgba(0,0,0,0.6);align-items:center;justify-content:center;color:#000;font-size:14px;font-weight:normal;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));`
@@ -3235,6 +3237,9 @@ function renderScatterPlots() {
                 'rlf': '⚠',
                 'attach': '✅',
                 'detach': '🔌',
+                'voice_call': '📱',
+                'cell_reselection': '📶',
+                'csfb': '📞',
                 'drop': '📉'
             };
             return icons[type] || '📍';
@@ -3272,6 +3277,9 @@ function renderScatterPlots() {
                 'rlf': '#dc2626',           // Dark red
                 'attach': '#10b981',        // Green
                 'detach': '#6b7280',        // Gray
+                'voice_call': '#06b6d4',    // Cyan
+                'cell_reselection': '#8b5cf6', // Purple
+                'csfb': '#a855f7',          // Magenta
                 'drop': '#ef4444'           // Red
             };
             return colors[type] || '#6b7280';
@@ -4160,6 +4168,7 @@ function renderScatterPlots() {
                 attach: 'Attach',
                 detach: 'Detach',
                 rlf: 'RLF',
+                voice_call: 'Voice Call',
                 csfb: 'CSFB',
                 pci_change: 'PCI Change',
                 release: 'Release',
@@ -4174,6 +4183,7 @@ function renderScatterPlots() {
                     attach: base.attach,
                     detach: base.detach,
                     rlf: base.rlf,
+                    voice_call: base.voice_call,
                     pci_change: base.pci_change,
                     tech_change: base.tech_change,
                     drop: base.drop
@@ -4186,8 +4196,9 @@ function renderScatterPlots() {
                     cell_reselection: base.cell_reselection,
                     attach: base.attach,
                     detach: base.detach,
-                    csfb: base.csfb,
                     rlf: base.rlf,
+                    voice_call: base.voice_call,
+                    csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
                     tech_change: base.tech_change
@@ -4200,8 +4211,9 @@ function renderScatterPlots() {
                     cell_reselection: base.cell_reselection,
                     attach: base.attach,
                     detach: base.detach,
-                    csfb: base.csfb,
                     rlf: base.rlf,
+                    voice_call: base.voice_call,
+                    csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
                     tech_change: base.tech_change
@@ -4433,6 +4445,7 @@ function renderScatterPlots() {
                 'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
+                'voice_call': { icon: '📱', color: '#06b6d4', label: 'Voice Call', circleIcon: true },
                 'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true }
             };
 
@@ -4500,8 +4513,8 @@ function renderScatterPlots() {
                 return eventType && (visibleMapEvents === null || visibleMapEvents.has(eventType));
             }).forEach((p, i) => {
                 const row = p.row;
-                const evtKey = row.event.toLowerCase().trim();
-                const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event };
+                const evtKey = row.event.toLowerCase().trim().replace(/[\s\-]+/g, '_');
+                const evt = eventIcons[evtKey] || { icon: '⚡', color: '#f97316', label: row.event, circleIcon: true };
 
                 const el = document.createElement('div');
                 if (evt.circleIcon) {
