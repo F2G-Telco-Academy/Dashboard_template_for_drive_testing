@@ -1570,7 +1570,8 @@
                 bler: 'bler',
                 'dl-throughput': 'throughput_dl_mbps',
                 'ul-throughput': 'throughput_ul_mbps',
-                txpower: 'txpower'
+                txpower: 'txpower',
+                pci: tech === 'NR' ? 'nr_pci' : tech === 'UMTS' ? 'wcdma_psc' : tech === 'GSM' ? 'gsm_bsic' : 'pci'
             };
             const field = fieldsByKpi[kpiType] || kpiType;
             const rawValue = row?.[field] ?? (kpiType === 'rsrp' && tech === 'GSM' ? row?.rxlev : null);
@@ -1580,6 +1581,11 @@
 
         function getMapKpiColor(value, kpiType, row) {
             if (value === null) return '#6b7280';
+            if (kpiType === 'pci') {
+                // Categorical coloring: each unique PCI gets a distinct hue
+                const hue = (Math.abs(Math.round(value) * 137) % 360);
+                return `hsl(${hue},70%,55%)`;
+            }
             const profile = mapLegendProfiles[kpiType];
             if (!profile) return '#9ca3af';
             const matchingRange = profile.ranges.find(range => value >= range.min && (range.max === Infinity || value < range.max));
@@ -1587,6 +1593,8 @@
         }
 
         function getMapKpiLabel(kpiType) {
+            const tech = detectedTechnology || 'LTE';
+            const pciLabel = tech === 'NR' ? 'NR-PCI' : tech === 'UMTS' ? 'PSC' : tech === 'GSM' ? 'BSIC' : 'PCI';
             return {
                 rsrp: 'RSRP',
                 rsrq: 'RSRQ',
@@ -1597,7 +1605,8 @@
                 bler: 'BLER',
                 'dl-throughput': 'DL Throughput',
                 'ul-throughput': 'UL Throughput',
-                txpower: 'TxPower'
+                txpower: 'TxPower',
+                pci: pciLabel
             }[kpiType] || kpiType.toUpperCase();
         }
 
@@ -1617,8 +1626,35 @@
             const title = document.getElementById('legendTitle');
             const rangesContainer = document.getElementById('mapLegendRanges');
             const profileName = document.getElementById('mapLegendProfileName');
+            const editor = document.getElementById('mapLegendEditor');
             const profile = mapLegendProfiles[selectedMapKpi];
             if (title) title.textContent = `${getMapKpiLabel(selectedMapKpi)} LEGEND`;
+
+            if (selectedMapKpi === 'pci') {
+                if (profileName) profileName.textContent = 'Unique color per cell ID';
+                if (rangesContainer) {
+                    // Build legend from unique PCI values in current data
+                    const uniquePcis = [...new Set(parsedData.map(row => {
+                        const tech = (row.technology || 'LTE').toUpperCase();
+                        const val = tech === 'NR' ? row.nr_pci : tech === 'UMTS' ? (row.wcdma_psc || row.psc) : tech === 'GSM' ? row.gsm_bsic : row.pci;
+                        return val !== undefined && val !== '' ? String(val) : null;
+                    }).filter(Boolean))].sort((a, b) => Number(a) - Number(b)).slice(0, 12);
+
+                    if (uniquePcis.length > 0) {
+                        const pciLabel = getMapKpiLabel('pci');
+                        rangesContainer.innerHTML = uniquePcis.map(pci => {
+                            const hue = (Math.abs(Math.round(Number(pci)) * 137) % 360);
+                            const color = `hsl(${hue},70%,55%)`;
+                            return `<div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 rounded-full" style="background:${color};"></div><span>${pciLabel} ${pci}</span></div>`;
+                        }).join('') + (parsedData.length > 0 && uniquePcis.length === 12 ? '<div class="text-gray-400 text-[10px] mt-1">Showing first 12 cells</div>' : '');
+                    } else {
+                        rangesContainer.innerHTML = '<span class="text-gray-400">Upload CSV to see cells</span>';
+                    }
+                }
+                if (editor) editor.classList.add('hidden');
+                return;
+            }
+
             if (profileName) profileName.textContent = profile?.profileName ? `Profile: ${profile.profileName}` : 'Default reference profile';
             if (rangesContainer && profile) {
                 rangesContainer.innerHTML = profile.ranges.map(range => `
@@ -4582,6 +4618,7 @@ function renderScatterPlots() {
             document.getElementById('pointCount').textContent = coords.length;
             updateEventStatsDisplay();
             updateMapLegend();
+            updateMapKpiSelectorLabels(currentTechFilter !== 'all' ? currentTechFilter : detectedTechnology);
             updateMapEventFilters();
 
             if (coords.length > 0) {
@@ -4786,8 +4823,30 @@ function renderScatterPlots() {
         });
         
         // Technology filter change handler
+        function updateMapKpiSelectorLabels(tech) {
+            const labels = {
+                'NR':   { rsrp: 'NR-RSRP', rsrq: 'NR-RSRQ', sinr: 'NR-SINR', pci: 'NR-PCI' },
+                'LTE':  { rsrp: 'RSRP',    rsrq: 'RSRQ',    sinr: 'SINR',    pci: 'PCI'    },
+                'UMTS': { rsrp: 'RSCP',    rsrq: 'Ec/No',   sinr: 'SINR',    pci: 'PSC'    },
+                'GSM':  { rsrp: 'RxLev',   rsrq: 'RxQual',  sinr: 'SINR',    pci: 'BSIC'   }
+            };
+            const t = (tech === 'all' ? 'LTE' : tech) || 'LTE';
+            const map = labels[t] || labels['LTE'];
+            const sel = document.getElementById('mapKpiSelector');
+            if (!sel) return;
+            sel.querySelectorAll('option').forEach(opt => {
+                switch (opt.value) {
+                    case 'rsrp': opt.text = `COLOR BY: ${map.rsrp}`; break;
+                    case 'rsrq': opt.text = `COLOR BY: ${map.rsrq}`; break;
+                    case 'sinr': opt.text = `COLOR BY: ${map.sinr}`; break;
+                    case 'pci':  opt.text = `COLOR BY: ${map.pci}`;  break;
+                }
+            });
+        }
+
         document.getElementById('techFilter').addEventListener('change', function(e) {
             currentTechFilter = e.target.value;
+            updateMapKpiSelectorLabels(currentTechFilter);
             if (csvData && rawParsedData.length > 0) {
                 renderMapDebounced(); // debounced to avoid stacked re-renders
             }
