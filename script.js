@@ -1732,7 +1732,8 @@
                 call_connected: { icon: '📱', color: '#22c55e', circleIcon: true },
                 call_end: { icon: '📱', color: '#ef4444', circleIcon: true },
                 handover_command: { icon: '↔', color: '#fb923c', circleIcon: true },
-                location_update: { icon: '⚡', color: '#8b5cf6', circleIcon: true }
+                location_update: { icon: '⚡', color: '#8b5cf6', circleIcon: true },
+                rrc_release: { icon: '❌', color: '#ef4444', circleIcon: true }
             };
 
             const eventTypes = [...new Set(rawParsedData
@@ -4232,7 +4233,8 @@ function renderScatterPlots() {
                 call_connected: 'Call Connected',
                 call_end: 'Call End',
                 handover_command: 'Handover Command',
-                location_update: 'Location Update'
+                location_update: 'Location Update',
+                rrc_release: 'RRC Release'
             };
 
             if (tech === 'NR') {
@@ -4281,7 +4283,8 @@ function renderScatterPlots() {
                     call_connected: base.call_connected,
                     call_end: base.call_end,
                     handover_command: base.handover_command,
-                    location_update: base.location_update
+                    location_update: base.location_update,
+                    rrc_release: base.rrc_release
                 };
             }
 
@@ -4578,7 +4581,8 @@ function renderScatterPlots() {
                 'call_connected': { icon: '📱', color: '#22c55e', label: 'Call Connected', circleIcon: true },
                 'call_end': { icon: '📱', color: '#ef4444', label: 'Call End', circleIcon: true },
                 'handover_command': { icon: '↔', color: '#fb923c', label: 'Handover Command', circleIcon: true },
-                'location_update': { icon: '⚡', color: '#8b5cf6', label: 'Location Update', circleIcon: true }
+                'location_update': { icon: '⚡', color: '#8b5cf6', label: 'Location Update', circleIcon: true },
+                'rrc_release': { icon: '❌', color: '#ef4444', label: 'RRC Release', circleIcon: true }
             };
 
             // Event markers
