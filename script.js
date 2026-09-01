@@ -1726,7 +1726,13 @@
                 attach: { icon: '⚡', color: '#3b82f6', circleIcon: true },
                 detach: { icon: '🔌', color: '#9ca3af', circleIcon: true },
                 voice_call: { icon: '📱', color: '#06b6d4', circleIcon: true },
-                csfb: { icon: '📞', color: '#a855f7', circleIcon: true }
+                csfb: { icon: '📞', color: '#a855f7', circleIcon: true },
+                attach_attempt: { icon: '⚡', color: '#f59e0b', circleIcon: true },
+                call_setup: { icon: '📱', color: '#06b6d4', circleIcon: true },
+                call_connected: { icon: '📱', color: '#22c55e', circleIcon: true },
+                call_end: { icon: '📱', color: '#ef4444', circleIcon: true },
+                handover_command: { icon: '↔', color: '#fb923c', circleIcon: true },
+                location_update: { icon: '⚡', color: '#8b5cf6', circleIcon: true }
             };
 
             const eventTypes = [...new Set(rawParsedData
@@ -4220,7 +4226,13 @@ function renderScatterPlots() {
                 pci_change: 'PCI Change',
                 release: 'Release',
                 tech_change: 'RAT Change',
-                drop: 'Drop'
+                drop: 'Drop',
+                attach_attempt: 'Attach Attempt',
+                call_setup: 'Call Setup',
+                call_connected: 'Call Connected',
+                call_end: 'Call End',
+                handover_command: 'Handover Command',
+                location_update: 'Location Update'
             };
 
             if (tech === 'NR') {
@@ -4263,7 +4275,13 @@ function renderScatterPlots() {
                     csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
-                    tech_change: base.tech_change
+                    tech_change: base.tech_change,
+                    attach_attempt: base.attach_attempt,
+                    call_setup: base.call_setup,
+                    call_connected: base.call_connected,
+                    call_end: base.call_end,
+                    handover_command: base.handover_command,
+                    location_update: base.location_update
                 };
             }
 
@@ -4554,7 +4572,13 @@ function renderScatterPlots() {
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
                 'voice_call': { icon: '📱', color: '#06b6d4', label: 'Voice Call', circleIcon: true },
-                'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true }
+                'csfb': { icon: '📞', color: '#a855f7', label: 'CSFB', circleIcon: true },
+                'attach_attempt': { icon: '⚡', color: '#f59e0b', label: 'Attach Attempt', circleIcon: true },
+                'call_setup': { icon: '📱', color: '#06b6d4', label: 'Call Setup', circleIcon: true },
+                'call_connected': { icon: '📱', color: '#22c55e', label: 'Call Connected', circleIcon: true },
+                'call_end': { icon: '📱', color: '#ef4444', label: 'Call End', circleIcon: true },
+                'handover_command': { icon: '↔', color: '#fb923c', label: 'Handover Command', circleIcon: true },
+                'location_update': { icon: '⚡', color: '#8b5cf6', label: 'Location Update', circleIcon: true }
             };
 
             // Event markers
