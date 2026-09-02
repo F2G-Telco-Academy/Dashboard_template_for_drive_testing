@@ -5409,7 +5409,8 @@ function renderScatterPlots() {
             const btn   = document.getElementById('mapControlsToggle');
             if (!panel || !btn) return;
 
-            let collapsed = localStorage.getItem('mapControlsCollapsed') === 'true';
+            const isClientView = new URLSearchParams(window.location.search).get('mode') === 'view';
+            let collapsed = isClientView ? false : localStorage.getItem('mapControlsCollapsed') === 'true';
 
             function applyState() {
                 if (collapsed) {
