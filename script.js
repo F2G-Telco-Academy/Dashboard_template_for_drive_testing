@@ -5402,6 +5402,47 @@ function renderScatterPlots() {
         loadSavedState();
 
         // =====================================================
+        // MAP CONTROLS PANEL TOGGLE
+        // =====================================================
+        (function() {
+            const panel = document.getElementById('mapControlsPanel');
+            const btn   = document.getElementById('mapControlsToggle');
+            if (!panel || !btn) return;
+
+            let collapsed = localStorage.getItem('mapControlsCollapsed') === 'true';
+
+            function applyState() {
+                if (collapsed) {
+                    panel.style.opacity = '0';
+                    panel.style.pointerEvents = 'none';
+                    panel.style.transform = 'scaleX(0)';
+                    btn.innerHTML = '&#8250;';
+                    btn.title = 'Show map controls';
+                } else {
+                    panel.style.opacity = '1';
+                    panel.style.pointerEvents = '';
+                    panel.style.transform = 'scaleX(1)';
+                    btn.innerHTML = '&#8249;';
+                    btn.title = 'Hide map controls';
+                }
+                setTimeout(() => { if (map) map.resize(); }, 220);
+            }
+
+            applyState();
+
+            btn.addEventListener('click', function() {
+                collapsed = !collapsed;
+                localStorage.setItem('mapControlsCollapsed', collapsed);
+                applyState();
+            });
+
+            // Re-apply after fullscreen transitions so button stays functional
+            document.addEventListener('fullscreenchange', function() {
+                setTimeout(applyState, 100);
+            });
+        })();
+
+        // =====================================================
         // CHART ZOOM MODAL FUNCTIONALITY
         // =====================================================
 
