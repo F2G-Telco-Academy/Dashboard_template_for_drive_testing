@@ -1723,6 +1723,7 @@
                 handover: { icon: '↔', color: '#f97316', circleIcon: true },
                 cell_reselection: { icon: '📶', color: '#8b5cf6' },
                 rlf: { icon: '⚠', color: '#ef4444', circleIcon: true },
+                radio_link_failure: { icon: '⚠', color: '#ef4444', circleIcon: true },
                 attach: { icon: '⚡', color: '#3b82f6', circleIcon: true },
                 detach: { icon: '🔌', color: '#9ca3af', circleIcon: true },
                 voice_call: { icon: '📱', color: '#06b6d4', circleIcon: true },
@@ -1733,7 +1734,10 @@
                 call_end: { icon: '📱', color: '#ef4444', circleIcon: true },
                 handover_command: { icon: '↔', color: '#fb923c', circleIcon: true },
                 location_update: { icon: '⚡', color: '#8b5cf6', circleIcon: true },
-                rrc_release: { icon: '❌', color: '#ef4444', circleIcon: true }
+                rrc_release: { icon: '❌', color: '#ef4444', circleIcon: true },
+                location_update_attempt: { icon: '⚡', color: '#c084fc', circleIcon: true },
+                meas_report: { icon: '📊', color: '#38bdf8', circleIcon: true },
+                tau: { icon: '🔄', color: '#fb923c', circleIcon: true }
             };
 
             const eventTypes = [...new Set(rawParsedData
@@ -4222,6 +4226,7 @@ function renderScatterPlots() {
                 attach: 'Attach',
                 detach: 'Detach',
                 rlf: 'RLF',
+                radio_link_failure: 'Radio Link Failure',
                 voice_call: 'Voice Call',
                 csfb: 'CSFB',
                 pci_change: 'PCI Change',
@@ -4234,7 +4239,10 @@ function renderScatterPlots() {
                 call_end: 'Call End',
                 handover_command: 'Handover Command',
                 location_update: 'Location Update',
-                rrc_release: 'RRC Release'
+                rrc_release: 'RRC Release',
+                location_update_attempt: 'Location Update Attempt',
+                meas_report: 'Meas Report',
+                tau: 'TAU'
             };
 
             if (tech === 'NR') {
@@ -4244,10 +4252,13 @@ function renderScatterPlots() {
                     attach: base.attach,
                     detach: base.detach,
                     rlf: base.rlf,
+                    radio_link_failure: base.radio_link_failure,
                     voice_call: base.voice_call,
                     pci_change: base.pci_change,
                     tech_change: base.tech_change,
-                    drop: base.drop
+                    drop: base.drop,
+                    meas_report: base.meas_report,
+                    tau: base.tau
                 };
             }
 
@@ -4258,11 +4269,15 @@ function renderScatterPlots() {
                     attach: base.attach,
                     detach: base.detach,
                     rlf: base.rlf,
+                    radio_link_failure: base.radio_link_failure,
                     voice_call: base.voice_call,
                     csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
-                    tech_change: base.tech_change
+                    tech_change: base.tech_change,
+                    meas_report: base.meas_report,
+                    location_update: base.location_update,
+                    rrc_release: base.rrc_release
                 };
             }
 
@@ -4273,6 +4288,7 @@ function renderScatterPlots() {
                     attach: base.attach,
                     detach: base.detach,
                     rlf: base.rlf,
+                    radio_link_failure: base.radio_link_failure,
                     voice_call: base.voice_call,
                     csfb: base.csfb,
                     pci_change: base.pci_change,
@@ -4284,7 +4300,8 @@ function renderScatterPlots() {
                     call_end: base.call_end,
                     handover_command: base.handover_command,
                     location_update: base.location_update,
-                    rrc_release: base.rrc_release
+                    rrc_release: base.rrc_release,
+                    location_update_attempt: base.location_update_attempt
                 };
             }
 
@@ -4572,6 +4589,7 @@ function renderScatterPlots() {
                 'handover': { icon: '↔', color: '#f97316', label: 'Handover', circleIcon: true },
                 'cell_reselection': { icon: '📶', color: '#8b5cf6', label: 'Cell Reselection' },
                 'rlf': { icon: '⚠', color: '#ef4444', label: 'RLF', circleIcon: true },
+                'radio_link_failure': { icon: '⚠', color: '#ef4444', label: 'Radio Link Failure', circleIcon: true },
                 'attach': { icon: '⚡', color: '#3b82f6', label: 'Attach', circleIcon: true },
                 'detach': { icon: '🔌', color: '#9ca3af', label: 'Detach', circleIcon: true },
                 'voice_call': { icon: '📱', color: '#06b6d4', label: 'Voice Call', circleIcon: true },
@@ -4582,7 +4600,10 @@ function renderScatterPlots() {
                 'call_end': { icon: '📱', color: '#ef4444', label: 'Call End', circleIcon: true },
                 'handover_command': { icon: '↔', color: '#fb923c', label: 'Handover Command', circleIcon: true },
                 'location_update': { icon: '⚡', color: '#8b5cf6', label: 'Location Update', circleIcon: true },
-                'rrc_release': { icon: '❌', color: '#ef4444', label: 'RRC Release', circleIcon: true }
+                'rrc_release': { icon: '❌', color: '#ef4444', label: 'RRC Release', circleIcon: true },
+                'location_update_attempt': { icon: '⚡', color: '#c084fc', label: 'Location Update Attempt', circleIcon: true },
+                'meas_report': { icon: '📊', color: '#38bdf8', label: 'Meas Report', circleIcon: true },
+                'tau': { icon: '🔄', color: '#fb923c', label: 'TAU', circleIcon: true }
             };
 
             // Event markers
@@ -5379,6 +5400,48 @@ function renderScatterPlots() {
 
         // Initialize saved state when page loads
         loadSavedState();
+
+        // =====================================================
+        // MAP CONTROLS PANEL TOGGLE
+        // =====================================================
+        (function() {
+            const panel = document.getElementById('mapControlsPanel');
+            const btn   = document.getElementById('mapControlsToggle');
+            if (!panel || !btn) return;
+
+            const isClientView = new URLSearchParams(window.location.search).get('mode') === 'view';
+            let collapsed = isClientView ? false : localStorage.getItem('mapControlsCollapsed') === 'true';
+
+            function applyState() {
+                if (collapsed) {
+                    panel.style.opacity = '0';
+                    panel.style.pointerEvents = 'none';
+                    panel.style.transform = 'scaleX(0)';
+                    btn.innerHTML = '&#8250;';
+                    btn.title = 'Show map controls';
+                } else {
+                    panel.style.opacity = '1';
+                    panel.style.pointerEvents = '';
+                    panel.style.transform = 'scaleX(1)';
+                    btn.innerHTML = '&#8249;';
+                    btn.title = 'Hide map controls';
+                }
+                setTimeout(() => { if (map) map.resize(); }, 220);
+            }
+
+            applyState();
+
+            btn.addEventListener('click', function() {
+                collapsed = !collapsed;
+                localStorage.setItem('mapControlsCollapsed', collapsed);
+                applyState();
+            });
+
+            // Re-apply after fullscreen transitions so button stays functional
+            document.addEventListener('fullscreenchange', function() {
+                setTimeout(applyState, 100);
+            });
+        })();
 
         // =====================================================
         // CHART ZOOM MODAL FUNCTIONALITY
