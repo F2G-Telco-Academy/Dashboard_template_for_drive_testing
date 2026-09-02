@@ -1734,7 +1734,10 @@
                 call_end: { icon: '📱', color: '#ef4444', circleIcon: true },
                 handover_command: { icon: '↔', color: '#fb923c', circleIcon: true },
                 location_update: { icon: '⚡', color: '#8b5cf6', circleIcon: true },
-                rrc_release: { icon: '❌', color: '#ef4444', circleIcon: true }
+                rrc_release: { icon: '❌', color: '#ef4444', circleIcon: true },
+                location_update_attempt: { icon: '⚡', color: '#c084fc', circleIcon: true },
+                meas_report: { icon: '📊', color: '#38bdf8', circleIcon: true },
+                tau: { icon: '🔄', color: '#fb923c', circleIcon: true }
             };
 
             const eventTypes = [...new Set(rawParsedData
@@ -4236,7 +4239,10 @@ function renderScatterPlots() {
                 call_end: 'Call End',
                 handover_command: 'Handover Command',
                 location_update: 'Location Update',
-                rrc_release: 'RRC Release'
+                rrc_release: 'RRC Release',
+                location_update_attempt: 'Location Update Attempt',
+                meas_report: 'Meas Report',
+                tau: 'TAU'
             };
 
             if (tech === 'NR') {
@@ -4250,7 +4256,9 @@ function renderScatterPlots() {
                     voice_call: base.voice_call,
                     pci_change: base.pci_change,
                     tech_change: base.tech_change,
-                    drop: base.drop
+                    drop: base.drop,
+                    meas_report: base.meas_report,
+                    tau: base.tau
                 };
             }
 
@@ -4266,7 +4274,10 @@ function renderScatterPlots() {
                     csfb: base.csfb,
                     pci_change: base.pci_change,
                     release: base.release,
-                    tech_change: base.tech_change
+                    tech_change: base.tech_change,
+                    meas_report: base.meas_report,
+                    location_update: base.location_update,
+                    rrc_release: base.rrc_release
                 };
             }
 
@@ -4289,7 +4300,8 @@ function renderScatterPlots() {
                     call_end: base.call_end,
                     handover_command: base.handover_command,
                     location_update: base.location_update,
-                    rrc_release: base.rrc_release
+                    rrc_release: base.rrc_release,
+                    location_update_attempt: base.location_update_attempt
                 };
             }
 
@@ -4588,7 +4600,10 @@ function renderScatterPlots() {
                 'call_end': { icon: '📱', color: '#ef4444', label: 'Call End', circleIcon: true },
                 'handover_command': { icon: '↔', color: '#fb923c', label: 'Handover Command', circleIcon: true },
                 'location_update': { icon: '⚡', color: '#8b5cf6', label: 'Location Update', circleIcon: true },
-                'rrc_release': { icon: '❌', color: '#ef4444', label: 'RRC Release', circleIcon: true }
+                'rrc_release': { icon: '❌', color: '#ef4444', label: 'RRC Release', circleIcon: true },
+                'location_update_attempt': { icon: '⚡', color: '#c084fc', label: 'Location Update Attempt', circleIcon: true },
+                'meas_report': { icon: '📊', color: '#38bdf8', label: 'Meas Report', circleIcon: true },
+                'tau': { icon: '🔄', color: '#fb923c', label: 'TAU', circleIcon: true }
             };
 
             // Event markers
