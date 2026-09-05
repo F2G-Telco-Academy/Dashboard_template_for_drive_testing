@@ -30,11 +30,12 @@ A professional telecom network validation dashboard for creating **customizable 
   - All formatting preserved in save/load/share
 
 ### 🔗 **Client View Sharing**
-- Generate shareable read-only URLs for clients
-- Compressed URLs with gzip (60-80% size reduction)
-- Embedded CSV data and configuration in URL
+- Generate shareable read-only links for clients
+- Short `#share=<id>` links when Supabase is configured (config stored remotely)
+- Automatic fallback to self-contained gzip-compressed URLs when it is not
+- Legacy `#mode=view&config=…` links remain fully supported
 - Client view shows blue banner and disables all editing
-- No server required - works entirely client-side
+- No app server required - hash routing works on any static host
 
 ### 📊 **KPI Visualization**
 - Real-time signal quality charts with technology-specific labels
@@ -147,6 +148,72 @@ A professional telecom network validation dashboard for creating **customizable 
 - Legend positioned below upload button
 - Dark/Light mode toggle
 - Fullscreen support
+
+---
+
+## 🖥️ Running Locally
+
+The dashboard is a static site (HTML/CSS/JS, no build step). Open it through a
+local web server — opening `index.html` as a `file://` URL will not work.
+
+```bash
+# from the project root, pick one:
+python -m http.server 8000      # then open http://localhost:8000
+npx serve .                     # then open the URL it prints
+```
+
+### Short share links (Supabase)
+
+Sharing always works using long self-contained URLs. Short `#share=<id>` links
+additionally require Supabase.
+
+> On this **private** repo, `supabase-config.js` is committed (it contains only
+> the public `anon`/publishable key, which is RLS-protected). A fresh `git clone`
+> therefore works with short links immediately — no setup needed. The steps below
+> are only for provisioning a **new** Supabase project or rotating the key.
+>
+> ⚠️ Never commit a `service_role` / `sb_secret_...` key. If this repo is made
+> public, add `supabase-config.js` back to `.gitignore` and scrub git history.
+
+1. Create a free project at <https://supabase.com>, then in **SQL Editor** run:
+
+   ```sql
+   create table if not exists public.shared_dashboards (
+     id         text primary key,
+     config     text not null,
+     created_at timestamptz not null default now(),
+     constraint shared_dashboards_config_size check (char_length(config) <= 6000000)
+   );
+   alter table public.shared_dashboards enable row level security;
+   create policy "public read shared dashboards"
+     on public.shared_dashboards for select to anon using (true);
+   create policy "public create shared dashboards"
+     on public.shared_dashboards for insert to anon with check (true);
+   -- no update/delete policies: shared rows are immutable
+   ```
+
+2. From **Project Settings → API** copy the **Project URL** and the
+   **`anon` / publishable** key.
+
+3. Regenerate the runtime config from those values:
+
+   ```bash
+   cp .env.example .env          # then edit .env with your real values
+   node scripts/generate-supabase-config.js   # (re)writes supabase-config.js
+   ```
+
+   `.env` is git-ignored; `supabase-config.js` is committed (see note above).
+   The script never overwrites an existing `supabase-config.js` when no
+   credentials are supplied.
+
+4. Restart the server. The Share button now stores the configuration in Supabase
+   and produces short links; if Supabase is unreachable it automatically falls
+   back to the legacy long URL.
+
+**Deployment (Netlify or any static host):** no build step is required — the
+committed `supabase-config.js` is served as-is, so short links work in production
+the same as locally. Supabase's REST API accepts requests from any origin, so no
+CORS or allowlist configuration is needed.
 
 ---
 
@@ -333,21 +400,29 @@ Client sees dashboard with embedded data (no CSV upload needed)
 
 ### **How It Works**
 1. **Engineer Mode**: Upload CSV, customize dashboard, click "🔗 SHARE"
-2. **URL Generation**: Creates compressed URL with config + CSV data
-3. **Client View**: Client opens URL → sees read-only dashboard with data
+2. **Link generation**:
+   - If Supabase is configured → the config + CSV are stored remotely and the
+     link is a short `…/#share=<id>`
+   - Otherwise → the config + CSV are gzip-compressed straight into the URL
+     (`…/#mode=view&config=<blob>`)
+3. **Client View**: Client opens the link → read-only dashboard with data
 
 ### **Features**
-- ✅ **Compressed URLs**: Gzip compression (60-80% smaller)
-- ✅ **URL-Safe Encoding**: Works in emails, chat, browsers
+- ✅ **Short links** when Supabase is set up; automatic fallback to self-contained URLs
+- ✅ **Backward compatible**: existing `#mode=view&config=…` links keep working; if
+  both `#share=` and `config=` are present, `#share=` wins
 - ✅ **Read-Only Mode**: Client cannot edit or upload files
-- ✅ **No Server Required**: All data embedded in URL
-- ✅ **Automatic Loading**: Map and data render automatically
+- ✅ **No app server required**: hash-based routing, works on any static host
+- ✅ **Graceful errors**: friendly messages for unknown IDs, network failures, or
+  corrupted configurations
 
 ### **Share Workflow**
 ```
-Engineer: Upload CSV → Customize → Click 🔗 SHARE → Copy URL
-Client: Open URL → View dashboard (read-only)
+Engineer: Upload CSV → Customize → Click 🔗 SHARE → Copy link
+Client:   Open link → View dashboard (read-only)
 ```
+
+See **Running Locally → Optional: short share links** for Supabase setup.
 
 ---
 

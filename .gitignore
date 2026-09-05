@@ -1,0 +1,9 @@
+# .env may hold secrets (e.g. a service_role key) — never commit it.
+.env
+.env.local
+
+# supabase-config.js holds only the public anon/publishable key (RLS-protected).
+# It is committed on purpose so a fresh clone works with no setup on this
+# PRIVATE repo. If the repo is ever made public, or a non-public key is used,
+# add it back to this ignore list and scrub git history.
+# supabase-config.js

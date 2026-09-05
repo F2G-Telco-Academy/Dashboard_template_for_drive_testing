@@ -281,16 +281,24 @@
         // Client View Detection - Use hash instead of query params to avoid 400 errors
         let encodedConfig = null;
         let isClientView = false;
-        
+        let sharedDashboardId = null; // set when a short "#share=<id>" link is opened
+
         // Check URL hash first (new format)
         if (window.location.hash) {
             const hash = window.location.hash.substring(1); // Remove #
             const hashParams = new URLSearchParams(hash);
+            // New short-link format: #share=<id> (config lives in Supabase, not the URL).
+            // Takes priority over the legacy inline "config" parameter.
+            const shareParam = (hashParams.get('share') || '').trim();
+            if (shareParam) {
+                sharedDashboardId = shareParam;
+                isClientView = true;
+            }
             encodedConfig = hashParams.get('config');
             const modeParam = hashParams.get('mode');
-            isClientView = !!(encodedConfig || modeParam === 'view');
+            isClientView = isClientView || !!(encodedConfig || modeParam === 'view');
         }
-        
+
         // Fallback to query params (old format for backward compatibility)
         if (!isClientView) {
             const urlParams = new URLSearchParams(window.location.search);
@@ -5181,6 +5189,124 @@ function renderScatterPlots() {
             document.querySelector('.dashboard-container').style.paddingTop = '60px';
         }
 
+        // =====================================================
+        // SHORT SHARE LINKS (Supabase-backed, optional)
+        // =====================================================
+        // When window.SUPABASE_URL / window.SUPABASE_ANON_KEY are provided
+        // (see supabase-config.js), the Share button stores the compressed
+        // configuration in Supabase and produces a short "#share=<id>" URL
+        // instead of embedding the whole configuration in the link.
+        // If Supabase is not configured or unreachable, sharing transparently
+        // falls back to the original long "#mode=view&config=..." URL, and every
+        // previously generated long URL keeps working unchanged.
+        const SHARE_TABLE = 'shared_dashboards';
+        const SHARE_ID_LENGTH = 12;
+        const SHARE_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+        let _supabaseClient; // undefined = not initialised yet, null = unavailable
+        function getSupabaseClient() {
+            if (_supabaseClient !== undefined) return _supabaseClient;
+            _supabaseClient = null;
+            try {
+                const url = window.SUPABASE_URL;
+                const key = window.SUPABASE_ANON_KEY;
+                if (url && key && window.supabase && typeof window.supabase.createClient === 'function') {
+                    _supabaseClient = window.supabase.createClient(url, key);
+                }
+            } catch (e) {
+                console.warn('Supabase client unavailable:', e);
+                _supabaseClient = null;
+            }
+            return _supabaseClient;
+        }
+
+        function isShareBackendAvailable() {
+            return !!getSupabaseClient();
+        }
+
+        // Cryptographically strong, URL-safe, non-sequential id.
+        function generateShareId() {
+            const bytes = new Uint8Array(SHARE_ID_LENGTH);
+            window.crypto.getRandomValues(bytes);
+            let id = '';
+            for (let i = 0; i < SHARE_ID_LENGTH; i++) {
+                id += SHARE_ID_ALPHABET[bytes[i] % SHARE_ID_ALPHABET.length];
+            }
+            return id;
+        }
+
+        // Store an already-compressed config string; returns the new short id.
+        async function createShareRecord(compressedConfig) {
+            const client = getSupabaseClient();
+            if (!client) throw new Error('SHARE_BACKEND_UNAVAILABLE');
+
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const id = generateShareId();
+                const { error } = await client
+                    .from(SHARE_TABLE)
+                    .insert({ id, config: compressedConfig });
+
+                if (!error) return id;
+                // 23505 = unique_violation -> astronomically unlikely id clash, retry
+                if (error.code === '23505') continue;
+                throw error;
+            }
+            throw new Error('Could not generate a unique share id. Please try again.');
+        }
+
+        // Retrieve a compressed config string previously stored via createShareRecord.
+        async function fetchShareRecord(id) {
+            const client = getSupabaseClient();
+            if (!client) throw new Error('SHARE_BACKEND_UNAVAILABLE');
+
+            const { data, error } = await client
+                .from(SHARE_TABLE)
+                .select('config')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (error) throw error;
+            return data && data.config ? data.config : null;
+        }
+
+        // Load a dashboard from a short "#share=<id>" link. Reuses the existing
+        // decode/apply pipeline by feeding the stored string into loadConfigFromURL().
+        async function loadSharedDashboard(id) {
+            if (!id || !/^[A-Za-z0-9_-]{6,64}$/.test(id)) {
+                showError('This share link is invalid or malformed.');
+                return;
+            }
+
+            const banner = document.createElement('div');
+            banner.id = 'shareLoadingBanner';
+            banner.style.cssText = 'position:fixed; bottom:16px; right:16px; background:#0891b2; color:white; padding:10px 16px; border:3px solid black; font-family:"JetBrains Mono",monospace; font-size:13px; font-weight:bold; z-index:9998;';
+            banner.textContent = '⏳ Loading shared dashboard...';
+            document.body.appendChild(banner);
+
+            try {
+                if (!isShareBackendAvailable()) {
+                    showError('Sharing is not configured for this deployment.');
+                    return;
+                }
+
+                const stored = await fetchShareRecord(id);
+                if (stored === null) {
+                    showError('Shared dashboard not found.');
+                    return;
+                }
+
+                // Hand the compressed string to the legacy loader unchanged.
+                encodedConfig = stored;
+                loadConfigFromURL();
+            } catch (err) {
+                console.error('Failed to load shared dashboard:', err);
+                showError('Unable to load the shared dashboard. Please check your internet connection and try again.');
+            } finally {
+                const b = document.getElementById('shareLoadingBanner');
+                if (b) b.remove();
+            }
+        }
+
         function loadConfigFromURL() {
             if (!encodedConfig) return;
 
@@ -5225,17 +5351,22 @@ function renderScatterPlots() {
                     }
                 }
             } catch (error) {
-                showError('Failed to load shared configuration: ' + error.message);
+                showError('This shared dashboard configuration is invalid or corrupted.');
             }
         }
 
-        function shareWithClient() {
+        async function shareWithClient() {
             if (!csvData) {
                 showError('Please upload a CSV file first before sharing.');
                 return;
             }
 
             saveCurrentState();
+
+            const modal = document.getElementById('shareModal');
+            const urlField = document.getElementById('shareUrl');
+            const statusEl = document.getElementById('shareStatus');
+            const copyBtn = document.getElementById('copyUrlBtn');
 
             try {
                 const shareData = {
@@ -5245,7 +5376,7 @@ function renderScatterPlots() {
 
                 const jsonString = JSON.stringify(shareData);
 
-                // Compress using pako
+                // Compress using pako (same serialization the legacy share URL uses)
                 const compressed = pako.gzip(jsonString, { level: 9 });
                 const binaryString = Array.from(compressed).map(byte => String.fromCharCode(byte)).join('');
                 const base64 = btoa(binaryString);
@@ -5253,12 +5384,35 @@ function renderScatterPlots() {
                 // Make URL-safe
                 const encoded = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-                // Use hash instead of query params to avoid 400 Bad Request on Netlify
-                const shareUrl = `${window.location.origin}${window.location.pathname}#mode=view&config=${encoded}`;
+                const base = `${window.location.origin}${window.location.pathname}`;
+                // Legacy long URL - always valid, and the fallback when Supabase is unavailable
+                const legacyUrl = `${base}#mode=view&config=${encoded}`;
 
-                document.getElementById('shareUrl').value = shareUrl;
-                document.getElementById('shareModal').style.display = 'flex';
+                if (isShareBackendAvailable()) {
+                    // Open the modal in a loading state while the config is stored remotely
+                    urlField.value = '';
+                    if (statusEl) statusEl.style.display = 'block';
+                    if (copyBtn) copyBtn.disabled = true;
+                    modal.style.display = 'flex';
+
+                    try {
+                        const id = await createShareRecord(encoded);
+                        urlField.value = `${base}#share=${id}`;
+                    } catch (err) {
+                        console.warn('Short share link failed, using long URL instead:', err);
+                        urlField.value = legacyUrl;
+                    } finally {
+                        if (statusEl) statusEl.style.display = 'none';
+                        if (copyBtn) copyBtn.disabled = false;
+                    }
+                } else {
+                    if (statusEl) statusEl.style.display = 'none';
+                    urlField.value = legacyUrl;
+                    modal.style.display = 'flex';
+                }
             } catch (error) {
+                if (statusEl) statusEl.style.display = 'none';
+                if (copyBtn) copyBtn.disabled = false;
                 showError('Failed to generate share URL: ' + error.message);
             }
         }
@@ -5296,11 +5450,17 @@ function renderScatterPlots() {
         initMap();
         map.on('load', () => {
             mapReady = true;
-            
+
             // Check if client view mode
             if (isClientView) {
                 setupClientView();
-                loadConfigFromURL();
+                if (sharedDashboardId) {
+                    // New short-link path: fetch the config from Supabase, then
+                    // hand off to the existing loader.
+                    loadSharedDashboard(sharedDashboardId);
+                } else {
+                    loadConfigFromURL();
+                }
             } else {
                 if (csvData) renderMap(csvData);
             }
