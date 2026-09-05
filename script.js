@@ -5244,18 +5244,18 @@ function renderScatterPlots() {
                 };
 
                 const jsonString = JSON.stringify(shareData);
-                
+
                 // Compress using pako
                 const compressed = pako.gzip(jsonString, { level: 9 });
                 const binaryString = Array.from(compressed).map(byte => String.fromCharCode(byte)).join('');
                 const base64 = btoa(binaryString);
-                
+
                 // Make URL-safe
                 const encoded = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
                 // Use hash instead of query params to avoid 400 Bad Request on Netlify
                 const shareUrl = `${window.location.origin}${window.location.pathname}#mode=view&config=${encoded}`;
-                
+
                 document.getElementById('shareUrl').value = shareUrl;
                 document.getElementById('shareModal').style.display = 'flex';
             } catch (error) {
@@ -5421,7 +5421,7 @@ function renderScatterPlots() {
                     btn.title = 'Show map controls';
                 } else {
                     panel.style.opacity = '1';
-                    panel.style.pointerEvents = '';
+                    panel.style.pointerEvents = 'auto';
                     panel.style.transform = 'scaleX(1)';
                     btn.innerHTML = '&#8249;';
                     btn.title = 'Hide map controls';
